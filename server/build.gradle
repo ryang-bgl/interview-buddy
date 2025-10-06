@@ -1,0 +1,137 @@
+plugins {
+  id 'org.springframework.boot' version '3.2.2'
+  id 'io.spring.dependency-management' version '1.1.4'
+  id 'java'
+  id "org.liquibase.gradle" version "2.2.0"
+  id("org.jooq.jooq-codegen-gradle") version "3.20.7"
+}
+
+group = 'com.interview.buddy'
+version = '1.0.0'
+
+java {
+  sourceCompatibility = '21'
+}
+
+// Override Spring Boot's jOOQ version
+ext['jooq.version'] = '3.20.7'
+
+configurations {
+  compileOnly {
+    extendsFrom annotationProcessor
+  }
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  // Spring Boot Starters
+  implementation 'org.springframework.boot:spring-boot-starter-web'
+  implementation 'org.springframework.boot:spring-boot-starter-security'
+  implementation 'org.springframework.boot:spring-boot-starter-validation'
+  implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+  // Database
+  implementation 'mysql:mysql-connector-java:8.0.33'
+
+  // jOOQ
+  implementation 'org.springframework.boot:spring-boot-starter-jooq'
+  jooqCodegen 'mysql:mysql-connector-java:8.0.33'
+
+  // Liquibase
+  liquibaseRuntime 'mysql:mysql-connector-java:8.0.32'
+  liquibaseRuntime 'org.liquibase:liquibase-core:4.20.0'
+  liquibaseRuntime 'info.picocli:picocli:4.7.1'
+  liquibaseRuntime 'ch.qos.logback:logback-core:1.4.14'
+  liquibaseRuntime 'ch.qos.logback:logback-classic:1.4.12'
+
+  // JWT
+  implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
+  runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
+  runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
+
+  // Jackson
+  implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+  // FSRS Algorithm - using custom implementation
+
+  // Utilities
+  implementation 'org.apache.commons:commons-lang3'
+
+  // Test Dependencies
+  testImplementation 'org.springframework.boot:spring-boot-starter-test'
+  testImplementation 'org.springframework.security:spring-security-test'
+  testImplementation 'org.testcontainers:mysql'
+  testImplementation 'org.testcontainers:junit-jupiter'
+}
+
+// Liquibase Configuration
+liquibase {
+  activities {
+    main {
+      changelogFile './db/db.changelog-master.xml'
+      url 'jdbc:mysql://localhost:33008/ib?createDatabaseIfNotExist=true'
+      username 'root'
+      password 'hNHZLgKf3Jo6UGu'
+      driver 'com.mysql.cj.jdbc.Driver'
+    }
+  }
+}
+
+jooq {
+  configuration {
+    jdbc {
+      driver = "com.mysql.cj.jdbc.Driver"
+      url = "jdbc:mysql://localhost:33008/litdeck"
+      user = "root"
+      password = "hNHZLgKf3Jo6UGu"
+    }
+    generator {
+      database {
+        name = "org.jooq.meta.mysql.MySQLDatabase"
+        inputSchema = "litdeck"
+        excludes = "DATABASECHANGELOG|DATABASECHANGELOGLOCK"
+      }
+      generate {
+        pojos = true
+        records = true
+        interfaces = false
+        daos = false
+        jpaAnnotations = false
+        validationAnnotations = true
+        springAnnotations = false
+        globalObjectReferences = true
+        fluentSetters = true
+      }
+      target {
+        packageName = "com.litdeck.backend.jooq"
+        directory = "${project.projectDir}/src/main/java"
+      }
+      strategy {
+        matchers {
+          tables {
+            table {
+              pojoClass {
+                transform = "PASCAL"
+                expression = "\$0Pojo"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+tasks.named('test') {
+  useJUnitPlatform()
+}
+
+// Ensure jOOQ generation runs after Liquibase migration
+// jooqCodegen.dependsOn update
+
+// Note: compileJava does NOT depend on jooqCodegen
+// Run './gradlew jooqCodegen' manually when database schema changes
+// This prevents unnecessary database operations during regular compilation
