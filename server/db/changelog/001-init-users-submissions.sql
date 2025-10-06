@@ -8,26 +8,12 @@ CREATE TABLE users (
     email VARCHAR(255),
     first_name VARCHAR(100),
     last_name VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     leetcode_username VARCHAR(255) NULL,
     CONSTRAINT unique_leetcode_username UNIQUE (leetcode_username),
-    CONSTRAINT users_pkey PRIMARY KEY (id),
-    CONSTRAINT users_username_key UNIQUE (username)
+    CONSTRAINT pk_users_id PRIMARY KEY (id),
 );
-
-CREATE TABLE submissions (
-    id VARCHAR(255) NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    title_slug VARCHAR(255) NOT NULL,
-    submitted_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    user_id CHAR(36) NOT NULL,
-    CONSTRAINT submissions_pkey PRIMARY KEY (id),
-    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id)
-);
-
-CREATE INDEX idx_submissions_user_time ON submissions(user_id, submitted_at);
 
 --rollback DROP TABLE IF EXISTS submissions;
 --rollback DROP TABLE IF EXISTS users;
