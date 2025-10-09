@@ -1,12 +1,27 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
-interface PageProblemTitle {
+interface PageProblemDetails {
   problemNumber: string
   problemTitle: string
   href: string
+  descriptionHtml?: string
+  descriptionText?: string
 }
 
-async function findLeetCodeTitleInActivePage(): Promise<PageProblemTitle | null> {
+function toPlainText(html: string): string {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+  const text = doc.body.textContent ?? ''
+  return text
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim()
+}
+
+async function findLeetCodeProblemDetailsInActivePage(): Promise<PageProblemDetails | null> {
   if (typeof chrome === 'undefined' || !chrome.tabs?.query || !chrome.scripting?.executeScript) {
     return null
   }
@@ -23,9 +38,9 @@ async function findLeetCodeTitleInActivePage(): Promise<PageProblemTitle | null>
     const [result] = await chrome.scripting.executeScript({
       target: { tabId: activeTab.id },
       func: () => {
-        const containers = Array.from(document.querySelectorAll<HTMLDivElement>('div.text-title-large'))
+        const containers = Array.from(document.querySelectorAll('div.text-title-large')) as HTMLElement[]
         for (const container of containers) {
-          const link = container.querySelector<HTMLAnchorElement>('a[href^="/problems/"]')
+          const link = container.querySelector('a[href^="/problems/"]') as HTMLAnchorElement | null
           if (!link) {
             continue
           }
@@ -40,31 +55,56 @@ async function findLeetCodeTitleInActivePage(): Promise<PageProblemTitle | null>
             continue
           }
 
+          const nextDataElement = document.getElementById('__NEXT_DATA__')
+          let descriptionHtml: string | undefined
+          if (nextDataElement?.textContent) {
+            try {
+              const data = JSON.parse(nextDataElement.textContent)
+              const queries = data?.props?.pageProps?.dehydratedState?.queries ?? []
+              for (const query of queries) {
+                const question = query?.state?.data?.question
+                if (question?.content) {
+                  descriptionHtml = question.content
+                  break
+                }
+              }
+            } catch (error) {
+              console.warn('[interview-buddy] Failed to parse __NEXT_DATA__ on page', error)
+            }
+          }
+
+          if (!descriptionHtml) {
+            const descriptionNode = document.querySelector('[data-track-load="description_content"]') as HTMLElement | null
+            if (descriptionNode) {
+              descriptionHtml = descriptionNode.innerHTML
+            }
+          }
+
+          let descriptionText: string | undefined
+          if (descriptionHtml) {
+            const tempContainer = document.createElement('div')
+            tempContainer.innerHTML = descriptionHtml
+            descriptionText = tempContainer.textContent?.trim()
+          }
+
           return {
             problemNumber: titleMatch[1],
             problemTitle: titleMatch[2],
             href: link.href,
+            descriptionHtml,
+            descriptionText,
           }
         }
 
         return null
       },
     })
-    return (result?.result ?? null) as PageProblemTitle | null
+    return (result?.result ?? null) as PageProblemDetails | null
   } catch (error) {
     console.warn('[interview-buddy] Failed to read LeetCode title from active page', error)
     return null
   }
 }
-
-const programmingLanguages = [
-  'JavaScript',
-  'TypeScript',
-  'Python',
-  'Java',
-  'C++',
-  'Go',
-]
 
 interface FieldLabelProps {
   label: string
@@ -91,20 +131,26 @@ export default function App() {
   const [problemNumber, setProblemNumber] = useState('1')
   const [problemLink, setProblemLink] = useState('https://leetcode.com/problems/two-sum')
   const [titleInput, setTitleInput] = useState('Two Sum')
-  const codeCharCount = useMemo(() => codeDefaultValue.length, [])
+  const [descriptionInput, setDescriptionInput] = useState('Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.')
 
   useEffect(() => {
     let cancelled = false
 
-    findLeetCodeTitleInActivePage()
-      .then((pageTitle) => {
-        if (cancelled || !pageTitle) {
+    findLeetCodeProblemDetailsInActivePage()
+      .then((pageDetails) => {
+        if (cancelled || !pageDetails) {
           return
         }
 
-        setProblemNumber(pageTitle.problemNumber)
-        setProblemLink(pageTitle.href)
-        setTitleInput(pageTitle.problemTitle)
+        setProblemNumber(pageDetails.problemNumber)
+        setProblemLink(pageDetails.href)
+        setTitleInput(pageDetails.problemTitle)
+
+        if (pageDetails.descriptionHtml) {
+          setDescriptionInput(toPlainText(pageDetails.descriptionHtml))
+        } else if (pageDetails.descriptionText) {
+          setDescriptionInput(pageDetails.descriptionText)
+        }
       })
       .catch((error) => {
         console.warn('[interview-buddy] Unable to discover LeetCode title', error)
@@ -175,6 +221,9 @@ export default function App() {
                     Easy
                   </span>
                 </div>
+                {titleInput ? (
+                  <div className="text-sm text-slate-700">{titleInput}</div>
+                ) : null}
                 <a
                   href={problemLink}
                   target="_blank"
@@ -201,33 +250,11 @@ export default function App() {
           <FieldLabel label="Problem Description">
             <textarea
               rows={9}
-              defaultValue="Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target."
+              value={descriptionInput}
+              onChange={(event) => setDescriptionInput(event.target.value)}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </FieldLabel>
-          <FieldLabel label="Programming Language" hint={`<> ${codeCharCount} characters`}>
-            <div className="relative flex items-center">
-              <select
-                defaultValue="JavaScript"
-                className="w-full appearance-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              >
-                {programmingLanguages.map((language) => (
-                  <option key={language}>{language}</option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute right-4 text-slate-400">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="h-4 w-4"
-                >
-                  <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.085l3.71-3.854a.75.75 0 0 1 1.08 1.04l-4.25 4.415a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06" />
-                </svg>
-              </span>
-            </div>
-          </FieldLabel>
-
           <FieldLabel label="Your Solution Code">
             <textarea
               rows={9}
