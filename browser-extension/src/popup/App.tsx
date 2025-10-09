@@ -1,4 +1,61 @@
-import { useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+
+interface PageProblemTitle {
+  problemNumber: string
+  problemTitle: string
+  href: string
+}
+
+async function findLeetCodeTitleInActivePage(): Promise<PageProblemTitle | null> {
+  if (typeof chrome === 'undefined' || !chrome.tabs?.query || !chrome.scripting?.executeScript) {
+    return null
+  }
+
+  const [activeTab] = await new Promise<chrome.tabs.Tab[]>((resolve) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, resolve)
+  })
+
+  if (!activeTab?.id) {
+    return null
+  }
+
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId: activeTab.id },
+      func: () => {
+        const containers = Array.from(document.querySelectorAll<HTMLDivElement>('div.text-title-large'))
+        for (const container of containers) {
+          const link = container.querySelector<HTMLAnchorElement>('a[href^="/problems/"]')
+          if (!link) {
+            continue
+          }
+
+          const rawText = link.textContent?.trim() ?? ''
+          if (!rawText) {
+            continue
+          }
+
+          const titleMatch = rawText.match(/^(\d+)\.\s*(.+)$/)
+          if (!titleMatch) {
+            continue
+          }
+
+          return {
+            problemNumber: titleMatch[1],
+            problemTitle: titleMatch[2],
+            href: link.href,
+          }
+        }
+
+        return null
+      },
+    })
+    return (result?.result ?? null) as PageProblemTitle | null
+  } catch (error) {
+    console.warn('[interview-buddy] Failed to read LeetCode title from active page', error)
+    return null
+  }
+}
 
 const programmingLanguages = [
   'JavaScript',
@@ -29,8 +86,34 @@ function FieldLabel({ label, hint, children }: FieldLabelProps) {
 
 const codeDefaultValue = `function twoSum(nums, target) {\n  const map = new Map();\n\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n\n    if (map.has(complement)) {\n      return [map.get(complement), i];\n    }\n\n    map.set(nums[i], i);\n  }\n}`
 
+
 export default function App() {
+  const [problemNumber, setProblemNumber] = useState('1')
+  const [problemLink, setProblemLink] = useState('https://leetcode.com/problems/two-sum')
+  const [titleInput, setTitleInput] = useState('Two Sum')
   const codeCharCount = useMemo(() => codeDefaultValue.length, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    findLeetCodeTitleInActivePage()
+      .then((pageTitle) => {
+        if (cancelled || !pageTitle) {
+          return
+        }
+
+        setProblemNumber(pageTitle.problemNumber)
+        setProblemLink(pageTitle.href)
+        setTitleInput(pageTitle.problemTitle)
+      })
+      .catch((error) => {
+        console.warn('[interview-buddy] Unable to discover LeetCode title', error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
@@ -56,7 +139,7 @@ export default function App() {
             </div>
             <div className="flex flex-1 flex-col gap-1">
               <h1 className="text-xl font-semibold text-slate-900">
-                Save Solution to InterviewBuddy
+                Save to InterviewBuddy
               </h1>
               <p className="text-sm text-slate-500">
                 Capture your code and notes for later review
@@ -87,18 +170,18 @@ export default function App() {
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-blue-600">
-                  <span>Problem #1</span>
+                  <span>{`Problem #${problemNumber}`}</span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-600">
                     Easy
                   </span>
                 </div>
                 <a
-                  href="https://leetcode.com/problems/two-sum"
+                  href={problemLink}
                   target="_blank"
                   rel="noreferrer"
                   className="break-all text-sm text-slate-600 underline-offset-2 hover:underline"
                 >
-                  https://leetcode.com/problems/two-sum
+                  {problemLink}
                 </a>
               </div>
               <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-500 shadow-sm">
@@ -110,11 +193,18 @@ export default function App() {
           <FieldLabel label="Problem Title">
             <input
               type="text"
-              defaultValue="Two Sum"
+              value={titleInput}
+              onChange={(event) => setTitleInput(event.target.value)}
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </FieldLabel>
-
+          <FieldLabel label="Problem Description">
+            <textarea
+              rows={9}
+              defaultValue="Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target."
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </FieldLabel>
           <FieldLabel label="Programming Language" hint={`<> ${codeCharCount} characters`}>
             <div className="relative flex items-center">
               <select
@@ -152,14 +242,6 @@ export default function App() {
               rows={3}
               placeholder="e.g., Remember the hashmap trick, time complexity is O(n)..."
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
-          </FieldLabel>
-
-          <FieldLabel label="Problem Description">
-            <textarea
-              rows={3}
-              defaultValue="Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target."
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </FieldLabel>
         </section>

@@ -17,6 +17,9 @@ export default defineManifest({
   permissions: [
     'sidePanel',
     'contentSettings',
+    'scripting',
+    'tabs',
+    'activeTab',
   ],
   content_scripts: [{
     js: ['src/content/main.tsx'],
