@@ -1,0 +1,197 @@
+openapi: 3.0.3
+info:
+  title: Interview Buddy Capture API
+  version: 0.1.0
+  description: >-
+    API for saving LeetCode problem captures from the Interview Buddy Chrome extension.
+servers:
+  - url: https://api.interviewbuddy.dev
+    description: Production
+  - url: http://localhost:8080
+    description: Local development
+paths:
+  /api/v1/captures:
+    post:
+      summary: Save a LeetCode problem capture
+      operationId: postCapture
+      tags:
+        - capture
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaptureSubmission'
+      responses:
+        '201':
+          description: Capture stored successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaptureSubmissionResponse'
+        '200':
+          description: Duplicate capture detected; original capture returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaptureSubmissionResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API key invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '413':
+          description: Payload exceeds 1 MB limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-InterviewBuddy-Key
+  schemas:
+    CaptureSubmission:
+      type: object
+      required:
+        - apiKey
+        - problem
+        - solution
+        - clientMetadata
+      properties:
+        apiKey:
+          type: string
+          minLength: 32
+          maxLength: 128
+        problem:
+          $ref: '#/components/schemas/CaptureProblemPayload'
+        solution:
+          $ref: '#/components/schemas/CaptureSolutionPayload'
+        notes:
+          type: string
+          nullable: true
+        clientMetadata:
+          $ref: '#/components/schemas/ClientMetadata'
+    CaptureProblemPayload:
+      type: object
+      required:
+        - title
+        - url
+        - slug
+        - difficulty
+        - statement
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+          format: uri
+          example: https://leetcode.com/problems/two-sum/
+        slug:
+          type: string
+          example: two-sum
+        difficulty:
+          type: string
+          enum: [easy, medium, hard, unknown]
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        statement:
+          type: string
+        capturedAt:
+          type: string
+          format: date-time
+          nullable: true
+    CaptureSolutionPayload:
+      type: object
+      required:
+        - language
+        - snippet
+      properties:
+        language:
+          type: string
+          enum: [java, python, cpp, javascript, typescript, go, rust, ruby, swift, kotlin, csharp, other]
+        snippet:
+          type: string
+    ClientMetadata:
+      type: object
+      required:
+        - extensionVersion
+      properties:
+        extensionVersion:
+          type: string
+        chromeVersion:
+          type: string
+          nullable: true
+        os:
+          type: string
+          nullable: true
+    CaptureSubmissionResponse:
+      type: object
+      required:
+        - captureId
+        - status
+        - message
+      properties:
+        captureId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [saved, duplicate, error]
+        message:
+          type: string
+        reauthenticate:
+          type: boolean
+          default: false
+        retryAfterSeconds:
+          type: integer
+          nullable: true
+    ErrorResponse:
+      type: object
+      required:
+        - message
+        - code
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+          nullable: true
+    AuthErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            reauthenticate:
+              type: boolean
+              default: true
