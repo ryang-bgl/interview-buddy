@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 interface PageProblemDetails {
   problemNumber: string
@@ -21,22 +21,14 @@ function toPlainText(html: string): string {
     .trim()
 }
 
-async function findLeetCodeProblemDetailsInActivePage(): Promise<PageProblemDetails | null> {
-  if (typeof chrome === 'undefined' || !chrome.tabs?.query || !chrome.scripting?.executeScript) {
-    return null
-  }
-
-  const [activeTab] = await new Promise<chrome.tabs.Tab[]>((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, resolve)
-  })
-
-  if (!activeTab?.id) {
+async function findLeetCodeProblemDetailsInActivePage(tabId: number): Promise<PageProblemDetails | null> {
+  if (typeof chrome === 'undefined' || !chrome.scripting?.executeScript) {
     return null
   }
 
   try {
     const [result] = await chrome.scripting.executeScript({
-      target: { tabId: activeTab.id },
+      target: { tabId },
       func: () => {
         const containers = Array.from(document.querySelectorAll('div.text-title-large')) as HTMLElement[]
         for (const container of containers) {
@@ -106,6 +98,103 @@ async function findLeetCodeProblemDetailsInActivePage(): Promise<PageProblemDeta
   }
 }
 
+function normalizeLeetCodeUrl(url: string): string {
+  if (!url) {
+    return ''
+  }
+
+  try {
+    const parsed = new URL(url)
+    if (!parsed.hostname.includes('leetcode.com')) {
+      return parsed.toString()
+    }
+
+    const segments = parsed.pathname.split('/').filter(Boolean)
+    const problemsIndex = segments.indexOf('problems')
+    if (problemsIndex === -1 || problemsIndex + 1 >= segments.length) {
+      return parsed.toString()
+    }
+
+    const slug = segments[problemsIndex + 1]
+    parsed.pathname = `/problems/${slug}/`
+    parsed.search = ''
+    parsed.hash = ''
+    return parsed.toString()
+  } catch (error) {
+    console.warn('[interview-buddy] Failed to normalize LeetCode URL', error)
+    return url
+  }
+}
+
+const STORAGE_KEY = 'interviewBuddy.leetPopupState'
+
+interface PopupFormState {
+  url: string
+  problemNumber: string
+  title: string
+  description: string
+  code: string
+  notes: string
+}
+
+type PopupStorageMap = Record<string, PopupFormState>
+
+function getActiveTab(): Promise<chrome.tabs.Tab | null> {
+  if (typeof chrome === 'undefined' || !chrome.tabs?.query) {
+    return Promise.resolve(null)
+  }
+
+  return new Promise((resolve) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (chrome.runtime.lastError) {
+        console.warn('[interview-buddy] Failed to query active tab', chrome.runtime.lastError)
+        resolve(null)
+        return
+      }
+
+      resolve(tabs[0] ?? null)
+    })
+  })
+}
+
+function readStoredMap(): Promise<PopupStorageMap> {
+  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+    return Promise.resolve({})
+  }
+
+  return new Promise((resolve) => {
+    chrome.storage.local.get(STORAGE_KEY, (result) => {
+      if (chrome.runtime.lastError) {
+        console.warn('[interview-buddy] Failed to read popup storage', chrome.runtime.lastError)
+        resolve({})
+        return
+      }
+
+      const map = result[STORAGE_KEY]
+      if (map && typeof map === 'object') {
+        resolve(map as PopupStorageMap)
+      } else {
+        resolve({})
+      }
+    })
+  })
+}
+
+function writeStoredMap(map: PopupStorageMap): Promise<void> {
+  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+    return Promise.resolve()
+  }
+
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [STORAGE_KEY]: map }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn('[interview-buddy] Failed to persist popup storage', chrome.runtime.lastError)
+      }
+      resolve()
+    })
+  })
+}
+
 interface FieldLabelProps {
   label: string
   children: ReactNode
@@ -126,40 +215,145 @@ function FieldLabel({ label, hint, children }: FieldLabelProps) {
 
 const codeDefaultValue = `function twoSum(nums, target) {\n  const map = new Map();\n\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n\n    if (map.has(complement)) {\n      return [map.get(complement), i];\n    }\n\n    map.set(nums[i], i);\n  }\n}`
 
-
 export default function App() {
-  const [problemNumber, setProblemNumber] = useState('1')
-  const [problemLink, setProblemLink] = useState('https://leetcode.com/problems/two-sum')
-  const [titleInput, setTitleInput] = useState('Two Sum')
-  const [descriptionInput, setDescriptionInput] = useState('Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.')
+  const [problemNumber, setProblemNumber] = useState('')
+  const [problemLink, setProblemLink] = useState('')
+  const [titleInput, setTitleInput] = useState('')
+  const [descriptionInput, setDescriptionInput] = useState('')
+  const [codeInput, setCodeInput] = useState(codeDefaultValue)
+  const [notesInput, setNotesInput] = useState('')
+  const [currentUrl, setCurrentUrl] = useState('')
+  const [isInitialized, setIsInitialized] = useState(false)
+  const storageCacheRef = useRef<PopupStorageMap>({})
+  console.log("====storageKey222");
 
   useEffect(() => {
     let cancelled = false
 
-    findLeetCodeProblemDetailsInActivePage()
-      .then((pageDetails) => {
+    async function initialize() {
+      const storedMap = await readStoredMap()
+      if (cancelled) {
+        return
+      }
+      storageCacheRef.current = storedMap
+
+      const tab = await getActiveTab()
+      if (cancelled) {
+        return
+      }
+
+      const tabUrl = tab?.url ?? ''
+      const tabId = tab?.id
+      const normalizedTabUrl = tabUrl ? normalizeLeetCodeUrl(tabUrl) : ''
+      const storageKey = normalizedTabUrl || tabUrl
+
+      console.log("====storageKey", storageKey);
+      if (storageKey) {
+        setCurrentUrl(storageKey)
+        setProblemLink(storageKey)
+        const storedState = storedMap[storageKey]
+        if (storedState) {
+          setProblemNumber(storedState.problemNumber)
+          setTitleInput(storedState.title)
+          setDescriptionInput(storedState.description)
+          setCodeInput(storedState.code ?? codeDefaultValue)
+          setNotesInput(storedState.notes ?? '')
+          setIsInitialized(true)
+          return
+        }
+      }
+
+      if (tabId === undefined) {
+        setIsInitialized(true)
+        return
+      }
+
+      try {
+        const pageDetails = await findLeetCodeProblemDetailsInActivePage(tabId)
         if (cancelled || !pageDetails) {
+          setIsInitialized(true)
           return
         }
 
+        const normalizedUrl = normalizeLeetCodeUrl(pageDetails.href || tabUrl || '')
+        const key = normalizedUrl || storageKey
+        if (key) {
+          setCurrentUrl(key)
+          setProblemLink(key)
+        }
+
         setProblemNumber(pageDetails.problemNumber)
-        setProblemLink(pageDetails.href)
         setTitleInput(pageDetails.problemTitle)
 
-        if (pageDetails.descriptionHtml) {
-          setDescriptionInput(toPlainText(pageDetails.descriptionHtml))
-        } else if (pageDetails.descriptionText) {
-          setDescriptionInput(pageDetails.descriptionText)
+        const description = pageDetails.descriptionHtml
+          ? toPlainText(pageDetails.descriptionHtml)
+          : pageDetails.descriptionText ?? ''
+        setDescriptionInput(description)
+        setCodeInput(codeDefaultValue)
+        setNotesInput('')
+
+        if (key) {
+          const updatedMap = {
+            ...storageCacheRef.current,
+            [key]: {
+              url: key,
+              problemNumber: pageDetails.problemNumber,
+              title: pageDetails.problemTitle,
+              description: description || '',
+              code: codeDefaultValue,
+              notes: '',
+            },
+          }
+          storageCacheRef.current = updatedMap
+          await writeStoredMap(updatedMap)
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.warn('[interview-buddy] Unable to discover LeetCode title', error)
-      })
+      } finally {
+        if (!cancelled) {
+          setIsInitialized(true)
+        }
+      }
+    }
+
+    void initialize()
 
     return () => {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!currentUrl || !isInitialized) {
+      return
+    }
+
+    const state: PopupFormState = {
+      url: currentUrl,
+      problemNumber,
+      title: titleInput,
+      description: descriptionInput,
+      code: codeInput,
+      notes: notesInput,
+    }
+
+    storageCacheRef.current = {
+      ...storageCacheRef.current,
+      [currentUrl]: state,
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void writeStoredMap(storageCacheRef.current)
+    }, 250)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [currentUrl, problemNumber, titleInput, descriptionInput, codeInput, notesInput, isInitialized])
+
+  const headerProblemLabel = problemNumber ? `Problem #${problemNumber}` : 'Problem'
+  const headerTitleText = titleInput || 'Open a LeetCode problem to capture details.'
+  const headerLink = problemLink
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
@@ -186,6 +380,7 @@ export default function App() {
             <div className="flex flex-1 flex-col gap-1">
               <h1 className="text-xl font-semibold text-slate-900">
                 Save to InterviewBuddy
+                {}
               </h1>
               <p className="text-sm text-slate-500">
                 Capture your code and notes for later review
@@ -216,22 +411,24 @@ export default function App() {
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-blue-600">
-                  <span>{`Problem #${problemNumber}`}</span>
+                  <span>{headerProblemLabel}</span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-600">
                     Easy
                   </span>
                 </div>
-                {titleInput ? (
-                  <div className="text-sm text-slate-700">{titleInput}</div>
-                ) : null}
-                <a
-                  href={problemLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="break-all text-sm text-slate-600 underline-offset-2 hover:underline"
-                >
-                  {problemLink}
-                </a>
+                <div className="text-sm text-slate-700">{headerTitleText}</div>
+                {headerLink ? (
+                  <a
+                    href={headerLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="break-all text-sm text-slate-600 underline-offset-2 hover:underline"
+                  >
+                    {headerLink}
+                  </a>
+                ) : (
+                  <span className="text-sm text-slate-500">No problem link detected.</span>
+                )}
               </div>
               <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-500 shadow-sm">
                 JavaScript
@@ -244,6 +441,7 @@ export default function App() {
               type="text"
               value={titleInput}
               onChange={(event) => setTitleInput(event.target.value)}
+              placeholder="Problem title"
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </FieldLabel>
@@ -252,13 +450,15 @@ export default function App() {
               rows={9}
               value={descriptionInput}
               onChange={(event) => setDescriptionInput(event.target.value)}
+              placeholder="Problem description"
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </FieldLabel>
           <FieldLabel label="Your Solution Code">
             <textarea
               rows={9}
-              defaultValue={codeDefaultValue}
+              value={codeInput}
+              onChange={(event) => setCodeInput(event.target.value)}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
               style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
             />
@@ -267,6 +467,8 @@ export default function App() {
           <FieldLabel label="Personal Notes (Optional)">
             <textarea
               rows={3}
+              value={notesInput}
+              onChange={(event) => setNotesInput(event.target.value)}
               placeholder="e.g., Remember the hashmap trick, time complexity is O(n)..."
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
             />

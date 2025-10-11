@@ -6,15 +6,6 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
 
     <!-- Initial database setup: users and submissions tables -->
-    <include file="changelog/001-init-users-submissions.sql" relativeToChangelogFile="true"/>
-
-    <!-- Problems and topics structure -->
-    <include file="changelog/002-problems.sql" relativeToChangelogFile="true"/>
-
-    <!-- Review schedules and logs for spaced repetition -->
-    <include file="changelog/003-reviews.sql" relativeToChangelogFile="true"/>
-
-    <!-- Solutions, decks, and flashcards functionality -->
-    <include file="changelog/004-solutions-decks.sql" relativeToChangelogFile="true"/>
+    <include file="changelog/001-init-db.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

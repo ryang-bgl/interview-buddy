@@ -106,7 +106,7 @@ jooq {
         fluentSetters = true
       }
       target {
-        packageName = "com.litdeck.backend.jooq"
+        packageName = "com.ib.jooq"
         directory = "${project.projectDir}/src/main/java"
       }
       strategy {
