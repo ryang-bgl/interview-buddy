@@ -6,7 +6,7 @@ plugins {
   id("org.jooq.jooq-codegen-gradle") version "3.20.7"
 }
 
-group = 'com.interview.buddy'
+group = 'com.leetstack'
 version = '1.0.0'
 
 java {
@@ -65,6 +65,7 @@ dependencies {
   testImplementation 'org.springframework.security:spring-security-test'
   testImplementation 'org.testcontainers:mysql'
   testImplementation 'org.testcontainers:junit-jupiter'
+  testImplementation 'com.h2database:h2'
 }
 
 // Liquibase Configuration
@@ -72,7 +73,7 @@ liquibase {
   activities {
     main {
       changelogFile './db/db.changelog-master.xml'
-      url 'jdbc:mysql://localhost:33008/ib?createDatabaseIfNotExist=true'
+      url 'jdbc:mysql://localhost:33008/leetstack?createDatabaseIfNotExist=true'
       username 'root'
       password 'hNHZLgKf3Jo6UGu'
       driver 'com.mysql.cj.jdbc.Driver'
@@ -84,14 +85,14 @@ jooq {
   configuration {
     jdbc {
       driver = "com.mysql.cj.jdbc.Driver"
-      url = "jdbc:mysql://localhost:33008/litdeck"
+      url = "jdbc:mysql://localhost:33008/leetstack"
       user = "root"
       password = "hNHZLgKf3Jo6UGu"
     }
     generator {
       database {
         name = "org.jooq.meta.mysql.MySQLDatabase"
-        inputSchema = "litdeck"
+        inputSchema = "leetstack"
         excludes = "DATABASECHANGELOG|DATABASECHANGELOGLOCK"
       }
       generate {
@@ -106,7 +107,7 @@ jooq {
         fluentSetters = true
       }
       target {
-        packageName = "com.ib.jooq"
+        packageName = "com.ls.jooq"
         directory = "${project.projectDir}/src/main/java"
       }
       strategy {

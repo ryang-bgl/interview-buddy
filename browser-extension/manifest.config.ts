@@ -16,11 +16,15 @@ export default defineManifest({
   },
   permissions: [
     'sidePanel',
+    'cookies',
     'contentSettings',
     'scripting',
     'tabs',
     'activeTab',
     'storage'
+  ],
+  host_permissions: [
+    'http://localhost:8080/*',
   ],
   content_scripts: [{
     js: ['src/content/main.tsx'],

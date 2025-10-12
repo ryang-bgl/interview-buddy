@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { FormEvent, useEffect, useRef, useState, type ReactNode } from 'react'
+import { checkSession, loginWithKey } from '@/lib/api'
+import { clearStoredApiKey, readStoredApiKey, storeApiKey } from '@/lib/storage'
 
 interface PageProblemDetails {
   problemNumber: string
@@ -213,9 +215,90 @@ function FieldLabel({ label, hint, children }: FieldLabelProps) {
   )
 }
 
+
+function LoadingScreen({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+      <div className="w-[360px] max-w-full rounded-3xl bg-white p-8 text-center shadow-dialog">
+        <div className="text-sm font-semibold text-slate-900">{message}</div>
+        <div className="mt-3 text-xs text-slate-500">This should only take a moment.</div>
+      </div>
+    </div>
+  )
+}
+
+interface ApiKeyPromptProps {
+  apiKey: string
+  isSubmitting: boolean
+  errorMessage?: string | null
+  hasStoredKey: boolean
+  onApiKeyChange: (value: string) => void
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  onForgetStoredKey: () => void
+}
+
+function ApiKeyPrompt({
+  apiKey,
+  isSubmitting,
+  errorMessage,
+  hasStoredKey,
+  onApiKeyChange,
+  onSubmit,
+  onForgetStoredKey,
+}: ApiKeyPromptProps) {
+  const buttonLabel = isSubmitting ? 'Signing in...' : 'Sign in'
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+      <div className="w-[420px] max-w-full rounded-3xl bg-white p-8 shadow-dialog">
+        <header className="space-y-2">
+          <h1 className="text-xl font-semibold text-slate-900">Connect InterviewBuddy</h1>
+          <p className="text-sm text-slate-500">
+            Enter your API key to start saving problems from LeetCode.
+          </p>
+        </header>
+        <form className="mt-6 space-y-4" onSubmit={onSubmit}>
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-slate-700">InterviewBuddy API Key</span>
+            <input
+              type="text"
+              value={apiKey}
+              onChange={(event) => onApiKeyChange(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              placeholder="Paste your API key"
+              autoFocus
+            />
+          </label>
+          {errorMessage ? (
+            <p className="text-sm text-rose-600">
+              {errorMessage}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={isSubmitting || !apiKey.trim()}
+            className="w-full rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-70 hover:bg-slate-700"
+          >
+            {buttonLabel}
+          </button>
+        </form>
+        {hasStoredKey ? (
+          <button
+            type="button"
+            onClick={onForgetStoredKey}
+            className="mt-4 text-sm font-medium text-slate-500 underline underline-offset-4 transition hover:text-slate-700"
+          >
+            Clear saved key
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 const codeDefaultValue = `function twoSum(nums, target) {\n  const map = new Map();\n\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n\n    if (map.has(complement)) {\n      return [map.get(complement), i];\n    }\n\n    map.set(nums[i], i);\n  }\n}`
 
-export default function App() {
+function MainContent() {
   const [problemNumber, setProblemNumber] = useState('')
   const [problemLink, setProblemLink] = useState('')
   const [titleInput, setTitleInput] = useState('')
@@ -225,7 +308,6 @@ export default function App() {
   const [currentUrl, setCurrentUrl] = useState('')
   const [isInitialized, setIsInitialized] = useState(false)
   const storageCacheRef = useRef<PopupStorageMap>({})
-  console.log("====storageKey222");
 
   useEffect(() => {
     let cancelled = false
@@ -247,7 +329,6 @@ export default function App() {
       const normalizedTabUrl = tabUrl ? normalizeLeetCodeUrl(tabUrl) : ''
       const storageKey = normalizedTabUrl || tabUrl
 
-      console.log("====storageKey", storageKey);
       if (storageKey) {
         setCurrentUrl(storageKey)
         setProblemLink(storageKey)
@@ -494,5 +575,155 @@ export default function App() {
         </footer>
       </div>
     </div>
+  )
+}
+
+export default function App() {
+  const [authStatus, setAuthStatus] = useState<'checking' | 'authenticating' | 'needsApiKey' | 'authenticated'>('checking')
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [hasStoredKey, setHasStoredKey] = useState(false)
+  const isAuthenticating = authStatus === 'authenticating'
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function bootstrap() {
+      let sessionIsValid = false
+      try {
+        sessionIsValid = await checkSession()
+      } catch (error) {
+        console.warn('[interview-buddy] Session check failed', error)
+      }
+
+      if (cancelled) {
+        return
+      }
+
+      if (sessionIsValid) {
+        setAuthStatus('authenticated')
+        return
+      }
+
+      try {
+        const storedKey = await readStoredApiKey()
+        if (cancelled) {
+          return
+        }
+
+        if (storedKey) {
+          setHasStoredKey(true)
+          setApiKeyInput(storedKey)
+          setAuthStatus('authenticating')
+          setAuthError(null)
+
+          try {
+            await loginWithKey(storedKey)
+            if (cancelled) {
+              return
+            }
+
+            const verified = await checkSession().catch(() => false)
+            if (cancelled) {
+              return
+            }
+
+            if (verified) {
+              setAuthStatus('authenticated')
+              return
+            }
+
+            throw new Error('Unable to verify session')
+          } catch (error) {
+            if (!cancelled) {
+              const message = error instanceof Error && error.message ? error.message : 'Login failed'
+              setAuthError(message)
+              await clearStoredApiKey()
+              setHasStoredKey(false)
+              setAuthStatus('needsApiKey')
+            }
+            return
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('[interview-buddy] Unable to restore stored API key', error)
+        }
+      }
+
+      if (!cancelled) {
+        setAuthStatus('needsApiKey')
+      }
+    }
+
+    void bootstrap()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleApiKeyChange = (value: string) => {
+    setApiKeyInput(value)
+  }
+
+  const handleForgetStoredKey = async () => {
+    await clearStoredApiKey()
+    setHasStoredKey(false)
+    setApiKeyInput('')
+  }
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const trimmed = apiKeyInput.trim()
+    if (!trimmed) {
+      setAuthError('API key is required')
+      return
+    }
+
+    setAuthStatus('authenticating')
+    setAuthError(null)
+
+    try {
+      await loginWithKey(trimmed)
+      const verified = await checkSession().catch(() => false)
+      if (!verified) {
+        throw new Error('Unable to verify session after login')
+      }
+
+      await storeApiKey(trimmed)
+      setHasStoredKey(true)
+      setAuthStatus('authenticated')
+    } catch (error) {
+      const message = error instanceof Error && error.message ? error.message : 'Login failed'
+      setAuthError(message)
+      await clearStoredApiKey()
+      setHasStoredKey(false)
+      setAuthStatus('needsApiKey')
+    }
+  }
+
+  if (authStatus === 'authenticated') {
+    return <MainContent />
+  }
+
+  if (authStatus === 'checking' || isAuthenticating) {
+    return (
+      <LoadingScreen
+        message={authStatus === 'authenticating' ? 'Signing you in...' : 'Checking your session...'}
+      />
+    )
+  }
+
+  return (
+    <ApiKeyPrompt
+      apiKey={apiKeyInput}
+      errorMessage={authError}
+      hasStoredKey={hasStoredKey}
+      isSubmitting={isAuthenticating}
+      onApiKeyChange={handleApiKeyChange}
+      onForgetStoredKey={handleForgetStoredKey}
+      onSubmit={handleSubmit}
+    />
   )
 }
