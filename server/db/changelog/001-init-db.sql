@@ -26,11 +26,11 @@ CREATE TABLE user_dsa
   difficulty        VARCHAR(50)  NOT NULL,
   is_paid_only      BOOLEAN      NOT NULL DEFAULT FALSE,
   description       TEXT         NOT NULL,
-  solution          TEXT      DEFAULT NULL,
-  note              TEXT      DEFAULT NULL,
+  solution          TEXT                  DEFAULT NULL,
+  note              TEXT                  DEFAULT NULL,
   example_testcases TEXT,
-  created_date      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  last_updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_date      TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+  last_updated_date TIMESTAMP             DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   CONSTRAINT fk_user_dsa_user_id FOREIGN KEY (user_id)
     REFERENCES users (id)

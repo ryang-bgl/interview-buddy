@@ -14,20 +14,30 @@ async function request(path: string, init: RequestInit = {}): Promise<Response> 
   })
 }
 
-export async function checkSession(): Promise<boolean> {
+export interface UserPrincipal {
+  id: string
+  email: string | null
+  firstName: string | null
+  lastName: string | null
+  leetstackUsername: string | null
+  createdDate: string | null
+  lastUpdatedDate: string | null
+}
+
+export async function checkSession(): Promise<UserPrincipal | null> {
   try {
     const response = await request('/api/current-principal', { method: 'GET' })
     if (response.ok) {
-      return true
+      return (await response.json()) as UserPrincipal
     }
 
     if (response.status === 401 || response.status === 403) {
-      return false
+      return null
     }
 
     throw new Error(`Unexpected session status: ${response.status}`)
   } catch (error) {
-    console.warn('[interview-buddy] Failed to verify session', error)
+    console.warn('[leetstack] Failed to verify session', error)
     throw error
   }
 }
@@ -55,8 +65,56 @@ export async function loginWithKey(apiKey: string): Promise<void> {
       errorMessage = body.message
     }
   } catch (error) {
-    console.warn('[interview-buddy] Unable to parse login error response', error)
+    console.warn('[leetstack] Unable to parse login error response', error)
   }
 
   throw new Error(errorMessage)
+}
+
+export interface CreateUserDsaQuestionRequest {
+  userId: string
+  title: string
+  titleSlug: string
+  difficulty: string
+  isPaidOnly: boolean
+  description: string
+  solution?: string | null
+  note?: string | null
+  exampleTestcases?: string | null
+}
+
+export interface UserDsaQuestionResponse {
+  id: number
+  userId: string
+  title: string
+  titleSlug: string
+  difficulty: string
+  isPaidOnly: boolean
+  description: string
+  solution: string | null
+  note: string | null
+  exampleTestcases: string | null
+}
+
+export async function saveUserDsaQuestion(payload: CreateUserDsaQuestionRequest): Promise<UserDsaQuestionResponse> {
+  const response = await request('/api/dsa/questions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+
+  if (response.ok) {
+    return (await response.json()) as UserDsaQuestionResponse
+  }
+
+  let message = 'Failed to save problem'
+  try {
+    const body = await response.json()
+    if (body && typeof body.message === 'string') {
+      message = body.message
+    }
+  } catch (error) {
+    console.warn('[leetstack] Unable to parse save error response', error)
+  }
+
+  throw new Error(message)
 }

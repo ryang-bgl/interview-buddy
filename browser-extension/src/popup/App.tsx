@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState, type ReactNode } from 'react'
-import { checkSession, loginWithKey } from '@/lib/api'
+import { checkSession, loginWithKey, saveUserDsaQuestion, type UserPrincipal } from '@/lib/api'
 import { clearStoredApiKey, readStoredApiKey, storeApiKey } from '@/lib/storage'
 
 interface PageProblemDetails {
@@ -63,7 +63,7 @@ async function findLeetCodeProblemDetailsInActivePage(tabId: number): Promise<Pa
                 }
               }
             } catch (error) {
-              console.warn('[interview-buddy] Failed to parse __NEXT_DATA__ on page', error)
+              console.warn('[leetstack] Failed to parse __NEXT_DATA__ on page', error)
             }
           }
 
@@ -95,7 +95,7 @@ async function findLeetCodeProblemDetailsInActivePage(tabId: number): Promise<Pa
     })
     return (result?.result ?? null) as PageProblemDetails | null
   } catch (error) {
-    console.warn('[interview-buddy] Failed to read LeetCode title from active page', error)
+    console.warn('[leetstack] Failed to read LeetCode title from active page', error)
     return null
   }
 }
@@ -123,12 +123,41 @@ function normalizeLeetCodeUrl(url: string): string {
     parsed.hash = ''
     return parsed.toString()
   } catch (error) {
-    console.warn('[interview-buddy] Failed to normalize LeetCode URL', error)
+    console.warn('[leetstack] Failed to normalize LeetCode URL', error)
     return url
   }
 }
 
-const STORAGE_KEY = 'interviewBuddy.leetPopupState'
+function extractSlugFromUrl(url: string): string | null {
+  if (!url) {
+    return null
+  }
+
+  try {
+    const parsed = new URL(url)
+    const segments = parsed.pathname.split('/').filter(Boolean)
+    const problemsIndex = segments.indexOf('problems')
+    if (problemsIndex === -1 || problemsIndex + 1 >= segments.length) {
+      return null
+    }
+
+    return segments[problemsIndex + 1]
+  } catch (error) {
+    console.warn('[leetstack] Failed to extract slug from url', error)
+    return null
+  }
+}
+
+function slugify(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+const STORAGE_KEY = 'leetstack.leetPopupState'
 
 interface PopupFormState {
   url: string
@@ -149,7 +178,7 @@ function getActiveTab(): Promise<chrome.tabs.Tab | null> {
   return new Promise((resolve) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (chrome.runtime.lastError) {
-        console.warn('[interview-buddy] Failed to query active tab', chrome.runtime.lastError)
+        console.warn('[leetstack] Failed to query active tab', chrome.runtime.lastError)
         resolve(null)
         return
       }
@@ -167,7 +196,7 @@ function readStoredMap(): Promise<PopupStorageMap> {
   return new Promise((resolve) => {
     chrome.storage.local.get(STORAGE_KEY, (result) => {
       if (chrome.runtime.lastError) {
-        console.warn('[interview-buddy] Failed to read popup storage', chrome.runtime.lastError)
+        console.warn('[leetstack] Failed to read popup storage', chrome.runtime.lastError)
         resolve({})
         return
       }
@@ -190,7 +219,7 @@ function writeStoredMap(map: PopupStorageMap): Promise<void> {
   return new Promise((resolve) => {
     chrome.storage.local.set({ [STORAGE_KEY]: map }, () => {
       if (chrome.runtime.lastError) {
-        console.warn('[interview-buddy] Failed to persist popup storage', chrome.runtime.lastError)
+        console.warn('[leetstack] Failed to persist popup storage', chrome.runtime.lastError)
       }
       resolve()
     })
@@ -252,14 +281,14 @@ function ApiKeyPrompt({
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
       <div className="w-[420px] max-w-full rounded-3xl bg-white p-8 shadow-dialog">
         <header className="space-y-2">
-          <h1 className="text-xl font-semibold text-slate-900">Connect InterviewBuddy</h1>
+          <h1 className="text-xl font-semibold text-slate-900">Connect LeetStack</h1>
           <p className="text-sm text-slate-500">
             Enter your API key to start saving problems from LeetCode.
           </p>
         </header>
         <form className="mt-6 space-y-4" onSubmit={onSubmit}>
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-700">InterviewBuddy API Key</span>
+            <span className="text-sm font-medium text-slate-700">LeetStack API Key</span>
             <input
               type="text"
               value={apiKey}
@@ -298,7 +327,7 @@ function ApiKeyPrompt({
 
 const codeDefaultValue = `function twoSum(nums, target) {\n  const map = new Map();\n\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n\n    if (map.has(complement)) {\n      return [map.get(complement), i];\n    }\n\n    map.set(nums[i], i);\n  }\n}`
 
-function MainContent() {
+function MainContent({ user }: { user: UserPrincipal }) {
   const [problemNumber, setProblemNumber] = useState('')
   const [problemLink, setProblemLink] = useState('')
   const [titleInput, setTitleInput] = useState('')
@@ -308,6 +337,10 @@ function MainContent() {
   const [currentUrl, setCurrentUrl] = useState('')
   const [isInitialized, setIsInitialized] = useState(false)
   const storageCacheRef = useRef<PopupStorageMap>({})
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [lastSavedTitle, setLastSavedTitle] = useState<string | null>(null)
+  const isSaving = saveState === 'saving'
 
   useEffect(() => {
     let cancelled = false
@@ -389,7 +422,7 @@ function MainContent() {
           await writeStoredMap(updatedMap)
         }
       } catch (error) {
-        console.warn('[interview-buddy] Unable to discover LeetCode title', error)
+        console.warn('[leetstack] Unable to discover LeetCode title', error)
       } finally {
         if (!cancelled) {
           setIsInitialized(true)
@@ -432,9 +465,73 @@ function MainContent() {
     }
   }, [currentUrl, problemNumber, titleInput, descriptionInput, codeInput, notesInput, isInitialized])
 
+  const handleSave = async () => {
+    const trimmedTitle = titleInput.trim() || (problemNumber ? `LeetCode Problem ${problemNumber}` : 'Untitled Problem')
+    const slugFromUrl = extractSlugFromUrl(problemLink)
+    const derivedSlug = slugFromUrl || slugify(trimmedTitle)
+    const fallbackSlug = problemNumber ? `problem-${problemNumber}` : `problem-${Date.now()}`
+    const titleSlug = derivedSlug || fallbackSlug
+    const description = descriptionInput.trim() || 'No description provided.'
+    const solution = codeInput.trim() || null
+    const note = notesInput.trim() || null
+
+    setSaveState('saving')
+    setSaveError(null)
+    setLastSavedTitle(null)
+
+    try {
+      const response = await saveUserDsaQuestion({
+        userId: user.id,
+        title: trimmedTitle,
+        titleSlug,
+        difficulty: 'Unknown',
+        isPaidOnly: false,
+        description,
+        solution,
+        note,
+        exampleTestcases: null,
+      })
+
+      setSaveState('success')
+      setLastSavedTitle(response.title)
+      window.setTimeout(() => {
+        setSaveState('idle')
+        setLastSavedTitle(null)
+      }, 4000)
+    } catch (error) {
+      const message = error instanceof Error && error.message ? error.message : 'Failed to save problem'
+      setSaveError(message)
+      setSaveState('error')
+    }
+  }
+
   const headerProblemLabel = problemNumber ? `Problem #${problemNumber}` : 'Problem'
   const headerTitleText = titleInput || 'Open a LeetCode problem to capture details.'
   const headerLink = problemLink
+  const statusMessage = (() => {
+    if (saveState === 'saving') {
+      return 'Saving problem...'
+    }
+    if (saveState === 'success') {
+      return lastSavedTitle ? `Saved "${lastSavedTitle}"` : 'Problem saved'
+    }
+    if (saveState === 'error' && saveError) {
+      return saveError
+    }
+    return 'Ready to save...'
+  })()
+  const statusMessageClassName = (() => {
+    if (saveState === 'error') {
+      return 'text-red-600'
+    }
+    if (saveState === 'success') {
+      return 'text-green-600'
+    }
+    if (saveState === 'saving') {
+      return 'text-blue-600'
+    }
+    return 'text-slate-500'
+  })()
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
@@ -460,7 +557,7 @@ function MainContent() {
             </div>
             <div className="flex flex-1 flex-col gap-1">
               <h1 className="text-xl font-semibold text-slate-900">
-                Save to InterviewBuddy
+                Save to LeetStack
                 {}
               </h1>
               <p className="text-sm text-slate-500">
@@ -557,7 +654,7 @@ function MainContent() {
         </section>
 
         <footer className="mt-8 flex flex-wrap items-center justify-between gap-4">
-          <span className="text-sm text-slate-500">Ready to save...</span>
+          <span className={`text-sm ${statusMessageClassName}`}>{statusMessage}</span>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -567,9 +664,11 @@ function MainContent() {
             </button>
             <button
               type="button"
-              className="rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Save to InterviewBuddy
+              {isSaving ? 'Saving...' : 'Save to LeetStack'}
             </button>
           </div>
         </footer>
@@ -583,24 +682,26 @@ export default function App() {
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [authError, setAuthError] = useState<string | null>(null)
   const [hasStoredKey, setHasStoredKey] = useState(false)
+  const [currentUser, setCurrentUser] = useState<UserPrincipal | null>(null)
   const isAuthenticating = authStatus === 'authenticating'
 
   useEffect(() => {
     let cancelled = false
 
     async function bootstrap() {
-      let sessionIsValid = false
+      let sessionPrincipal: UserPrincipal | null = null
       try {
-        sessionIsValid = await checkSession()
+        sessionPrincipal = await checkSession()
       } catch (error) {
-        console.warn('[interview-buddy] Session check failed', error)
+        console.warn('[leetstack] Session check failed', error)
       }
 
       if (cancelled) {
         return
       }
 
-      if (sessionIsValid) {
+      if (sessionPrincipal) {
+        setCurrentUser(sessionPrincipal)
         setAuthStatus('authenticated')
         return
       }
@@ -623,12 +724,13 @@ export default function App() {
               return
             }
 
-            const verified = await checkSession().catch(() => false)
+            const verifiedPrincipal = await checkSession().catch(() => null)
             if (cancelled) {
               return
             }
 
-            if (verified) {
+            if (verifiedPrincipal) {
+              setCurrentUser(verifiedPrincipal)
               setAuthStatus('authenticated')
               return
             }
@@ -640,6 +742,7 @@ export default function App() {
               setAuthError(message)
               await clearStoredApiKey()
               setHasStoredKey(false)
+              setCurrentUser(null)
               setAuthStatus('needsApiKey')
             }
             return
@@ -647,11 +750,12 @@ export default function App() {
         }
       } catch (error) {
         if (!cancelled) {
-          console.warn('[interview-buddy] Unable to restore stored API key', error)
+          console.warn('[leetstack] Unable to restore stored API key', error)
         }
       }
 
       if (!cancelled) {
+        setCurrentUser(null)
         setAuthStatus('needsApiKey')
       }
     }
@@ -683,28 +787,35 @@ export default function App() {
 
     setAuthStatus('authenticating')
     setAuthError(null)
+    setCurrentUser(null)
 
     try {
       await loginWithKey(trimmed)
-      const verified = await checkSession().catch(() => false)
-      if (!verified) {
+      const principal = await checkSession().catch(() => null)
+      if (!principal) {
         throw new Error('Unable to verify session after login')
       }
 
       await storeApiKey(trimmed)
       setHasStoredKey(true)
+      setCurrentUser(principal)
       setAuthStatus('authenticated')
     } catch (error) {
       const message = error instanceof Error && error.message ? error.message : 'Login failed'
       setAuthError(message)
       await clearStoredApiKey()
       setHasStoredKey(false)
+      setCurrentUser(null)
       setAuthStatus('needsApiKey')
     }
   }
 
-  if (authStatus === 'authenticated') {
-    return <MainContent />
+  if (authStatus === 'authenticated' && currentUser) {
+    return <MainContent user={currentUser} />
+  }
+
+  if (authStatus === 'authenticated' && !currentUser) {
+    return <LoadingScreen message="Loading your profile..." />
   }
 
   if (authStatus === 'checking' || isAuthenticating) {
