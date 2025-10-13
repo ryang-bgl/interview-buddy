@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
+    "dev": "VITE_APP_ENV=dev vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:dev": "VITE_APP_ENV=dev tsc -b && VITE_APP_ENV=dev vite build"
   },
   "dependencies": {
     "react": "^19.1.0",

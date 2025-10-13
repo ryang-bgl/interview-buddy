@@ -1,7 +1,7 @@
-const DEFAULT_SERVER_ORIGIN = import.meta.env.VITE_SERVER_ORIGIN ?? 'http://localhost:8080'
+import config from '@/config'
 
 async function request(path: string, init: RequestInit = {}): Promise<Response> {
-  const url = `${DEFAULT_SERVER_ORIGIN}${path}`
+  const url = `${config.serverOrigin}${path}`
   const headers = new Headers(init.headers)
   if (!headers.has('Content-Type') && init.body) {
     headers.set('Content-Type', 'application/json')
