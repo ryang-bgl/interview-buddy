@@ -4,11 +4,9 @@
 package com.ls.jooq;
 
 
-import com.ls.jooq.tables.Databasechangeloglock;
 import com.ls.jooq.tables.User;
 import com.ls.jooq.tables.UserApiKey;
 import com.ls.jooq.tables.UserDsa;
-import com.ls.jooq.tables.records.DatabasechangeloglockRecord;
 import com.ls.jooq.tables.records.UserApiKeyRecord;
 import com.ls.jooq.tables.records.UserDsaRecord;
 import com.ls.jooq.tables.records.UserRecord;
@@ -22,8 +20,8 @@ import org.jooq.impl.QOM.ForeignKeyRule;
 
 
 /**
- * A class modelling foreign key relationships and constraints of tables in the
- * default schema.
+ * A class modelling foreign key relationships and constraints of tables in
+ * leetstack.
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Keys {
@@ -32,17 +30,17 @@ public class Keys {
     // UNIQUE and PRIMARY KEY definitions
     // -------------------------------------------------------------------------
 
-    public static final UniqueKey<DatabasechangeloglockRecord> DATABASECHANGELOGLOCK__PK_DATABASECHANGELOGLOCK = Internal.createUniqueKey(Databasechangeloglock.DATABASECHANGELOGLOCK, DSL.name("PK_DATABASECHANGELOGLOCK"), new TableField[] { Databasechangeloglock.DATABASECHANGELOGLOCK.ID }, true);
-    public static final UniqueKey<UserRecord> USER__PK_USER = Internal.createUniqueKey(User.USER, DSL.name("pk_user"), new TableField[] { User.USER.ID }, true);
-    public static final UniqueKey<UserRecord> USER__UK_USER_1_77992387 = Internal.createUniqueKey(User.USER, DSL.name("uk_user_1_77992387"), new TableField[] { User.USER.LEETSTACK_USERNAME }, true);
-    public static final UniqueKey<UserApiKeyRecord> USER_API_KEY__PK_USER_API_KEY = Internal.createUniqueKey(UserApiKey.USER_API_KEY, DSL.name("pk_user_api_key"), new TableField[] { UserApiKey.USER_API_KEY.ID }, true);
-    public static final UniqueKey<UserApiKeyRecord> USER_API_KEY__UQ_USER_API_KEY_HASH = Internal.createUniqueKey(UserApiKey.USER_API_KEY, DSL.name("uq_user_api_key_hash"), new TableField[] { UserApiKey.USER_API_KEY.KEY_HASH }, true);
-    public static final UniqueKey<UserDsaRecord> USER_DSA__PK_USER_DSA = Internal.createUniqueKey(UserDsa.USER_DSA, DSL.name("pk_user_dsa"), new TableField[] { UserDsa.USER_DSA.ID }, true);
+    public static final UniqueKey<UserRecord> KEY_USER_PRIMARY = Internal.createUniqueKey(User.USER, DSL.name("KEY_user_PRIMARY"), new TableField[] { User.USER.ID }, true);
+    public static final UniqueKey<UserRecord> KEY_USER_UQ_USER_LEETSTACK_USERNAME = Internal.createUniqueKey(User.USER, DSL.name("KEY_user_uq_user_leetstack_username"), new TableField[] { User.USER.LEETSTACK_USERNAME }, true);
+    public static final UniqueKey<UserApiKeyRecord> KEY_USER_API_KEY_PRIMARY = Internal.createUniqueKey(UserApiKey.USER_API_KEY, DSL.name("KEY_user_api_key_PRIMARY"), new TableField[] { UserApiKey.USER_API_KEY.ID }, true);
+    public static final UniqueKey<UserApiKeyRecord> KEY_USER_API_KEY_UQ_USER_API_KEY_HASH = Internal.createUniqueKey(UserApiKey.USER_API_KEY, DSL.name("KEY_user_api_key_uq_user_api_key_hash"), new TableField[] { UserApiKey.USER_API_KEY.KEY_HASH }, true);
+    public static final UniqueKey<UserDsaRecord> KEY_USER_DSA_PRIMARY = Internal.createUniqueKey(UserDsa.USER_DSA, DSL.name("KEY_user_dsa_PRIMARY"), new TableField[] { UserDsa.USER_DSA.ID }, true);
+    public static final UniqueKey<UserDsaRecord> KEY_USER_DSA_UQ_USER_DSA_USER_SLUG = Internal.createUniqueKey(UserDsa.USER_DSA, DSL.name("KEY_user_dsa_uq_user_dsa_user_slug"), new TableField[] { UserDsa.USER_DSA.USER_ID, UserDsa.USER_DSA.TITLE_SLUG }, true);
 
     // -------------------------------------------------------------------------
     // FOREIGN KEY definitions
     // -------------------------------------------------------------------------
 
-    public static final ForeignKey<UserApiKeyRecord, UserRecord> USER_API_KEY__FK_USER_API_KEY_PK_USER = Internal.createForeignKey(UserApiKey.USER_API_KEY, DSL.name("fk_user_api_key_pk_user"), new TableField[] { UserApiKey.USER_API_KEY.USER_ID }, Keys.USER__PK_USER, new TableField[] { User.USER.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.CASCADE);
-    public static final ForeignKey<UserDsaRecord, UserRecord> USER_DSA__FK_USER_DSA_PK_USER = Internal.createForeignKey(UserDsa.USER_DSA, DSL.name("fk_user_dsa_pk_user"), new TableField[] { UserDsa.USER_DSA.USER_ID }, Keys.USER__PK_USER, new TableField[] { User.USER.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.CASCADE);
+    public static final ForeignKey<UserApiKeyRecord, UserRecord> USER_API_KEY_IBFK_1 = Internal.createForeignKey(UserApiKey.USER_API_KEY, DSL.name("user_api_key_ibfk_1"), new TableField[] { UserApiKey.USER_API_KEY.USER_ID }, Keys.KEY_USER_PRIMARY, new TableField[] { User.USER.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<UserDsaRecord, UserRecord> FK_USER_DSA_USER = Internal.createForeignKey(UserDsa.USER_DSA, DSL.name("fk_user_dsa_user"), new TableField[] { UserDsa.USER_DSA.USER_ID }, Keys.KEY_USER_PRIMARY, new TableField[] { User.USER.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
 }

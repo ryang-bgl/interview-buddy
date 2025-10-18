@@ -14,7 +14,7 @@ import org.jooq.impl.Internal;
 
 
 /**
- * A class modelling indexes of tables in the default schema.
+ * A class modelling indexes of tables in leetstack.
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Indexes {
@@ -23,6 +23,7 @@ public class Indexes {
     // INDEX definitions
     // -------------------------------------------------------------------------
 
-    public static final Index IDX_USER_API_KEY_USER_ID = Internal.createIndex(DSL.name("idx_user_api_key_user_id"), UserApiKey.USER_API_KEY, new OrderField[] { UserApiKey.USER_API_KEY.USER_ID }, false);
-    public static final Index IDX_USER_DSA_USER_ID = Internal.createIndex(DSL.name("idx_user_dsa_user_id"), UserDsa.USER_DSA, new OrderField[] { UserDsa.USER_DSA.USER_ID }, false);
+    public static final Index USER_API_KEY_IDX_USER_API_KEY_USER_ID = Internal.createIndex(DSL.name("idx_user_api_key_user_id"), UserApiKey.USER_API_KEY, new OrderField[] { UserApiKey.USER_API_KEY.USER_ID }, false);
+    public static final Index USER_DSA_IDX_USER_DSA_TITLE_SLUG = Internal.createIndex(DSL.name("idx_user_dsa_title_slug"), UserDsa.USER_DSA, new OrderField[] { UserDsa.USER_DSA.TITLE_SLUG }, false);
+    public static final Index USER_DSA_IDX_USER_DSA_USER_ID = Internal.createIndex(DSL.name("idx_user_dsa_user_id"), UserDsa.USER_DSA, new OrderField[] { UserDsa.USER_DSA.USER_ID }, false);
 }

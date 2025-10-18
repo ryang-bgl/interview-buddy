@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 
 import org.jooq.Record1;
 import org.jooq.impl.UpdatableRecordImpl;
+import org.jooq.types.ULong;
 
 
 /**
@@ -21,168 +22,168 @@ public class UserDsaRecord extends UpdatableRecordImpl<UserDsaRecord> {
     private static final long serialVersionUID = 1L;
 
     /**
-     * Setter for <code>user_dsa.id</code>.
+     * Setter for <code>leetstack.user_dsa.id</code>.
      */
-    public void setId(Integer value) {
+    public void setId(ULong value) {
         set(0, value);
     }
 
     /**
-     * Getter for <code>user_dsa.id</code>.
+     * Getter for <code>leetstack.user_dsa.id</code>.
      */
-    public Integer getId() {
-        return (Integer) get(0);
+    public ULong getId() {
+        return (ULong) get(0);
     }
 
     /**
-     * Setter for <code>user_dsa.user_id</code>.
+     * Setter for <code>leetstack.user_dsa.user_id</code>.
      */
     public void setUserId(String value) {
         set(1, value);
     }
 
     /**
-     * Getter for <code>user_dsa.user_id</code>.
+     * Getter for <code>leetstack.user_dsa.user_id</code>.
      */
     public String getUserId() {
         return (String) get(1);
     }
 
     /**
-     * Setter for <code>user_dsa.title</code>.
+     * Setter for <code>leetstack.user_dsa.title</code>.
      */
     public void setTitle(String value) {
         set(2, value);
     }
 
     /**
-     * Getter for <code>user_dsa.title</code>.
+     * Getter for <code>leetstack.user_dsa.title</code>.
      */
     public String getTitle() {
         return (String) get(2);
     }
 
     /**
-     * Setter for <code>user_dsa.title_slug</code>.
+     * Setter for <code>leetstack.user_dsa.title_slug</code>.
      */
     public void setTitleSlug(String value) {
         set(3, value);
     }
 
     /**
-     * Getter for <code>user_dsa.title_slug</code>.
+     * Getter for <code>leetstack.user_dsa.title_slug</code>.
      */
     public String getTitleSlug() {
         return (String) get(3);
     }
 
     /**
-     * Setter for <code>user_dsa.difficulty</code>.
+     * Setter for <code>leetstack.user_dsa.difficulty</code>.
      */
     public void setDifficulty(String value) {
         set(4, value);
     }
 
     /**
-     * Getter for <code>user_dsa.difficulty</code>.
+     * Getter for <code>leetstack.user_dsa.difficulty</code>.
      */
     public String getDifficulty() {
         return (String) get(4);
     }
 
     /**
-     * Setter for <code>user_dsa.is_paid_only</code>.
+     * Setter for <code>leetstack.user_dsa.is_paid_only</code>.
      */
-    public void setIsPaidOnly(Integer value) {
+    public void setIsPaidOnly(Byte value) {
         set(5, value);
     }
 
     /**
-     * Getter for <code>user_dsa.is_paid_only</code>.
+     * Getter for <code>leetstack.user_dsa.is_paid_only</code>.
      */
-    public Integer getIsPaidOnly() {
-        return (Integer) get(5);
+    public Byte getIsPaidOnly() {
+        return (Byte) get(5);
     }
 
     /**
-     * Setter for <code>user_dsa.description</code>.
+     * Setter for <code>leetstack.user_dsa.description</code>.
      */
     public void setDescription(String value) {
         set(6, value);
     }
 
     /**
-     * Getter for <code>user_dsa.description</code>.
+     * Getter for <code>leetstack.user_dsa.description</code>.
      */
     public String getDescription() {
         return (String) get(6);
     }
 
     /**
-     * Setter for <code>user_dsa.solution</code>.
+     * Setter for <code>leetstack.user_dsa.solution</code>.
      */
     public void setSolution(String value) {
         set(7, value);
     }
 
     /**
-     * Getter for <code>user_dsa.solution</code>.
+     * Getter for <code>leetstack.user_dsa.solution</code>.
      */
     public String getSolution() {
         return (String) get(7);
     }
 
     /**
-     * Setter for <code>user_dsa.note</code>.
+     * Setter for <code>leetstack.user_dsa.note</code>.
      */
     public void setNote(String value) {
         set(8, value);
     }
 
     /**
-     * Getter for <code>user_dsa.note</code>.
+     * Getter for <code>leetstack.user_dsa.note</code>.
      */
     public String getNote() {
         return (String) get(8);
     }
 
     /**
-     * Setter for <code>user_dsa.example_testcases</code>.
+     * Setter for <code>leetstack.user_dsa.example_testcases</code>.
      */
     public void setExampleTestcases(String value) {
         set(9, value);
     }
 
     /**
-     * Getter for <code>user_dsa.example_testcases</code>.
+     * Getter for <code>leetstack.user_dsa.example_testcases</code>.
      */
     public String getExampleTestcases() {
         return (String) get(9);
     }
 
     /**
-     * Setter for <code>user_dsa.created_date</code>.
+     * Setter for <code>leetstack.user_dsa.created_date</code>.
      */
     public void setCreatedDate(LocalDateTime value) {
         set(10, value);
     }
 
     /**
-     * Getter for <code>user_dsa.created_date</code>.
+     * Getter for <code>leetstack.user_dsa.created_date</code>.
      */
     public LocalDateTime getCreatedDate() {
         return (LocalDateTime) get(10);
     }
 
     /**
-     * Setter for <code>user_dsa.last_updated_date</code>.
+     * Setter for <code>leetstack.user_dsa.last_updated_date</code>.
      */
     public void setLastUpdatedDate(LocalDateTime value) {
         set(11, value);
     }
 
     /**
-     * Getter for <code>user_dsa.last_updated_date</code>.
+     * Getter for <code>leetstack.user_dsa.last_updated_date</code>.
      */
     public LocalDateTime getLastUpdatedDate() {
         return (LocalDateTime) get(11);
@@ -193,7 +194,7 @@ public class UserDsaRecord extends UpdatableRecordImpl<UserDsaRecord> {
     // -------------------------------------------------------------------------
 
     @Override
-    public Record1<Integer> key() {
+    public Record1<ULong> key() {
         return (Record1) super.key();
     }
 
@@ -211,7 +212,7 @@ public class UserDsaRecord extends UpdatableRecordImpl<UserDsaRecord> {
     /**
      * Create a detached, initialised UserDsaRecord
      */
-    public UserDsaRecord(Integer id, String userId, String title, String titleSlug, String difficulty, Integer isPaidOnly, String description, String solution, String note, String exampleTestcases, LocalDateTime createdDate, LocalDateTime lastUpdatedDate) {
+    public UserDsaRecord(ULong id, String userId, String title, String titleSlug, String difficulty, Byte isPaidOnly, String description, String solution, String note, String exampleTestcases, LocalDateTime createdDate, LocalDateTime lastUpdatedDate) {
         super(UserDsa.USER_DSA);
 
         setId(id);

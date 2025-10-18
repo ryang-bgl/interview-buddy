@@ -2,3 +2,6 @@
 build/
 target
 .idea/
+env
+env.nas
+env.production

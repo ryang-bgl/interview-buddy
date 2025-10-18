@@ -55,98 +55,98 @@ public class User implements Serializable {
     }
 
     /**
-     * Getter for <code>user.id</code>.
+     * Getter for <code>leetstack.user.id</code>.
      */
     public String getId() {
         return this.id;
     }
 
     /**
-     * Setter for <code>user.id</code>.
+     * Setter for <code>leetstack.user.id</code>.
      */
     public void setId(String id) {
         this.id = id;
     }
 
     /**
-     * Getter for <code>user.email</code>.
+     * Getter for <code>leetstack.user.email</code>.
      */
     public String getEmail() {
         return this.email;
     }
 
     /**
-     * Setter for <code>user.email</code>.
+     * Setter for <code>leetstack.user.email</code>.
      */
     public void setEmail(String email) {
         this.email = email;
     }
 
     /**
-     * Getter for <code>user.first_name</code>.
+     * Getter for <code>leetstack.user.first_name</code>.
      */
     public String getFirstName() {
         return this.firstName;
     }
 
     /**
-     * Setter for <code>user.first_name</code>.
+     * Setter for <code>leetstack.user.first_name</code>.
      */
     public void setFirstName(String firstName) {
         this.firstName = firstName;
     }
 
     /**
-     * Getter for <code>user.last_name</code>.
+     * Getter for <code>leetstack.user.last_name</code>.
      */
     public String getLastName() {
         return this.lastName;
     }
 
     /**
-     * Setter for <code>user.last_name</code>.
+     * Setter for <code>leetstack.user.last_name</code>.
      */
     public void setLastName(String lastName) {
         this.lastName = lastName;
     }
 
     /**
-     * Getter for <code>user.created_date</code>.
+     * Getter for <code>leetstack.user.created_date</code>.
      */
     public LocalDateTime getCreatedDate() {
         return this.createdDate;
     }
 
     /**
-     * Setter for <code>user.created_date</code>.
+     * Setter for <code>leetstack.user.created_date</code>.
      */
     public void setCreatedDate(LocalDateTime createdDate) {
         this.createdDate = createdDate;
     }
 
     /**
-     * Getter for <code>user.last_updated_date</code>.
+     * Getter for <code>leetstack.user.last_updated_date</code>.
      */
     public LocalDateTime getLastUpdatedDate() {
         return this.lastUpdatedDate;
     }
 
     /**
-     * Setter for <code>user.last_updated_date</code>.
+     * Setter for <code>leetstack.user.last_updated_date</code>.
      */
     public void setLastUpdatedDate(LocalDateTime lastUpdatedDate) {
         this.lastUpdatedDate = lastUpdatedDate;
     }
 
     /**
-     * Getter for <code>user.leetstack_username</code>.
+     * Getter for <code>leetstack.user.leetstack_username</code>.
      */
     public String getLeetstackUsername() {
         return this.leetstackUsername;
     }
 
     /**
-     * Setter for <code>user.leetstack_username</code>.
+     * Setter for <code>leetstack.user.leetstack_username</code>.
      */
     public void setLeetstackUsername(String leetstackUsername) {
         this.leetstackUsername = leetstackUsername;

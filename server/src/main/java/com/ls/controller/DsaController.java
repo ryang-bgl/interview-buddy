@@ -28,6 +28,6 @@ public class DsaController {
     public UserDsaQuestionDto createUserQuestion(
         @Valid @RequestBody CreateUserDsaQuestionDto request
     ) {
-        return dsaService.saveUserQuestion(request);
+        return dsaService.saveOrUpdateUserQuestion(request);
     }
 }

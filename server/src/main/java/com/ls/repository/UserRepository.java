@@ -1,26 +1,16 @@
 package com.ls.repository;
 
 import com.ls.dto.UserDto;
-import java.time.LocalDateTime;
+import com.ls.jooq.Tables;
+import com.ls.jooq.tables.User;
 import java.util.Optional;
 import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.Record;
-import org.jooq.Table;
-import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class UserRepository {
 
-    private static final Table<Record> USERS = DSL.table("users");
-    private static final Field<String> ID = DSL.field("id", String.class);
-    private static final Field<String> EMAIL = DSL.field("email", String.class);
-    private static final Field<String> FIRST_NAME = DSL.field("first_name", String.class);
-    private static final Field<String> LAST_NAME = DSL.field("last_name", String.class);
-    private static final Field<String> LEETSTACK_USERNAME = DSL.field("leetstack_username", String.class);
-    private static final Field<LocalDateTime> CREATED_DATE = DSL.field("created_date", LocalDateTime.class);
-    private static final Field<LocalDateTime> LAST_UPDATED_DATE = DSL.field("last_updated_date", LocalDateTime.class);
+    private static final User USER = Tables.USER;
 
     private final DSLContext dsl;
 
@@ -30,18 +20,18 @@ public class UserRepository {
 
     public Optional<UserDto> findById(String id) {
         return dsl
-            .select(ID, EMAIL, FIRST_NAME, LAST_NAME, LEETSTACK_USERNAME, CREATED_DATE, LAST_UPDATED_DATE)
-            .from(USERS)
-            .where(ID.eq(id))
+            .select(USER.ID, USER.EMAIL, USER.FIRST_NAME, USER.LAST_NAME, USER.LEETSTACK_USERNAME, USER.CREATED_DATE, USER.LAST_UPDATED_DATE)
+            .from(USER)
+            .where(USER.ID.eq(id))
             .fetchOptional(record ->
                 new UserDto(
-                    record.get(ID),
-                    record.get(EMAIL),
-                    record.get(FIRST_NAME),
-                    record.get(LAST_NAME),
-                    record.get(LEETSTACK_USERNAME),
-                    record.get(CREATED_DATE),
-                    record.get(LAST_UPDATED_DATE)
+                    record.get(USER.ID),
+                    record.get(USER.EMAIL),
+                    record.get(USER.FIRST_NAME),
+                    record.get(USER.LAST_NAME),
+                    record.get(USER.LEETSTACK_USERNAME),
+                    record.get(USER.CREATED_DATE),
+                    record.get(USER.LAST_UPDATED_DATE)
                 )
             );
     }

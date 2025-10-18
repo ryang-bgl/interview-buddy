@@ -4,9 +4,9 @@
 package com.ls.jooq.tables;
 
 
-import com.ls.jooq.DefaultSchema;
 import com.ls.jooq.Indexes;
 import com.ls.jooq.Keys;
+import com.ls.jooq.Leetstack;
 import com.ls.jooq.tables.User.UserPath;
 import com.ls.jooq.tables.records.UserApiKeyRecord;
 
@@ -48,7 +48,7 @@ public class UserApiKey extends TableImpl<UserApiKeyRecord> {
     private static final long serialVersionUID = 1L;
 
     /**
-     * The reference instance of <code>user_api_key</code>
+     * The reference instance of <code>leetstack.user_api_key</code>
      */
     public static final UserApiKey USER_API_KEY = new UserApiKey();
 
@@ -61,37 +61,37 @@ public class UserApiKey extends TableImpl<UserApiKeyRecord> {
     }
 
     /**
-     * The column <code>user_api_key.id</code>.
+     * The column <code>leetstack.user_api_key.id</code>.
      */
-    public final TableField<UserApiKeyRecord, Integer> ID = createField(DSL.name("id"), SQLDataType.INTEGER.identity(true), this, "");
+    public final TableField<UserApiKeyRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).identity(true), this, "");
 
     /**
-     * The column <code>user_api_key.user_id</code>.
+     * The column <code>leetstack.user_api_key.user_id</code>.
      */
-    public final TableField<UserApiKeyRecord, String> USER_ID = createField(DSL.name("user_id"), SQLDataType.CLOB.nullable(false), this, "");
+    public final TableField<UserApiKeyRecord, String> USER_ID = createField(DSL.name("user_id"), SQLDataType.CHAR(36).nullable(false), this, "");
 
     /**
-     * The column <code>user_api_key.key_hash</code>.
+     * The column <code>leetstack.user_api_key.key_hash</code>.
      */
-    public final TableField<UserApiKeyRecord, String> KEY_HASH = createField(DSL.name("key_hash"), SQLDataType.CLOB.nullable(false), this, "");
+    public final TableField<UserApiKeyRecord, String> KEY_HASH = createField(DSL.name("key_hash"), SQLDataType.VARCHAR(200).nullable(false), this, "");
 
     /**
-     * The column <code>user_api_key.label</code>.
+     * The column <code>leetstack.user_api_key.label</code>.
      */
     public final TableField<UserApiKeyRecord, String> LABEL = createField(DSL.name("label"), SQLDataType.CLOB, this, "");
 
     /**
-     * The column <code>user_api_key.revoked</code>.
+     * The column <code>leetstack.user_api_key.revoked</code>.
      */
-    public final TableField<UserApiKeyRecord, Integer> REVOKED = createField(DSL.name("revoked"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+    public final TableField<UserApiKeyRecord, Byte> REVOKED = createField(DSL.name("revoked"), SQLDataType.TINYINT.nullable(false).defaultValue(DSL.inline("0", SQLDataType.TINYINT)), this, "");
 
     /**
-     * The column <code>user_api_key.created_date</code>.
+     * The column <code>leetstack.user_api_key.created_date</code>.
      */
     public final TableField<UserApiKeyRecord, LocalDateTime> CREATED_DATE = createField(DSL.name("created_date"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
-     * The column <code>user_api_key.last_used_date</code>.
+     * The column <code>leetstack.user_api_key.last_used_date</code>.
      */
     public final TableField<UserApiKeyRecord, LocalDateTime> LAST_USED_DATE = createField(DSL.name("last_used_date"), SQLDataType.LOCALDATETIME(0), this, "");
 
@@ -104,21 +104,21 @@ public class UserApiKey extends TableImpl<UserApiKeyRecord> {
     }
 
     /**
-     * Create an aliased <code>user_api_key</code> table reference
+     * Create an aliased <code>leetstack.user_api_key</code> table reference
      */
     public UserApiKey(String alias) {
         this(DSL.name(alias), USER_API_KEY);
     }
 
     /**
-     * Create an aliased <code>user_api_key</code> table reference
+     * Create an aliased <code>leetstack.user_api_key</code> table reference
      */
     public UserApiKey(Name alias) {
         this(alias, USER_API_KEY);
     }
 
     /**
-     * Create a <code>user_api_key</code> table reference
+     * Create a <code>leetstack.user_api_key</code> table reference
      */
     public UserApiKey() {
         this(DSL.name("user_api_key"), null);
@@ -159,42 +159,42 @@ public class UserApiKey extends TableImpl<UserApiKeyRecord> {
 
     @Override
     public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+        return aliased() ? null : Leetstack.LEETSTACK;
     }
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IDX_USER_API_KEY_USER_ID);
+        return Arrays.asList(Indexes.USER_API_KEY_IDX_USER_API_KEY_USER_ID);
     }
 
     @Override
-    public Identity<UserApiKeyRecord, Integer> getIdentity() {
-        return (Identity<UserApiKeyRecord, Integer>) super.getIdentity();
+    public Identity<UserApiKeyRecord, Long> getIdentity() {
+        return (Identity<UserApiKeyRecord, Long>) super.getIdentity();
     }
 
     @Override
     public UniqueKey<UserApiKeyRecord> getPrimaryKey() {
-        return Keys.USER_API_KEY__PK_USER_API_KEY;
+        return Keys.KEY_USER_API_KEY_PRIMARY;
     }
 
     @Override
     public List<UniqueKey<UserApiKeyRecord>> getUniqueKeys() {
-        return Arrays.asList(Keys.USER_API_KEY__UQ_USER_API_KEY_HASH);
+        return Arrays.asList(Keys.KEY_USER_API_KEY_UQ_USER_API_KEY_HASH);
     }
 
     @Override
     public List<ForeignKey<UserApiKeyRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.USER_API_KEY__FK_USER_API_KEY_PK_USER);
+        return Arrays.asList(Keys.USER_API_KEY_IBFK_1);
     }
 
     private transient UserPath _user;
 
     /**
-     * Get the implicit join path to the <code>user</code> table.
+     * Get the implicit join path to the <code>leetstack.user</code> table.
      */
     public UserPath user() {
         if (_user == null)
-            _user = new UserPath(this, Keys.USER_API_KEY__FK_USER_API_KEY_PK_USER, null);
+            _user = new UserPath(this, Keys.USER_API_KEY_IBFK_1, null);
 
         return _user;
     }

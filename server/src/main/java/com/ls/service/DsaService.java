@@ -18,7 +18,7 @@ public class DsaService {
     }
 
     @Transactional
-    public UserDsaQuestionDto saveUserQuestion(CreateUserDsaQuestionDto request) {
-        return dsaRepository.saveUserQuestion(request);
+    public UserDsaQuestionDto saveOrUpdateUserQuestion(CreateUserDsaQuestionDto request) {
+        return dsaRepository.saveOrUpdateUserQuestion(request);
     }
 }

@@ -45,14 +45,14 @@ dependencies {
 
   // Database
   implementation 'org.hibernate.orm:hibernate-community-dialects:6.6.1.Final'
-  runtimeOnly 'org.xerial:sqlite-jdbc:3.46.1.0'
+  runtimeOnly 'com.mysql:mysql-connector-j:9.4.0'
 
   // jOOQ
   implementation 'org.springframework.boot:spring-boot-starter-jooq'
-  jooqCodegen 'org.xerial:sqlite-jdbc:3.46.1.0'
+  jooqCodegen 'com.mysql:mysql-connector-j:9.4.0'
 
   // Liquibase
-  liquibaseRuntime 'org.xerial:sqlite-jdbc:3.46.1.0'
+  liquibaseRuntime 'com.mysql:mysql-connector-j:9.4.0'
   liquibaseRuntime 'org.liquibase:liquibase-core:5.0.1'
   liquibaseRuntime 'info.picocli:picocli:4.6.1'
   liquibaseRuntime 'ch.qos.logback:logback-core:1.4.14'
@@ -82,8 +82,10 @@ liquibase {
   activities {
     main {
       changelogFile './db/db.changelog-master.xml'
-      url 'jdbc:sqlite:./data/leetstack-db.sqlite'
-      driver 'org.sqlite.JDBC'
+      url "${env.fetch('DB_URL')}"
+      driver 'com.mysql.cj.jdbc.Driver'
+      username env.fetch('DB_USER')
+      password env.fetch('DB_PASSWORD')
     }
   }
 }
@@ -91,21 +93,22 @@ liquibase {
 test {
   useJUnitPlatform()
   environment.putAll(env.allVariables())
-//  println "===++++${env.is}"
-  println "=====${env.allVariables()}"
   jvmArgs("-Duser.timezone=UTC", "-Dspring.profiles.active=dev", "-Xmx1g")
 }
 
 jooq {
   configuration {
     jdbc {
-      driver = "org.sqlite.JDBC"
-      url = "jdbc:sqlite:${project.projectDir}/data/leetstack-db.sqlite"
+      driver = "com.mysql.cj.jdbc.Driver"
+      url = env.fetch("DB_URL")
+      username = env.fetch("DB_USER")
+      password = env.fetch("DB_PASSWORD")
     }
     generator {
       database {
-        name = "org.jooq.meta.sqlite.SQLiteDatabase"
-        excludes = "sqlite_sequence"
+        name = "org.jooq.meta.mysql.MySQLDatabase"
+        inputSchema = "leetstack"
+        excludes = "DATABASECHANGELOG|DATABASECHANGELOGLOCK"
       }
       generate {
         pojos = true

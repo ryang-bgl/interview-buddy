@@ -21,98 +21,98 @@ public class UserRecord extends UpdatableRecordImpl<UserRecord> {
     private static final long serialVersionUID = 1L;
 
     /**
-     * Setter for <code>user.id</code>.
+     * Setter for <code>leetstack.user.id</code>.
      */
     public void setId(String value) {
         set(0, value);
     }
 
     /**
-     * Getter for <code>user.id</code>.
+     * Getter for <code>leetstack.user.id</code>.
      */
     public String getId() {
         return (String) get(0);
     }
 
     /**
-     * Setter for <code>user.email</code>.
+     * Setter for <code>leetstack.user.email</code>.
      */
     public void setEmail(String value) {
         set(1, value);
     }
 
     /**
-     * Getter for <code>user.email</code>.
+     * Getter for <code>leetstack.user.email</code>.
      */
     public String getEmail() {
         return (String) get(1);
     }
 
     /**
-     * Setter for <code>user.first_name</code>.
+     * Setter for <code>leetstack.user.first_name</code>.
      */
     public void setFirstName(String value) {
         set(2, value);
     }
 
     /**
-     * Getter for <code>user.first_name</code>.
+     * Getter for <code>leetstack.user.first_name</code>.
      */
     public String getFirstName() {
         return (String) get(2);
     }
 
     /**
-     * Setter for <code>user.last_name</code>.
+     * Setter for <code>leetstack.user.last_name</code>.
      */
     public void setLastName(String value) {
         set(3, value);
     }
 
     /**
-     * Getter for <code>user.last_name</code>.
+     * Getter for <code>leetstack.user.last_name</code>.
      */
     public String getLastName() {
         return (String) get(3);
     }
 
     /**
-     * Setter for <code>user.created_date</code>.
+     * Setter for <code>leetstack.user.created_date</code>.
      */
     public void setCreatedDate(LocalDateTime value) {
         set(4, value);
     }
 
     /**
-     * Getter for <code>user.created_date</code>.
+     * Getter for <code>leetstack.user.created_date</code>.
      */
     public LocalDateTime getCreatedDate() {
         return (LocalDateTime) get(4);
     }
 
     /**
-     * Setter for <code>user.last_updated_date</code>.
+     * Setter for <code>leetstack.user.last_updated_date</code>.
      */
     public void setLastUpdatedDate(LocalDateTime value) {
         set(5, value);
     }
 
     /**
-     * Getter for <code>user.last_updated_date</code>.
+     * Getter for <code>leetstack.user.last_updated_date</code>.
      */
     public LocalDateTime getLastUpdatedDate() {
         return (LocalDateTime) get(5);
     }
 
     /**
-     * Setter for <code>user.leetstack_username</code>.
+     * Setter for <code>leetstack.user.leetstack_username</code>.
      */
     public void setLeetstackUsername(String value) {
         set(6, value);
     }
 
     /**
-     * Getter for <code>user.leetstack_username</code>.
+     * Getter for <code>leetstack.user.leetstack_username</code>.
      */
     public String getLeetstackUsername() {
         return (String) get(6);

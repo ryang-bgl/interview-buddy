@@ -4,9 +4,9 @@
 package com.ls.jooq.tables;
 
 
-import com.ls.jooq.DefaultSchema;
 import com.ls.jooq.Indexes;
 import com.ls.jooq.Keys;
+import com.ls.jooq.Leetstack;
 import com.ls.jooq.tables.User.UserPath;
 import com.ls.jooq.tables.records.UserDsaRecord;
 
@@ -37,6 +37,7 @@ import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
+import org.jooq.types.ULong;
 
 
 /**
@@ -48,7 +49,7 @@ public class UserDsa extends TableImpl<UserDsaRecord> {
     private static final long serialVersionUID = 1L;
 
     /**
-     * The reference instance of <code>user_dsa</code>
+     * The reference instance of <code>leetstack.user_dsa</code>
      */
     public static final UserDsa USER_DSA = new UserDsa();
 
@@ -61,64 +62,64 @@ public class UserDsa extends TableImpl<UserDsaRecord> {
     }
 
     /**
-     * The column <code>user_dsa.id</code>.
+     * The column <code>leetstack.user_dsa.id</code>.
      */
-    public final TableField<UserDsaRecord, Integer> ID = createField(DSL.name("id"), SQLDataType.INTEGER.identity(true), this, "");
+    public final TableField<UserDsaRecord, ULong> ID = createField(DSL.name("id"), SQLDataType.BIGINTUNSIGNED.nullable(false).identity(true), this, "");
 
     /**
-     * The column <code>user_dsa.user_id</code>.
+     * The column <code>leetstack.user_dsa.user_id</code>.
      */
-    public final TableField<UserDsaRecord, String> USER_ID = createField(DSL.name("user_id"), SQLDataType.CLOB.nullable(false), this, "");
+    public final TableField<UserDsaRecord, String> USER_ID = createField(DSL.name("user_id"), SQLDataType.CHAR(36).nullable(false), this, "");
 
     /**
-     * The column <code>user_dsa.title</code>.
+     * The column <code>leetstack.user_dsa.title</code>.
      */
     public final TableField<UserDsaRecord, String> TITLE = createField(DSL.name("title"), SQLDataType.CLOB.nullable(false), this, "");
 
     /**
-     * The column <code>user_dsa.title_slug</code>.
+     * The column <code>leetstack.user_dsa.title_slug</code>.
      */
-    public final TableField<UserDsaRecord, String> TITLE_SLUG = createField(DSL.name("title_slug"), SQLDataType.CLOB.nullable(false), this, "");
+    public final TableField<UserDsaRecord, String> TITLE_SLUG = createField(DSL.name("title_slug"), SQLDataType.VARCHAR(255).nullable(false), this, "");
 
     /**
-     * The column <code>user_dsa.difficulty</code>.
+     * The column <code>leetstack.user_dsa.difficulty</code>.
      */
-    public final TableField<UserDsaRecord, String> DIFFICULTY = createField(DSL.name("difficulty"), SQLDataType.CLOB.nullable(false), this, "");
+    public final TableField<UserDsaRecord, String> DIFFICULTY = createField(DSL.name("difficulty"), SQLDataType.VARCHAR(50).nullable(false), this, "");
 
     /**
-     * The column <code>user_dsa.is_paid_only</code>.
+     * The column <code>leetstack.user_dsa.is_paid_only</code>.
      */
-    public final TableField<UserDsaRecord, Integer> IS_PAID_ONLY = createField(DSL.name("is_paid_only"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+    public final TableField<UserDsaRecord, Byte> IS_PAID_ONLY = createField(DSL.name("is_paid_only"), SQLDataType.TINYINT.nullable(false).defaultValue(DSL.inline("0", SQLDataType.TINYINT)), this, "");
 
     /**
-     * The column <code>user_dsa.description</code>.
+     * The column <code>leetstack.user_dsa.description</code>.
      */
     public final TableField<UserDsaRecord, String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.CLOB.nullable(false), this, "");
 
     /**
-     * The column <code>user_dsa.solution</code>.
+     * The column <code>leetstack.user_dsa.solution</code>.
      */
     public final TableField<UserDsaRecord, String> SOLUTION = createField(DSL.name("solution"), SQLDataType.CLOB, this, "");
 
     /**
-     * The column <code>user_dsa.note</code>.
+     * The column <code>leetstack.user_dsa.note</code>.
      */
     public final TableField<UserDsaRecord, String> NOTE = createField(DSL.name("note"), SQLDataType.CLOB, this, "");
 
     /**
-     * The column <code>user_dsa.example_testcases</code>.
+     * The column <code>leetstack.user_dsa.example_testcases</code>.
      */
     public final TableField<UserDsaRecord, String> EXAMPLE_TESTCASES = createField(DSL.name("example_testcases"), SQLDataType.CLOB, this, "");
 
     /**
-     * The column <code>user_dsa.created_date</code>.
+     * The column <code>leetstack.user_dsa.created_date</code>.
      */
-    public final TableField<UserDsaRecord, LocalDateTime> CREATED_DATE = createField(DSL.name("created_date"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<UserDsaRecord, LocalDateTime> CREATED_DATE = createField(DSL.name("created_date"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
-     * The column <code>user_dsa.last_updated_date</code>.
+     * The column <code>leetstack.user_dsa.last_updated_date</code>.
      */
-    public final TableField<UserDsaRecord, LocalDateTime> LAST_UPDATED_DATE = createField(DSL.name("last_updated_date"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<UserDsaRecord, LocalDateTime> LAST_UPDATED_DATE = createField(DSL.name("last_updated_date"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.LOCALDATETIME)), this, "");
 
     private UserDsa(Name alias, Table<UserDsaRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
@@ -129,21 +130,21 @@ public class UserDsa extends TableImpl<UserDsaRecord> {
     }
 
     /**
-     * Create an aliased <code>user_dsa</code> table reference
+     * Create an aliased <code>leetstack.user_dsa</code> table reference
      */
     public UserDsa(String alias) {
         this(DSL.name(alias), USER_DSA);
     }
 
     /**
-     * Create an aliased <code>user_dsa</code> table reference
+     * Create an aliased <code>leetstack.user_dsa</code> table reference
      */
     public UserDsa(Name alias) {
         this(alias, USER_DSA);
     }
 
     /**
-     * Create a <code>user_dsa</code> table reference
+     * Create a <code>leetstack.user_dsa</code> table reference
      */
     public UserDsa() {
         this(DSL.name("user_dsa"), null);
@@ -184,37 +185,42 @@ public class UserDsa extends TableImpl<UserDsaRecord> {
 
     @Override
     public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+        return aliased() ? null : Leetstack.LEETSTACK;
     }
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IDX_USER_DSA_USER_ID);
+        return Arrays.asList(Indexes.USER_DSA_IDX_USER_DSA_TITLE_SLUG, Indexes.USER_DSA_IDX_USER_DSA_USER_ID);
     }
 
     @Override
-    public Identity<UserDsaRecord, Integer> getIdentity() {
-        return (Identity<UserDsaRecord, Integer>) super.getIdentity();
+    public Identity<UserDsaRecord, ULong> getIdentity() {
+        return (Identity<UserDsaRecord, ULong>) super.getIdentity();
     }
 
     @Override
     public UniqueKey<UserDsaRecord> getPrimaryKey() {
-        return Keys.USER_DSA__PK_USER_DSA;
+        return Keys.KEY_USER_DSA_PRIMARY;
+    }
+
+    @Override
+    public List<UniqueKey<UserDsaRecord>> getUniqueKeys() {
+        return Arrays.asList(Keys.KEY_USER_DSA_UQ_USER_DSA_USER_SLUG);
     }
 
     @Override
     public List<ForeignKey<UserDsaRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.USER_DSA__FK_USER_DSA_PK_USER);
+        return Arrays.asList(Keys.FK_USER_DSA_USER);
     }
 
     private transient UserPath _user;
 
     /**
-     * Get the implicit join path to the <code>user</code> table.
+     * Get the implicit join path to the <code>leetstack.user</code> table.
      */
     public UserPath user() {
         if (_user == null)
-            _user = new UserPath(this, Keys.USER_DSA__FK_USER_DSA_PK_USER, null);
+            _user = new UserPath(this, Keys.FK_USER_DSA_USER, null);
 
         return _user;
     }

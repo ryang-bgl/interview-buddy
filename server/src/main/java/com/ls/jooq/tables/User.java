@@ -4,8 +4,8 @@
 package com.ls.jooq.tables;
 
 
-import com.ls.jooq.DefaultSchema;
 import com.ls.jooq.Keys;
+import com.ls.jooq.Leetstack;
 import com.ls.jooq.tables.UserApiKey.UserApiKeyPath;
 import com.ls.jooq.tables.UserDsa.UserDsaPath;
 import com.ls.jooq.tables.records.UserRecord;
@@ -46,7 +46,7 @@ public class User extends TableImpl<UserRecord> {
     private static final long serialVersionUID = 1L;
 
     /**
-     * The reference instance of <code>user</code>
+     * The reference instance of <code>leetstack.user</code>
      */
     public static final User USER = new User();
 
@@ -59,39 +59,39 @@ public class User extends TableImpl<UserRecord> {
     }
 
     /**
-     * The column <code>user.id</code>.
+     * The column <code>leetstack.user.id</code>.
      */
-    public final TableField<UserRecord, String> ID = createField(DSL.name("id"), SQLDataType.CLOB, this, "");
+    public final TableField<UserRecord, String> ID = createField(DSL.name("id"), SQLDataType.CHAR(36).nullable(false).defaultValue(DSL.inline("uuid()", SQLDataType.CHAR)), this, "");
 
     /**
-     * The column <code>user.email</code>.
+     * The column <code>leetstack.user.email</code>.
      */
-    public final TableField<UserRecord, String> EMAIL = createField(DSL.name("email"), SQLDataType.CLOB, this, "");
+    public final TableField<UserRecord, String> EMAIL = createField(DSL.name("email"), SQLDataType.VARCHAR(255), this, "");
 
     /**
-     * The column <code>user.first_name</code>.
+     * The column <code>leetstack.user.first_name</code>.
      */
-    public final TableField<UserRecord, String> FIRST_NAME = createField(DSL.name("first_name"), SQLDataType.CLOB, this, "");
+    public final TableField<UserRecord, String> FIRST_NAME = createField(DSL.name("first_name"), SQLDataType.VARCHAR(100), this, "");
 
     /**
-     * The column <code>user.last_name</code>.
+     * The column <code>leetstack.user.last_name</code>.
      */
-    public final TableField<UserRecord, String> LAST_NAME = createField(DSL.name("last_name"), SQLDataType.CLOB, this, "");
+    public final TableField<UserRecord, String> LAST_NAME = createField(DSL.name("last_name"), SQLDataType.VARCHAR(100), this, "");
 
     /**
-     * The column <code>user.created_date</code>.
+     * The column <code>leetstack.user.created_date</code>.
      */
-    public final TableField<UserRecord, LocalDateTime> CREATED_DATE = createField(DSL.name("created_date"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<UserRecord, LocalDateTime> CREATED_DATE = createField(DSL.name("created_date"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
-     * The column <code>user.last_updated_date</code>.
+     * The column <code>leetstack.user.last_updated_date</code>.
      */
-    public final TableField<UserRecord, LocalDateTime> LAST_UPDATED_DATE = createField(DSL.name("last_updated_date"), SQLDataType.LOCALDATETIME(0).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.LOCALDATETIME)), this, "");
+    public final TableField<UserRecord, LocalDateTime> LAST_UPDATED_DATE = createField(DSL.name("last_updated_date"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.LOCALDATETIME)), this, "");
 
     /**
-     * The column <code>user.leetstack_username</code>.
+     * The column <code>leetstack.user.leetstack_username</code>.
      */
-    public final TableField<UserRecord, String> LEETSTACK_USERNAME = createField(DSL.name("leetstack_username"), SQLDataType.CLOB, this, "");
+    public final TableField<UserRecord, String> LEETSTACK_USERNAME = createField(DSL.name("leetstack_username"), SQLDataType.VARCHAR(255), this, "");
 
     private User(Name alias, Table<UserRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
@@ -102,21 +102,21 @@ public class User extends TableImpl<UserRecord> {
     }
 
     /**
-     * Create an aliased <code>user</code> table reference
+     * Create an aliased <code>leetstack.user</code> table reference
      */
     public User(String alias) {
         this(DSL.name(alias), USER);
     }
 
     /**
-     * Create an aliased <code>user</code> table reference
+     * Create an aliased <code>leetstack.user</code> table reference
      */
     public User(Name alias) {
         this(alias, USER);
     }
 
     /**
-     * Create a <code>user</code> table reference
+     * Create a <code>leetstack.user</code> table reference
      */
     public User() {
         this(DSL.name("user"), null);
@@ -157,41 +157,43 @@ public class User extends TableImpl<UserRecord> {
 
     @Override
     public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+        return aliased() ? null : Leetstack.LEETSTACK;
     }
 
     @Override
     public UniqueKey<UserRecord> getPrimaryKey() {
-        return Keys.USER__PK_USER;
+        return Keys.KEY_USER_PRIMARY;
     }
 
     @Override
     public List<UniqueKey<UserRecord>> getUniqueKeys() {
-        return Arrays.asList(Keys.USER__UK_USER_1_77992387);
-    }
-
-    private transient UserApiKeyPath _userApiKey;
-
-    /**
-     * Get the implicit to-many join path to the <code>user_api_key</code> table
-     */
-    public UserApiKeyPath userApiKey() {
-        if (_userApiKey == null)
-            _userApiKey = new UserApiKeyPath(this, null, Keys.USER_API_KEY__FK_USER_API_KEY_PK_USER.getInverseKey());
-
-        return _userApiKey;
+        return Arrays.asList(Keys.KEY_USER_UQ_USER_LEETSTACK_USERNAME);
     }
 
     private transient UserDsaPath _userDsa;
 
     /**
-     * Get the implicit to-many join path to the <code>user_dsa</code> table
+     * Get the implicit to-many join path to the <code>leetstack.user_dsa</code>
+     * table
      */
     public UserDsaPath userDsa() {
         if (_userDsa == null)
-            _userDsa = new UserDsaPath(this, null, Keys.USER_DSA__FK_USER_DSA_PK_USER.getInverseKey());
+            _userDsa = new UserDsaPath(this, null, Keys.FK_USER_DSA_USER.getInverseKey());
 
         return _userDsa;
+    }
+
+    private transient UserApiKeyPath _userApiKey;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>leetstack.user_api_key</code> table
+     */
+    public UserApiKeyPath userApiKey() {
+        if (_userApiKey == null)
+            _userApiKey = new UserApiKeyPath(this, null, Keys.USER_API_KEY_IBFK_1.getInverseKey());
+
+        return _userApiKey;
     }
 
     @Override

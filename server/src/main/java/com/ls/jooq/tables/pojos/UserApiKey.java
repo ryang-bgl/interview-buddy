@@ -16,11 +16,11 @@ public class UserApiKey implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private Integer id;
+    private Long id;
     private String userId;
     private String keyHash;
     private String label;
-    private Integer revoked;
+    private Byte revoked;
     private LocalDateTime createdDate;
     private LocalDateTime lastUsedDate;
 
@@ -37,11 +37,11 @@ public class UserApiKey implements Serializable {
     }
 
     public UserApiKey(
-        Integer id,
+        Long id,
         String userId,
         String keyHash,
         String label,
-        Integer revoked,
+        Byte revoked,
         LocalDateTime createdDate,
         LocalDateTime lastUsedDate
     ) {
@@ -55,98 +55,98 @@ public class UserApiKey implements Serializable {
     }
 
     /**
-     * Getter for <code>user_api_key.id</code>.
+     * Getter for <code>leetstack.user_api_key.id</code>.
      */
-    public Integer getId() {
+    public Long getId() {
         return this.id;
     }
 
     /**
-     * Setter for <code>user_api_key.id</code>.
+     * Setter for <code>leetstack.user_api_key.id</code>.
      */
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
     /**
-     * Getter for <code>user_api_key.user_id</code>.
+     * Getter for <code>leetstack.user_api_key.user_id</code>.
      */
     public String getUserId() {
         return this.userId;
     }
 
     /**
-     * Setter for <code>user_api_key.user_id</code>.
+     * Setter for <code>leetstack.user_api_key.user_id</code>.
      */
     public void setUserId(String userId) {
         this.userId = userId;
     }
 
     /**
-     * Getter for <code>user_api_key.key_hash</code>.
+     * Getter for <code>leetstack.user_api_key.key_hash</code>.
      */
     public String getKeyHash() {
         return this.keyHash;
     }
 
     /**
-     * Setter for <code>user_api_key.key_hash</code>.
+     * Setter for <code>leetstack.user_api_key.key_hash</code>.
      */
     public void setKeyHash(String keyHash) {
         this.keyHash = keyHash;
     }
 
     /**
-     * Getter for <code>user_api_key.label</code>.
+     * Getter for <code>leetstack.user_api_key.label</code>.
      */
     public String getLabel() {
         return this.label;
     }
 
     /**
-     * Setter for <code>user_api_key.label</code>.
+     * Setter for <code>leetstack.user_api_key.label</code>.
      */
     public void setLabel(String label) {
         this.label = label;
     }
 
     /**
-     * Getter for <code>user_api_key.revoked</code>.
+     * Getter for <code>leetstack.user_api_key.revoked</code>.
      */
-    public Integer getRevoked() {
+    public Byte getRevoked() {
         return this.revoked;
     }
 
     /**
-     * Setter for <code>user_api_key.revoked</code>.
+     * Setter for <code>leetstack.user_api_key.revoked</code>.
      */
-    public void setRevoked(Integer revoked) {
+    public void setRevoked(Byte revoked) {
         this.revoked = revoked;
     }
 
     /**
-     * Getter for <code>user_api_key.created_date</code>.
+     * Getter for <code>leetstack.user_api_key.created_date</code>.
      */
     public LocalDateTime getCreatedDate() {
         return this.createdDate;
     }
 
     /**
-     * Setter for <code>user_api_key.created_date</code>.
+     * Setter for <code>leetstack.user_api_key.created_date</code>.
      */
     public void setCreatedDate(LocalDateTime createdDate) {
         this.createdDate = createdDate;
     }
 
     /**
-     * Getter for <code>user_api_key.last_used_date</code>.
+     * Getter for <code>leetstack.user_api_key.last_used_date</code>.
      */
     public LocalDateTime getLastUsedDate() {
         return this.lastUsedDate;
     }
 
     /**
-     * Setter for <code>user_api_key.last_used_date</code>.
+     * Setter for <code>leetstack.user_api_key.last_used_date</code>.
      */
     public void setLastUsedDate(LocalDateTime lastUsedDate) {
         this.lastUsedDate = lastUsedDate;

@@ -2,28 +2,20 @@ package com.ls.repository;
 
 import com.ls.dto.CreateUserApiKeyResponseDto;
 import com.ls.dto.UserApiKeyDto;
+import com.ls.jooq.Tables;
+import com.ls.jooq.tables.UserApiKey;
 import com.ls.security.apikey.ApiKeyHashService;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import org.jooq.DSLContext;
-import org.jooq.Field;
 import org.jooq.Record;
-import org.jooq.Table;
-import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class UserApiKeyRepository {
 
-    private static final Table<Record> USER_API_KEY = DSL.table("user_api_key");
-    private static final Field<Long> ID = DSL.field("id", Long.class);
-    private static final Field<String> USER_ID = DSL.field("user_id", String.class);
-    private static final Field<String> KEY_HASH = DSL.field("key_hash", String.class);
-    private static final Field<String> LABEL = DSL.field("label", String.class);
-    private static final Field<Boolean> REVOKED = DSL.field("revoked", Boolean.class);
-    private static final Field<LocalDateTime> CREATED_DATE = DSL.field("created_date", LocalDateTime.class);
-    private static final Field<LocalDateTime> LAST_USED_DATE = DSL.field("last_used_date", LocalDateTime.class);
+    private static final UserApiKey USER_API_KEY = Tables.USER_API_KEY;
 
     private final DSLContext dsl;
     private final ApiKeyHashService apiKeyHashService;
@@ -35,10 +27,18 @@ public class UserApiKeyRepository {
 
     public Optional<UserApiKeyDto> findActiveByHash(String keyHash) {
         return dsl
-            .select(ID, USER_ID, KEY_HASH, LABEL, REVOKED, CREATED_DATE, LAST_USED_DATE)
+            .select(
+                USER_API_KEY.ID,
+                USER_API_KEY.USER_ID,
+                USER_API_KEY.KEY_HASH,
+                USER_API_KEY.LABEL,
+                USER_API_KEY.REVOKED,
+                USER_API_KEY.CREATED_DATE,
+                USER_API_KEY.LAST_USED_DATE
+            )
             .from(USER_API_KEY)
-            .where(KEY_HASH.eq(keyHash))
-            .and(REVOKED.eq(false))
+            .where(USER_API_KEY.KEY_HASH.eq(keyHash))
+            .and(USER_API_KEY.REVOKED.eq((byte) 0))
             .fetchOptional(this::mapRecord);
     }
 
@@ -47,10 +47,10 @@ public class UserApiKeyRepository {
         String hashedApiKey = apiKeyHashService.hash(rawApiKey);
 
         int rowsInserted = dsl.insertInto(USER_API_KEY)
-            .set(USER_ID, userId)
-            .set(KEY_HASH, hashedApiKey)
-            .set(LABEL, label)
-            .set(REVOKED, false)
+            .set(USER_API_KEY.USER_ID, userId)
+            .set(USER_API_KEY.KEY_HASH, hashedApiKey)
+            .set(USER_API_KEY.LABEL, label)
+            .set(USER_API_KEY.REVOKED, (byte) 0)
             .execute();
 
         if (rowsInserted != 1) {
@@ -65,26 +65,26 @@ public class UserApiKeyRepository {
 
     public void touchLastUsed(Long id) {
         dsl.update(USER_API_KEY)
-            .set(LAST_USED_DATE, LocalDateTime.now())
-            .where(ID.eq(id))
+            .set(USER_API_KEY.LAST_USED_DATE, LocalDateTime.now())
+            .where(USER_API_KEY.ID.eq(id))
             .execute();
     }
 
     public void deleteAllForUser(String userId) {
         dsl.deleteFrom(USER_API_KEY)
-            .where(USER_ID.eq(userId))
+            .where(USER_API_KEY.USER_ID.eq(userId))
             .execute();
     }
 
     private UserApiKeyDto mapRecord(Record record) {
         return new UserApiKeyDto(
-            record.get(ID),
-            record.get(USER_ID),
-            record.get(KEY_HASH),
-            record.get(LABEL),
-            Boolean.TRUE.equals(record.get(REVOKED)),
-            record.get(CREATED_DATE),
-            record.get(LAST_USED_DATE)
+            Long.valueOf(record.get(USER_API_KEY.ID)),
+            record.get(USER_API_KEY.USER_ID),
+            record.get(USER_API_KEY.KEY_HASH),
+            record.get(USER_API_KEY.LABEL),
+            Boolean.TRUE.equals(record.get(USER_API_KEY.REVOKED)),
+            record.get(USER_API_KEY.CREATED_DATE),
+            record.get(USER_API_KEY.LAST_USED_DATE)
         );
     }
 

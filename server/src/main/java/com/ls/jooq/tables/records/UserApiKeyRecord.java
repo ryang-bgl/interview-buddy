@@ -21,98 +21,98 @@ public class UserApiKeyRecord extends UpdatableRecordImpl<UserApiKeyRecord> {
     private static final long serialVersionUID = 1L;
 
     /**
-     * Setter for <code>user_api_key.id</code>.
+     * Setter for <code>leetstack.user_api_key.id</code>.
      */
-    public void setId(Integer value) {
+    public void setId(Long value) {
         set(0, value);
     }
 
     /**
-     * Getter for <code>user_api_key.id</code>.
+     * Getter for <code>leetstack.user_api_key.id</code>.
      */
-    public Integer getId() {
-        return (Integer) get(0);
+    public Long getId() {
+        return (Long) get(0);
     }
 
     /**
-     * Setter for <code>user_api_key.user_id</code>.
+     * Setter for <code>leetstack.user_api_key.user_id</code>.
      */
     public void setUserId(String value) {
         set(1, value);
     }
 
     /**
-     * Getter for <code>user_api_key.user_id</code>.
+     * Getter for <code>leetstack.user_api_key.user_id</code>.
      */
     public String getUserId() {
         return (String) get(1);
     }
 
     /**
-     * Setter for <code>user_api_key.key_hash</code>.
+     * Setter for <code>leetstack.user_api_key.key_hash</code>.
      */
     public void setKeyHash(String value) {
         set(2, value);
     }
 
     /**
-     * Getter for <code>user_api_key.key_hash</code>.
+     * Getter for <code>leetstack.user_api_key.key_hash</code>.
      */
     public String getKeyHash() {
         return (String) get(2);
     }
 
     /**
-     * Setter for <code>user_api_key.label</code>.
+     * Setter for <code>leetstack.user_api_key.label</code>.
      */
     public void setLabel(String value) {
         set(3, value);
     }
 
     /**
-     * Getter for <code>user_api_key.label</code>.
+     * Getter for <code>leetstack.user_api_key.label</code>.
      */
     public String getLabel() {
         return (String) get(3);
     }
 
     /**
-     * Setter for <code>user_api_key.revoked</code>.
+     * Setter for <code>leetstack.user_api_key.revoked</code>.
      */
-    public void setRevoked(Integer value) {
+    public void setRevoked(Byte value) {
         set(4, value);
     }
 
     /**
-     * Getter for <code>user_api_key.revoked</code>.
+     * Getter for <code>leetstack.user_api_key.revoked</code>.
      */
-    public Integer getRevoked() {
-        return (Integer) get(4);
+    public Byte getRevoked() {
+        return (Byte) get(4);
     }
 
     /**
-     * Setter for <code>user_api_key.created_date</code>.
+     * Setter for <code>leetstack.user_api_key.created_date</code>.
      */
     public void setCreatedDate(LocalDateTime value) {
         set(5, value);
     }
 
     /**
-     * Getter for <code>user_api_key.created_date</code>.
+     * Getter for <code>leetstack.user_api_key.created_date</code>.
      */
     public LocalDateTime getCreatedDate() {
         return (LocalDateTime) get(5);
     }
 
     /**
-     * Setter for <code>user_api_key.last_used_date</code>.
+     * Setter for <code>leetstack.user_api_key.last_used_date</code>.
      */
     public void setLastUsedDate(LocalDateTime value) {
         set(6, value);
     }
 
     /**
-     * Getter for <code>user_api_key.last_used_date</code>.
+     * Getter for <code>leetstack.user_api_key.last_used_date</code>.
      */
     public LocalDateTime getLastUsedDate() {
         return (LocalDateTime) get(6);
@@ -123,7 +123,7 @@ public class UserApiKeyRecord extends UpdatableRecordImpl<UserApiKeyRecord> {
     // -------------------------------------------------------------------------
 
     @Override
-    public Record1<Integer> key() {
+    public Record1<Long> key() {
         return (Record1) super.key();
     }
 
@@ -141,7 +141,7 @@ public class UserApiKeyRecord extends UpdatableRecordImpl<UserApiKeyRecord> {
     /**
      * Create a detached, initialised UserApiKeyRecord
      */
-    public UserApiKeyRecord(Integer id, String userId, String keyHash, String label, Integer revoked, LocalDateTime createdDate, LocalDateTime lastUsedDate) {
+    public UserApiKeyRecord(Long id, String userId, String keyHash, String label, Byte revoked, LocalDateTime createdDate, LocalDateTime lastUsedDate) {
         super(UserApiKey.USER_API_KEY);
 
         setId(id);
