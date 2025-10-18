@@ -4,23 +4,41 @@
 package com.ls.jooq;
 
 
+import com.ls.jooq.tables.Databasechangelog;
+import com.ls.jooq.tables.Databasechangeloglock;
+import com.ls.jooq.tables.User;
+import com.ls.jooq.tables.UserApiKey;
 import com.ls.jooq.tables.UserDsa;
-import com.ls.jooq.tables.Users;
 
 
 /**
- * Convenience access to all tables in leetstack.
+ * Convenience access to all tables in the default schema.
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Tables {
 
     /**
-     * The table <code>leetstack.user_dsa</code>.
+     * The table <code>DATABASECHANGELOG</code>.
      */
-    public static final UserDsa USER_DSA = UserDsa.USER_DSA;
+    public static final Databasechangelog DATABASECHANGELOG = Databasechangelog.DATABASECHANGELOG;
 
     /**
-     * The table <code>leetstack.users</code>.
+     * The table <code>DATABASECHANGELOGLOCK</code>.
      */
-    public static final Users USERS = Users.USERS;
+    public static final Databasechangeloglock DATABASECHANGELOGLOCK = Databasechangeloglock.DATABASECHANGELOGLOCK;
+
+    /**
+     * The table <code>user</code>.
+     */
+    public static final User USER = User.USER;
+
+    /**
+     * The table <code>user_api_key</code>.
+     */
+    public static final UserApiKey USER_API_KEY = UserApiKey.USER_API_KEY;
+
+    /**
+     * The table <code>user_dsa</code>.
+     */
+    public static final UserDsa USER_DSA = UserDsa.USER_DSA;
 }

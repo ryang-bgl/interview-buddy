@@ -70,6 +70,12 @@ public class UserApiKeyRepository {
             .execute();
     }
 
+    public void deleteAllForUser(String userId) {
+        dsl.deleteFrom(USER_API_KEY)
+            .where(USER_ID.eq(userId))
+            .execute();
+    }
+
     private UserApiKeyDto mapRecord(Record record) {
         return new UserApiKeyDto(
             record.get(ID),
