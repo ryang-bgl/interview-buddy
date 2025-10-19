@@ -11,6 +11,7 @@ public record UserDsaQuestionDto(
     @JsonProperty("isPaidOnly") boolean paidOnly,
     String description,
     String solution,
+    String idealSolutionCode,
     String note,
     String exampleTestcases
 ) {

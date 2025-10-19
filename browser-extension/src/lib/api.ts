@@ -79,6 +79,7 @@ export interface CreateUserDsaQuestionRequest {
   isPaidOnly: boolean
   description: string
   solution?: string | null
+  idealSolutionCode?: string | null
   note?: string | null
   exampleTestcases?: string | null
 }
@@ -92,6 +93,7 @@ export interface UserDsaQuestionResponse {
   isPaidOnly: boolean
   description: string
   solution: string | null
+  idealSolutionCode: string | null
   note: string | null
   exampleTestcases: string | null
 }

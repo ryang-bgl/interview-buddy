@@ -189,6 +189,20 @@ public class UserDsaRecord extends UpdatableRecordImpl<UserDsaRecord> {
         return (LocalDateTime) get(11);
     }
 
+    /**
+     * Setter for <code>leetstack.user_dsa.ideal_solution_code</code>.
+     */
+    public void setIdealSolutionCode(String value) {
+        set(12, value);
+    }
+
+    /**
+     * Getter for <code>leetstack.user_dsa.ideal_solution_code</code>.
+     */
+    public String getIdealSolutionCode() {
+        return (String) get(12);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -212,7 +226,7 @@ public class UserDsaRecord extends UpdatableRecordImpl<UserDsaRecord> {
     /**
      * Create a detached, initialised UserDsaRecord
      */
-    public UserDsaRecord(ULong id, String userId, String title, String titleSlug, String difficulty, Byte isPaidOnly, String description, String solution, String note, String exampleTestcases, LocalDateTime createdDate, LocalDateTime lastUpdatedDate) {
+    public UserDsaRecord(ULong id, String userId, String title, String titleSlug, String difficulty, Byte isPaidOnly, String description, String solution, String note, String exampleTestcases, LocalDateTime createdDate, LocalDateTime lastUpdatedDate, String idealSolutionCode) {
         super(UserDsa.USER_DSA);
 
         setId(id);
@@ -227,6 +241,7 @@ public class UserDsaRecord extends UpdatableRecordImpl<UserDsaRecord> {
         setExampleTestcases(exampleTestcases);
         setCreatedDate(createdDate);
         setLastUpdatedDate(lastUpdatedDate);
+        setIdealSolutionCode(idealSolutionCode);
         resetTouchedOnNotNull();
     }
 
@@ -249,6 +264,7 @@ public class UserDsaRecord extends UpdatableRecordImpl<UserDsaRecord> {
             setExampleTestcases(value.getExampleTestcases());
             setCreatedDate(value.getCreatedDate());
             setLastUpdatedDate(value.getLastUpdatedDate());
+            setIdealSolutionCode(value.getIdealSolutionCode());
             resetTouchedOnNotNull();
         }
     }

@@ -165,6 +165,7 @@ interface PopupFormState {
   title: string
   description: string
   code: string
+  idealSolutionCode: string
   notes: string
 }
 
@@ -333,6 +334,7 @@ function MainContent({ user }: { user: UserPrincipal }) {
   const [titleInput, setTitleInput] = useState('')
   const [descriptionInput, setDescriptionInput] = useState('')
   const [codeInput, setCodeInput] = useState(codeDefaultValue)
+  const [idealSolutionCodeInput, setIdealSolutionCodeInput] = useState('')
   const [notesInput, setNotesInput] = useState('')
   const [currentUrl, setCurrentUrl] = useState('')
   const [isInitialized, setIsInitialized] = useState(false)
@@ -371,6 +373,7 @@ function MainContent({ user }: { user: UserPrincipal }) {
           setTitleInput(storedState.title)
           setDescriptionInput(storedState.description)
           setCodeInput(storedState.code ?? codeDefaultValue)
+          setIdealSolutionCodeInput(storedState.idealSolutionCode ?? '')
           setNotesInput(storedState.notes ?? '')
           setIsInitialized(true)
           return
@@ -404,6 +407,7 @@ function MainContent({ user }: { user: UserPrincipal }) {
           : pageDetails.descriptionText ?? ''
         setDescriptionInput(description)
         setCodeInput(codeDefaultValue)
+        setIdealSolutionCodeInput('')
         setNotesInput('')
 
         if (key) {
@@ -415,6 +419,7 @@ function MainContent({ user }: { user: UserPrincipal }) {
               title: pageDetails.problemTitle,
               description: description || '',
               code: codeDefaultValue,
+              idealSolutionCode: '',
               notes: '',
             },
           }
@@ -448,6 +453,7 @@ function MainContent({ user }: { user: UserPrincipal }) {
       title: titleInput,
       description: descriptionInput,
       code: codeInput,
+      idealSolutionCode: idealSolutionCodeInput,
       notes: notesInput,
     }
 
@@ -463,7 +469,16 @@ function MainContent({ user }: { user: UserPrincipal }) {
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [currentUrl, problemNumber, titleInput, descriptionInput, codeInput, notesInput, isInitialized])
+  }, [
+    currentUrl,
+    problemNumber,
+    titleInput,
+    descriptionInput,
+    codeInput,
+    idealSolutionCodeInput,
+    notesInput,
+    isInitialized,
+  ])
 
   const handleSave = async () => {
     const trimmedTitle = titleInput.trim() || (problemNumber ? `LeetCode Problem ${problemNumber}` : 'Untitled Problem')
@@ -473,6 +488,7 @@ function MainContent({ user }: { user: UserPrincipal }) {
     const titleSlug = derivedSlug || fallbackSlug
     const description = descriptionInput.trim() || 'No description provided.'
     const solution = codeInput.trim() || null
+    const idealSolutionCode = idealSolutionCodeInput.trim() || null
     const note = notesInput.trim() || null
 
     setSaveState('saving')
@@ -488,6 +504,7 @@ function MainContent({ user }: { user: UserPrincipal }) {
         isPaidOnly: false,
         description,
         solution,
+        idealSolutionCode,
         note,
         exampleTestcases: null,
       })
@@ -639,6 +656,17 @@ function MainContent({ user }: { user: UserPrincipal }) {
               onChange={(event) => setCodeInput(event.target.value)}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
               style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
+            />
+          </FieldLabel>
+
+          <FieldLabel label="Ideal Solution Code" hint="Capture the canonical or editorial implementation">
+            <textarea
+              rows={6}
+              value={idealSolutionCodeInput}
+              onChange={(event) => setIdealSolutionCodeInput(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+              style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
+              placeholder="Paste the optimal solution for quick reference"
             />
           </FieldLabel>
 

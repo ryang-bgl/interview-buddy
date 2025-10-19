@@ -29,6 +29,7 @@ public class DsaRepository {
             .set(USER_DSA.IS_PAID_ONLY, (byte) (request.paidOnly() ? 1 : 0))
             .set(USER_DSA.DESCRIPTION, request.description())
             .set(USER_DSA.SOLUTION, request.solution())
+            .set(USER_DSA.IDEAL_SOLUTION_CODE, request.idealSolutionCode())
             .set(USER_DSA.NOTE, request.note())
             .set(USER_DSA.EXAMPLE_TESTCASES, request.exampleTestcases())
             .onDuplicateKeyUpdate()
@@ -37,6 +38,7 @@ public class DsaRepository {
             .set(USER_DSA.IS_PAID_ONLY, (byte) (request.paidOnly() ? 1 : 0))
             .set(USER_DSA.DESCRIPTION, request.description())
             .set(USER_DSA.SOLUTION, request.solution())
+            .set(USER_DSA.IDEAL_SOLUTION_CODE, request.idealSolutionCode())
             .set(USER_DSA.NOTE, request.note())
             .set(USER_DSA.EXAMPLE_TESTCASES, request.exampleTestcases())
             .execute();
@@ -65,6 +67,7 @@ public class DsaRepository {
             paidOnlyFlag != null && paidOnlyFlag == 1,
             record.getDescription(),
             record.getSolution(),
+            record.getIdealSolutionCode(),
             record.getNote(),
             record.getExampleTestcases()
         );

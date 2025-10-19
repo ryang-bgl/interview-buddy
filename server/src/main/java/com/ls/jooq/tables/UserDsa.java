@@ -121,6 +121,11 @@ public class UserDsa extends TableImpl<UserDsaRecord> {
      */
     public final TableField<UserDsaRecord, LocalDateTime> LAST_UPDATED_DATE = createField(DSL.name("last_updated_date"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.LOCALDATETIME)), this, "");
 
+    /**
+     * The column <code>leetstack.user_dsa.ideal_solution_code</code>.
+     */
+    public final TableField<UserDsaRecord, String> IDEAL_SOLUTION_CODE = createField(DSL.name("ideal_solution_code"), SQLDataType.CLOB, this, "");
+
     private UserDsa(Name alias, Table<UserDsaRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }

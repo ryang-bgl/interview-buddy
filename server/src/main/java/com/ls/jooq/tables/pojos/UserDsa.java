@@ -30,6 +30,7 @@ public class UserDsa implements Serializable {
     private String exampleTestcases;
     private LocalDateTime createdDate;
     private LocalDateTime lastUpdatedDate;
+    private String idealSolutionCode;
 
     public UserDsa() {}
 
@@ -46,6 +47,7 @@ public class UserDsa implements Serializable {
         this.exampleTestcases = value.exampleTestcases;
         this.createdDate = value.createdDate;
         this.lastUpdatedDate = value.lastUpdatedDate;
+        this.idealSolutionCode = value.idealSolutionCode;
     }
 
     public UserDsa(
@@ -60,7 +62,8 @@ public class UserDsa implements Serializable {
         String note,
         String exampleTestcases,
         LocalDateTime createdDate,
-        LocalDateTime lastUpdatedDate
+        LocalDateTime lastUpdatedDate,
+        String idealSolutionCode
     ) {
         this.id = id;
         this.userId = userId;
@@ -74,6 +77,7 @@ public class UserDsa implements Serializable {
         this.exampleTestcases = exampleTestcases;
         this.createdDate = createdDate;
         this.lastUpdatedDate = lastUpdatedDate;
+        this.idealSolutionCode = idealSolutionCode;
     }
 
     /**
@@ -244,6 +248,20 @@ public class UserDsa implements Serializable {
         this.lastUpdatedDate = lastUpdatedDate;
     }
 
+    /**
+     * Getter for <code>leetstack.user_dsa.ideal_solution_code</code>.
+     */
+    public String getIdealSolutionCode() {
+        return this.idealSolutionCode;
+    }
+
+    /**
+     * Setter for <code>leetstack.user_dsa.ideal_solution_code</code>.
+     */
+    public void setIdealSolutionCode(String idealSolutionCode) {
+        this.idealSolutionCode = idealSolutionCode;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -325,6 +343,12 @@ public class UserDsa implements Serializable {
         }
         else if (!this.lastUpdatedDate.equals(other.lastUpdatedDate))
             return false;
+        if (this.idealSolutionCode == null) {
+            if (other.idealSolutionCode != null)
+                return false;
+        }
+        else if (!this.idealSolutionCode.equals(other.idealSolutionCode))
+            return false;
         return true;
     }
 
@@ -344,6 +368,7 @@ public class UserDsa implements Serializable {
         result = prime * result + ((this.exampleTestcases == null) ? 0 : this.exampleTestcases.hashCode());
         result = prime * result + ((this.createdDate == null) ? 0 : this.createdDate.hashCode());
         result = prime * result + ((this.lastUpdatedDate == null) ? 0 : this.lastUpdatedDate.hashCode());
+        result = prime * result + ((this.idealSolutionCode == null) ? 0 : this.idealSolutionCode.hashCode());
         return result;
     }
 
@@ -363,6 +388,7 @@ public class UserDsa implements Serializable {
         sb.append(", ").append(exampleTestcases);
         sb.append(", ").append(createdDate);
         sb.append(", ").append(lastUpdatedDate);
+        sb.append(", ").append(idealSolutionCode);
 
         sb.append(")");
         return sb.toString();
