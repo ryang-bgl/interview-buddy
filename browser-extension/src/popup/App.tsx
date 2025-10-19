@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState, type ReactNode } from 'react'
+import { FormEvent, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { checkSession, loginWithKey, saveUserDsaQuestion, type UserPrincipal } from '@/lib/api'
 import { clearStoredApiKey, readStoredApiKey, storeApiKey } from '@/lib/storage'
 
@@ -339,10 +339,21 @@ function MainContent({ user }: { user: UserPrincipal }) {
   const [currentUrl, setCurrentUrl] = useState('')
   const [isInitialized, setIsInitialized] = useState(false)
   const storageCacheRef = useRef<PopupStorageMap>({})
+  const initialStateRef = useRef<PopupFormState | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
   const [saveError, setSaveError] = useState<string | null>(null)
   const [lastSavedTitle, setLastSavedTitle] = useState<string | null>(null)
   const isSaving = saveState === 'saving'
+
+  const applyFormState = useCallback((state: PopupFormState) => {
+    setProblemNumber(state.problemNumber ?? '')
+    setProblemLink(state.url ?? '')
+    setTitleInput(state.title ?? '')
+    setDescriptionInput(state.description ?? '')
+    setCodeInput(state.code ?? codeDefaultValue)
+    setIdealSolutionCodeInput(state.idealSolutionCode ?? '')
+    setNotesInput(state.notes ?? '')
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -369,12 +380,17 @@ function MainContent({ user }: { user: UserPrincipal }) {
         setProblemLink(storageKey)
         const storedState = storedMap[storageKey]
         if (storedState) {
-          setProblemNumber(storedState.problemNumber)
-          setTitleInput(storedState.title)
-          setDescriptionInput(storedState.description)
-          setCodeInput(storedState.code ?? codeDefaultValue)
-          setIdealSolutionCodeInput(storedState.idealSolutionCode ?? '')
-          setNotesInput(storedState.notes ?? '')
+          const snapshot: PopupFormState = {
+            url: storedState.url,
+            problemNumber: storedState.problemNumber,
+            title: storedState.title,
+            description: storedState.description,
+            code: storedState.code,
+            idealSolutionCode: storedState.idealSolutionCode ?? '',
+            notes: storedState.notes ?? '',
+          }
+          applyFormState(snapshot)
+          initialStateRef.current = { ...snapshot }
           setIsInitialized(true)
           return
         }
@@ -399,29 +415,26 @@ function MainContent({ user }: { user: UserPrincipal }) {
           setProblemLink(key)
         }
 
-        setProblemNumber(pageDetails.problemNumber)
-        setTitleInput(pageDetails.problemTitle)
-
         const description = pageDetails.descriptionHtml
           ? toPlainText(pageDetails.descriptionHtml)
           : pageDetails.descriptionText ?? ''
-        setDescriptionInput(description)
-        setCodeInput(codeDefaultValue)
-        setIdealSolutionCodeInput('')
-        setNotesInput('')
+        const initialState: PopupFormState = {
+          url: key || pageDetails.href || '',
+          problemNumber: pageDetails.problemNumber ?? '',
+          title: pageDetails.problemTitle ?? '',
+          description: description || '',
+          code: codeDefaultValue,
+          idealSolutionCode: '',
+          notes: '',
+        }
+
+        applyFormState(initialState)
+        initialStateRef.current = { ...initialState }
 
         if (key) {
           const updatedMap = {
             ...storageCacheRef.current,
-            [key]: {
-              url: key,
-              problemNumber: pageDetails.problemNumber,
-              title: pageDetails.problemTitle,
-              description: description || '',
-              code: codeDefaultValue,
-              idealSolutionCode: '',
-              notes: '',
-            },
+            [key]: initialState,
           }
           storageCacheRef.current = updatedMap
           await writeStoredMap(updatedMap)
@@ -480,6 +493,40 @@ function MainContent({ user }: { user: UserPrincipal }) {
     isInitialized,
   ])
 
+  const handleClose = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      window.close()
+    }
+  }, [])
+
+  const handleCancel = useCallback(() => {
+    const baseline = initialStateRef.current ?? {
+      url: currentUrl,
+      problemNumber: '',
+      title: '',
+      description: '',
+      code: codeDefaultValue,
+      idealSolutionCode: '',
+      notes: '',
+    }
+
+    const snapshot: PopupFormState = { ...baseline }
+    applyFormState(snapshot)
+
+    if (currentUrl) {
+      storageCacheRef.current = {
+        ...storageCacheRef.current,
+        [currentUrl]: snapshot,
+      }
+      void writeStoredMap(storageCacheRef.current)
+    }
+
+    initialStateRef.current = snapshot
+    setSaveState('idle')
+    setSaveError(null)
+    setLastSavedTitle(null)
+  }, [currentUrl])
+
   const handleSave = async () => {
     const trimmedTitle = titleInput.trim() || (problemNumber ? `LeetCode Problem ${problemNumber}` : 'Untitled Problem')
     const slugFromUrl = extractSlugFromUrl(problemLink)
@@ -511,6 +558,23 @@ function MainContent({ user }: { user: UserPrincipal }) {
 
       setSaveState('success')
       setLastSavedTitle(response.title)
+      if (currentUrl) {
+        const snapshot: PopupFormState = {
+          url: currentUrl,
+          problemNumber,
+          title: titleInput,
+          description: descriptionInput,
+          code: codeInput,
+          idealSolutionCode: idealSolutionCodeInput,
+          notes: notesInput,
+        }
+        initialStateRef.current = { ...snapshot }
+        storageCacheRef.current = {
+          ...storageCacheRef.current,
+          [currentUrl]: snapshot,
+        }
+        void writeStoredMap(storageCacheRef.current)
+      }
       window.setTimeout(() => {
         setSaveState('idle')
         setLastSavedTitle(null)
@@ -586,6 +650,7 @@ function MainContent({ user }: { user: UserPrincipal }) {
             type="button"
             aria-label="Close"
             className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            onClick={handleClose}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -686,7 +751,9 @@ function MainContent({ user }: { user: UserPrincipal }) {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              className="rounded-full border border-slate-200 px-6 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="rounded-full border border-slate-200 px-6 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Cancel
             </button>
