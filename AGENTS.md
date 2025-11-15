@@ -1,38 +1,26 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `server/`: Spring Boot 3.2 API. Business logic lives in `src/main/java`, configuration in `src/main/resources`, tests in `src/test/java`, and Liquibase changelogs in `db/`.
-- `browser-extension/`: Chrome MV3 popup built with React + TypeScript. Source under `src/`, assets in `public/`, and Vite bundles to `dist/`.
-- `design/`, `specs/`, `sessions/`: living documentation; add diagrams or transcripts here and keep large binaries out of git.
-- `browser-extension-bak/`: legacy build kept for reference only—touch it only when porting patterns into the active extension.
+- `server/`: Spring Boot 3.2 service with logic in `src/main/java`, configs in `src/main/resources`, Liquibase changelogs under `db/`, and tests beneath `src/test/java`.
+- `browser-extension/`: Chrome MV3 popup built with React + TypeScript; source lives in `src/`, static assets in `public/`, and Vite outputs to `dist/`.
+- `serverless/`: AWS Lambda + API Gateway stack (TypeScript) that mirrors the core REST APIs using DynamoDB tables for users, API keys, and DSA notes.
+- `design/`, `specs/`, `sessions/`: documentation spaces for diagrams, product notes, and interview transcripts; keep binaries out of git.
 
 ## Build, Test, and Development Commands
-- `./gradlew bootRun`: launch the API with hot reload and default MySQL settings.
-- `./gradlew build`: compile, run tests, and emit `server/build/libs/*.jar`.
-- `./gradlew test`: execute JUnit 5 suites backed by Testcontainers; requires Docker.
-- `./gradlew jooqCodegen`: refresh generated jOOQ models after Liquibase migrations.
-- `npm run --prefix browser-extension dev|build|preview`: start Vite, bundle the MV3 release, or preview the build output.
+- `./gradlew bootRun | build | test | jooqCodegen`: run the Spring app, build artifacts, execute Testcontainers suites, or refresh generated jOOQ models.
+- `npm run --prefix browser-extension dev | build | preview`: start the popup with Vite, produce the MV3 bundle, or preview the compiled assets.
+- `npm install && npx cdk synth|deploy --app "npx ts-node bin/app.ts"` inside `serverless/`: install CDK deps, synthesize the CloudFormation template, and deploy the Lambda/API/DynamoDB stack.
 
 ## Coding Style & Naming Conventions
-- Java: 4-space indent, PascalCase types, camelCase members. Prefer constructor injection, keep REST controllers in `...controller`, and align DTOs with jOOQ POJOs and Liquibase naming.
-- TypeScript: 2-space indent, camelCase variables, PascalCase React components. Organize popup logic under `src/features/<area>/` and export a single entry module per folder.
-- Run your IDE formatter or `./gradlew build`/Vite builds before committing; they surface obvious style issues.
+- Java: 4-space indent, PascalCase types, camelCase members, constructor injection, controllers under `...controller`, DTOs aligning with Liquibase and jOOQ models.
+- TypeScript/React: 2-space indent, PascalCase components, camelCase hooks/utilities, colocate logic under `src/features/<area>/index.tsx`.
+- Serverless Lambdas: prefer TypeScript handlers in `src/functions/<feature>/`, export a single `handler`, and lean on AWS SDK v3 clients.
 
 ## Testing Guidelines
-- Mirror package structure in `src/test/java`; name tests `<ClassName>Test` or `<Feature>IT` for container-backed integration cases.
-- Use Testcontainers-managed MySQL for persistence coverage—never point tests at shared instances.
-- The extension currently lacks automated tests; document manual scenarios in PRs until a Vitest harness is added.
+- Mirror Java package paths in `src/test/java`; suffix unit tests with `Test` and container-backed suites with `IT`.
+- Testcontainers-backed MySQL is mandatory for persistence tests; never reuse a shared DB. For serverless, write unit tests against handler functions and use `npm run test` (Vitest/Jest) once added.
 
 ## Commit & Pull Request Guidelines
-- Write concise, imperative commits (`Add auth filter`, `Fix popup focus`). Squash noisy work-in-progress changes locally.
-- PRs must summarize the change, link issues, note schema or config impacts, and attach screenshots/GIFs for UI updates.
-- Confirm Gradle and Vite builds pass and list manual verification steps before requesting review.
-
-## Database & Configuration Notes
-- Local tooling assumes MySQL on `localhost:33008` with credentials declared in `build.gradle`/Liquibase; override via environment variables for shared environments.
-- Apply Liquibase migrations first, then run `./gradlew jooqCodegen` to keep generated sources in sync.
-
-## Server project guideline
-### Controller
-- use @ResponseBody to return responses
-- name request body and response body as Dto
+- Write imperative commits (`Add auth filter`, `Port DSA API to Lambda`). Squash noisy spikes before pushing.
+- PRs should summarize the change, link issues, call out schema or infra impacts (e.g., new DynamoDB table), and attach screenshots or screencasts for UI updates.
+- Verify Gradle, Vite, and relevant CDK/SAM builds locally, then list manual verification steps (API calls, Lambda invocations, browser flows) in the PR description.

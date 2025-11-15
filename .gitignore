@@ -3,3 +3,8 @@
 .specify
 browser-extension-bak
 sessions
+serverless/node_modules
+serverless/cdk.out
+serverless/dist
+.idea
+serverless/secret-config

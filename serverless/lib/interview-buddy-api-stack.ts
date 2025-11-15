@@ -1,0 +1,191 @@
+import * as path from 'node:path';
+import {
+  Stack,
+  StackProps,
+  Duration,
+  RemovalPolicy,
+  CfnOutput,
+  CfnParameter,
+  Tags,
+} from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+import {
+  AttributeType,
+  BillingMode,
+  ProjectionType,
+  Table,
+} from 'aws-cdk-lib/aws-dynamodb';
+import { ParameterType, StringParameter } from 'aws-cdk-lib/aws-ssm';
+import { Runtime } from 'aws-cdk-lib/aws-lambda';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import {
+  HttpApi,
+  HttpMethod,
+  CorsHttpMethod,
+  CorsPreflightOptions,
+} from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+
+export interface InterviewBuddyApiStackProps extends StackProps {
+  stage: string;
+}
+
+export class InterviewBuddyApiStack extends Stack {
+  constructor(scope: Construct, id: string, props: InterviewBuddyApiStackProps) {
+    super(scope, id, props);
+
+    const stage = props.stage ?? 'dev';
+    const stageSuffix = stage.toLowerCase();
+
+    const firebaseProjectId = new CfnParameter(this, 'FirebaseProjectId', {
+      type: 'String',
+      description: 'Firebase project identifier used for verifying ID tokens.',
+    });
+
+    const firebaseClientEmail = new CfnParameter(this, 'FirebaseClientEmail', {
+      type: 'String',
+      description: 'Service account client email for Firebase Admin SDK.',
+    });
+
+    const firebasePrivateKey = new CfnParameter(this, 'FirebasePrivateKey', {
+      type: 'String',
+      description: 'Private key for the Firebase service account (escape newlines as \\n).',
+      noEcho: true,
+    });
+
+    const parameterPath = (name: string) => `/interview-buddy/${stageSuffix}/${name}`;
+
+    const firebaseProjectIdParameter = new StringParameter(this, 'FirebaseProjectIdParameter', {
+      parameterName: parameterPath('FIREBASE_PROJECT_ID'),
+      stringValue: firebaseProjectId.valueAsString,
+    });
+
+    const firebaseClientEmailParameter = new StringParameter(this, 'FirebaseClientEmailParameter', {
+      parameterName: parameterPath('FIREBASE_CLIENT_EMAIL'),
+      stringValue: firebaseClientEmail.valueAsString,
+    });
+
+    const firebasePrivateKeyParameter = new StringParameter(this, 'FirebasePrivateKeyParameter', {
+      parameterName: parameterPath('FIREBASE_PRIVATE_KEY'),
+      stringValue: firebasePrivateKey.valueAsString,
+      type: ParameterType.SECURE_STRING,
+    });
+
+    const userIdIndexName = 'id-index';
+    const usersTable = new Table(this, 'UsersTable', {
+      tableName: `interview-buddy-users-${stageSuffix}`,
+      partitionKey: { name: 'email', type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    usersTable.addGlobalSecondaryIndex({
+      indexName: userIdIndexName,
+      partitionKey: { name: 'id', type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
+    const userDsaTable = new Table(this, 'UserDsaQuestionsTable', {
+      tableName: `interview-buddy-user-dsa-questions-${stageSuffix}`,
+      partitionKey: { name: 'userId', type: AttributeType.STRING },
+      sortKey: { name: 'titleSlug', type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const commonLambdaEnv = {
+      STAGE: stage,
+      USERS_TABLE_NAME: usersTable.tableName,
+      USERS_TABLE_ID_INDEX_NAME: userIdIndexName,
+      FIREBASE_PROJECT_ID_PARAM: firebaseProjectIdParameter.parameterName,
+      FIREBASE_CLIENT_EMAIL_PARAM: firebaseClientEmailParameter.parameterName,
+      FIREBASE_PRIVATE_KEY_PARAM: firebasePrivateKeyParameter.parameterName,
+    } as const;
+
+    const defaultLambdaProps = {
+      runtime: Runtime.NODEJS_20_X,
+      memorySize: 256,
+      timeout: Duration.seconds(15),
+      bundling: {
+        target: 'es2020',
+        minify: true,
+        sourceMap: true,
+      },
+    } as const;
+
+    const createUserQuestionFn = new NodejsFunction(this, 'CreateUserQuestionFunction', {
+      ...defaultLambdaProps,
+      entry: path.join(__dirname, '..', 'src', 'functions', 'dsa', 'createUserQuestion.ts'),
+      handler: 'handler',
+      environment: {
+        ...commonLambdaEnv,
+        USER_DSA_TABLE_NAME: userDsaTable.tableName,
+      },
+    });
+
+    const authByApiKeyFn = new NodejsFunction(this, 'AuthByApiKeyFunction', {
+      ...defaultLambdaProps,
+      entry: path.join(__dirname, '..', 'src', 'functions', 'auth', 'authByApiKey.ts'),
+      handler: 'handler',
+      environment: commonLambdaEnv,
+    });
+
+    const currentPrincipalFn = new NodejsFunction(this, 'CurrentPrincipalFunction', {
+      ...defaultLambdaProps,
+      entry: path.join(__dirname, '..', 'src', 'functions', 'auth', 'currentPrincipal.ts'),
+      handler: 'handler',
+      environment: commonLambdaEnv,
+    });
+
+    userDsaTable.grantReadWriteData(createUserQuestionFn);
+    usersTable.grantReadWriteData(createUserQuestionFn);
+    usersTable.grantReadWriteData(authByApiKeyFn);
+    usersTable.grantReadWriteData(currentPrincipalFn);
+
+    [createUserQuestionFn, authByApiKeyFn, currentPrincipalFn].forEach((fn) => {
+      firebaseProjectIdParameter.grantRead(fn);
+      firebaseClientEmailParameter.grantRead(fn);
+      firebasePrivateKeyParameter.grantRead(fn);
+    });
+
+    const cors: CorsPreflightOptions = {
+      allowHeaders: ['Content-Type', 'x-api-key', 'authorization'],
+      allowMethods: [CorsHttpMethod.ANY],
+      allowOrigins: ['*'],
+      maxAge: Duration.days(10),
+    };
+
+    const httpApi = new HttpApi(this, 'InterviewBuddyHttpApi', {
+      apiName: `interview-buddy-api-${stageSuffix}`,
+      corsPreflight: cors,
+    });
+
+    httpApi.addRoutes({
+      path: '/api/dsa/questions',
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration('CreateUserQuestionIntegration', createUserQuestionFn),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/auth-by-api-key',
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration('AuthByApiKeyIntegration', authByApiKeyFn),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/current-principal',
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration('CurrentPrincipalIntegration', currentPrincipalFn),
+    });
+
+    [usersTable, userDsaTable].forEach((table) => {
+      Tags.of(table).add('Environment', stage);
+      Tags.of(table).add('Service', 'interview-buddy');
+    });
+
+    new CfnOutput(this, 'ApiEndpoint', {
+      value: httpApi.apiEndpoint,
+      description: `Base URL for the Interview Buddy HTTP API Gateway (${stage}).`,
+    });
+  }
+}
