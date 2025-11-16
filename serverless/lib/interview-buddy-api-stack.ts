@@ -15,7 +15,6 @@ import {
   ProjectionType,
   Table,
 } from 'aws-cdk-lib/aws-dynamodb';
-import { ParameterType, StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import {
@@ -40,35 +39,6 @@ export class InterviewBuddyApiStack extends Stack {
     const firebaseProjectId = new CfnParameter(this, 'FirebaseProjectId', {
       type: 'String',
       description: 'Firebase project identifier used for verifying ID tokens.',
-    });
-
-    const firebaseClientEmail = new CfnParameter(this, 'FirebaseClientEmail', {
-      type: 'String',
-      description: 'Service account client email for Firebase Admin SDK.',
-    });
-
-    const firebasePrivateKey = new CfnParameter(this, 'FirebasePrivateKey', {
-      type: 'String',
-      description: 'Private key for the Firebase service account (escape newlines as \\n).',
-      noEcho: true,
-    });
-
-    const parameterPath = (name: string) => `/interview-buddy/${stageSuffix}/${name}`;
-
-    const firebaseProjectIdParameter = new StringParameter(this, 'FirebaseProjectIdParameter', {
-      parameterName: parameterPath('FIREBASE_PROJECT_ID'),
-      stringValue: firebaseProjectId.valueAsString,
-    });
-
-    const firebaseClientEmailParameter = new StringParameter(this, 'FirebaseClientEmailParameter', {
-      parameterName: parameterPath('FIREBASE_CLIENT_EMAIL'),
-      stringValue: firebaseClientEmail.valueAsString,
-    });
-
-    const firebasePrivateKeyParameter = new StringParameter(this, 'FirebasePrivateKeyParameter', {
-      parameterName: parameterPath('FIREBASE_PRIVATE_KEY'),
-      stringValue: firebasePrivateKey.valueAsString,
-      type: ParameterType.SECURE_STRING,
     });
 
     const userIdIndexName = 'id-index';
@@ -97,9 +67,7 @@ export class InterviewBuddyApiStack extends Stack {
       STAGE: stage,
       USERS_TABLE_NAME: usersTable.tableName,
       USERS_TABLE_ID_INDEX_NAME: userIdIndexName,
-      FIREBASE_PROJECT_ID_PARAM: firebaseProjectIdParameter.parameterName,
-      FIREBASE_CLIENT_EMAIL_PARAM: firebaseClientEmailParameter.parameterName,
-      FIREBASE_PRIVATE_KEY_PARAM: firebasePrivateKeyParameter.parameterName,
+      FIREBASE_PROJECT_ID: firebaseProjectId.valueAsString,
     } as const;
 
     const defaultLambdaProps = {
@@ -142,11 +110,6 @@ export class InterviewBuddyApiStack extends Stack {
     usersTable.grantReadWriteData(authByApiKeyFn);
     usersTable.grantReadWriteData(currentPrincipalFn);
 
-    [createUserQuestionFn, authByApiKeyFn, currentPrincipalFn].forEach((fn) => {
-      firebaseProjectIdParameter.grantRead(fn);
-      firebaseClientEmailParameter.grantRead(fn);
-      firebasePrivateKeyParameter.grantRead(fn);
-    });
 
     const cors: CorsPreflightOptions = {
       allowHeaders: ['Content-Type', 'x-api-key', 'authorization'],
