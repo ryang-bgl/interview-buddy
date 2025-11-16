@@ -12,7 +12,7 @@ while IFS='=' read -r key value || [[ -n "${key:-}" ]]; do
 done < "$PARAM_FILE"
 
 if ((${#PARAMS[@]})); then
-  npm run "deploy:${STAGE}" -- "${PARAMS[@]}" --profile rui
+  npm run "deploy:${STAGE}" -- "${PARAMS[@]}" --profile rui-us
 else
-  npm run "deploy:${STAGE}" -- --profile rui
+  npm run "deploy:${STAGE}" -- --profile rui-us
 fi

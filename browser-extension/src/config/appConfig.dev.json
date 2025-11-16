@@ -1,8 +1,8 @@
 {
   "serverOrigin": "https://w76ttvaua5.execute-api.us-east-1.amazonaws.com",
   "supabase": {
-    "url": "https://YOUR_DEV_PROJECT.supabase.co",
-    "anonKey": "YOUR_DEV_SUPABASE_ANON_KEY",
+    "url": "https://dytenzvmlucodjjxlhyk.supabase.co",
+    "anonKey": "sb_publishable_4gaw9ZYRl4YuxBnKoabqSg_zCe8N-s0",
     "redirectTo": "https://oifnnfghdioggiklipedbeolcgnbhjeg.chromiumapp.org/auth"
   }
 }
