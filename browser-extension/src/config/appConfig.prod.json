@@ -1,3 +1,12 @@
 {
-  "serverOrigin": "https://local.leetstack.app:8443"
+  "serverOrigin": "https://w76ttvaua5.execute-api.us-east-1.amazonaws.com",
+  "firebase": {
+    "apiKey": "YOUR_PROD_FIREBASE_API_KEY",
+    "authDomain": "YOUR_PROD_FIREBASE_PROJECT.firebaseapp.com",
+    "projectId": "YOUR_PROD_FIREBASE_PROJECT",
+    "actionCodeSettings": {
+      "url": "https://YOUR_CHROME_EXTENSION_ID.chromiumapp.org/__/auth",
+      "handleCodeInApp": true
+    }
+  }
 }

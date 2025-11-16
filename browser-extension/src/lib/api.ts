@@ -1,4 +1,21 @@
 import config from '@/config'
+import { getFirebaseAuth } from '@/lib/firebaseClient'
+
+async function getAuthHeader(): Promise<string | null> {
+  try {
+    const auth = getFirebaseAuth()
+    const user = auth.currentUser
+    if (!user) {
+      return null
+    }
+    const token = await user.getIdToken()
+    console.debug('[leetstack] Sending Firebase ID token to /api/users/me:', token)
+    return `Bearer ${token}`
+  } catch (error) {
+    console.warn('[leetstack] Failed to fetch Firebase ID token', error)
+    return null
+  }
+}
 
 async function request(path: string, init: RequestInit = {}): Promise<Response> {
   const url = `${config.serverOrigin}${path}`
@@ -7,8 +24,15 @@ async function request(path: string, init: RequestInit = {}): Promise<Response> 
     headers.set('Content-Type', 'application/json')
   }
 
+  if (!headers.has('Authorization')) {
+    const authHeader = await getAuthHeader()
+    if (authHeader) {
+      headers.set('Authorization', authHeader)
+    }
+  }
+
   return fetch(url, {
-    credentials: 'include',
+    credentials: 'omit',
     ...init,
     headers,
   })
@@ -26,7 +50,7 @@ export interface UserPrincipal {
 
 export async function checkSession(): Promise<UserPrincipal | null> {
   try {
-    const response = await request('/api/current-principal', { method: 'GET' })
+    const response = await request('/api/users/me', { method: 'GET' })
     if (response.ok) {
       return (await response.json()) as UserPrincipal
     }
@@ -42,37 +66,7 @@ export async function checkSession(): Promise<UserPrincipal | null> {
   }
 }
 
-interface LoginResponseBody {
-  message?: string
-}
-
-export async function loginWithKey(apiKey: string): Promise<void> {
-  const response = await request('/api/auth-by-api-key', {
-    method: 'POST',
-    headers: {
-      "X-API-KEY": apiKey
-    }
-  })
-
-  if (response.ok) {
-    return
-  }
-
-  let errorMessage = 'Login failed'
-  try {
-    const body = (await response.json()) as LoginResponseBody
-    if (body?.message) {
-      errorMessage = body.message
-    }
-  } catch (error) {
-    console.warn('[leetstack] Unable to parse login error response', error)
-  }
-
-  throw new Error(errorMessage)
-}
-
 export interface CreateUserDsaQuestionRequest {
-  userId: string
   title: string
   titleSlug: string
   difficulty: string

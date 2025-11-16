@@ -1,0 +1,11 @@
+.cluade
+.codex
+.specify
+browser-extension-bak
+sessions
+node_modules
+cdk.out
+dist
+.idea
+secret-config
+cdk.out

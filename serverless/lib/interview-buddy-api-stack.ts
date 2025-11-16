@@ -105,10 +105,18 @@ export class InterviewBuddyApiStack extends Stack {
       environment: commonLambdaEnv,
     });
 
+    const getCurrentUserFn = new NodejsFunction(this, 'GetCurrentUserFunction', {
+      ...defaultLambdaProps,
+      entry: path.join(__dirname, '..', 'src', 'functions', 'user', 'getCurrentUser.ts'),
+      handler: 'handler',
+      environment: commonLambdaEnv,
+    });
+
     userDsaTable.grantReadWriteData(createUserQuestionFn);
     usersTable.grantReadWriteData(createUserQuestionFn);
     usersTable.grantReadWriteData(authByApiKeyFn);
     usersTable.grantReadWriteData(currentPrincipalFn);
+    usersTable.grantReadWriteData(getCurrentUserFn);
 
 
     const cors: CorsPreflightOptions = {
@@ -139,6 +147,12 @@ export class InterviewBuddyApiStack extends Stack {
       path: '/api/current-principal',
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration('CurrentPrincipalIntegration', currentPrincipalFn),
+    });
+
+    httpApi.addRoutes({
+      path: '/api/users/me',
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration('GetCurrentUserIntegration', getCurrentUserFn),
     });
 
     [usersTable, userDsaTable].forEach((table) => {

@@ -21,10 +21,16 @@ export default defineManifest({
     'scripting',
     'tabs',
     'activeTab',
-    'storage'
+    'storage',
+    'identity'
   ],
   host_permissions: [
     'http://localhost:8080/*',
+    'https://local.leetstack.app:8443/*',
+    'https://*.googleapis.com/*',
+    'https://*.google.com/*',
+    'https://*.firebaseapp.com/*',
+    'https://*.chromiumapp.org/*'
   ],
   content_scripts: [{
     js: ['src/content/main.tsx'],

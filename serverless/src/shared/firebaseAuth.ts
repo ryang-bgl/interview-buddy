@@ -1,12 +1,11 @@
 import { APIGatewayProxyEventV2 } from 'aws-lambda';
 import { createRemoteJWKSet, JWTPayload, jwtVerify } from 'jose';
-import { badRequest } from './http';
 import { UserRecord } from './types';
 import { docClient } from './dynamodb';
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
 const projectId = process.env.FIREBASE_PROJECT_ID;
-const jwksUrl = new URL('https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com');
+const jwksUrl = new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com');
 const JWKS = createRemoteJWKSet(jwksUrl);
 
 if (!projectId) {

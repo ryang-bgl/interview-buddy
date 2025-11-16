@@ -1,3 +1,12 @@
 {
-  "serverOrigin": "http://localhost:8080"
+  "serverOrigin": "https://w76ttvaua5.execute-api.us-east-1.amazonaws.com",
+  "firebase": {
+    "apiKey": "AIzaSyDRpR-7gYOZo9HJLl-Qfje6uY4mq0yuPsk",
+    "authDomain": "leetstack-97e1b.firebaseapp.com",
+    "projectId": "leetstack-97e1b",
+    "actionCodeSettings": {
+      "url": "https://oifnnfghdioggiklipedbeolcgnbhjeg.chromiumapp.org/__/auth",
+      "handleCodeInApp": true
+    }
+  }
 }

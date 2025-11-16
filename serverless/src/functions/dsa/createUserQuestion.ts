@@ -86,12 +86,12 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   }
 };
 
-function stringifyOptional(value: unknown): string | undefined {
+function stringifyOptional(value: unknown): string | null {
   if (value === undefined || value === null) {
-    return undefined;
+    return null;
   }
   const trimmed = String(value).trim();
-  return trimmed.length > 0 ? trimmed : undefined;
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 function hasText(value: unknown): boolean {

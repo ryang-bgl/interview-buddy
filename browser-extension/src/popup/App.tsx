@@ -1,6 +1,7 @@
-import { FormEvent, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { checkSession, loginWithKey, saveUserDsaQuestion, type UserPrincipal } from '@/lib/api'
-import { clearStoredApiKey, readStoredApiKey, storeApiKey } from '@/lib/storage'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { onAuthStateChanged, sendSignInLinkToEmail, signInWithEmailLink, signOut } from 'firebase/auth'
+import { checkSession, saveUserDsaQuestion, type UserPrincipal } from '@/lib/api'
+import { getFirebaseActionCodeSettings, getFirebaseAuth } from '@/lib/firebaseClient'
 
 interface PageProblemDetails {
   problemNumber: string
@@ -158,6 +159,7 @@ function slugify(value: string): string {
 }
 
 const STORAGE_KEY = 'leetstack.leetPopupState'
+const PENDING_EMAIL_STORAGE_KEY = 'leetstack.pendingAuthEmail'
 
 interface PopupFormState {
   url: string
@@ -227,6 +229,55 @@ function writeStoredMap(map: PopupStorageMap): Promise<void> {
   })
 }
 
+function readPendingAuthEmail(): Promise<string | null> {
+  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+    return Promise.resolve(null)
+  }
+
+  return new Promise((resolve) => {
+    chrome.storage.local.get(PENDING_EMAIL_STORAGE_KEY, (result) => {
+      if (chrome.runtime.lastError) {
+        console.warn('[leetstack] Failed to read pending auth email', chrome.runtime.lastError)
+        resolve(null)
+        return
+      }
+
+      const value = result?.[PENDING_EMAIL_STORAGE_KEY]
+      resolve(typeof value === 'string' ? value : null)
+    })
+  })
+}
+
+function storePendingAuthEmail(email: string): Promise<void> {
+  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+    return Promise.resolve()
+  }
+
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [PENDING_EMAIL_STORAGE_KEY]: email }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn('[leetstack] Failed to persist pending auth email', chrome.runtime.lastError)
+      }
+      resolve()
+    })
+  })
+}
+
+function clearPendingAuthEmail(): Promise<void> {
+  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+    return Promise.resolve()
+  }
+
+  return new Promise((resolve) => {
+    chrome.storage.local.remove(PENDING_EMAIL_STORAGE_KEY, () => {
+      if (chrome.runtime.lastError) {
+        console.warn('[leetstack] Failed to clear pending auth email', chrome.runtime.lastError)
+      }
+      resolve()
+    })
+  })
+}
+
 interface FieldLabelProps {
   label: string
   children: ReactNode
@@ -257,26 +308,35 @@ function LoadingScreen({ message }: { message: string }) {
   )
 }
 
-interface ApiKeyPromptProps {
-  apiKey: string
+interface AuthPromptProps {
+  mode: 'enterEmail' | 'awaitingLink'
+  emailValue: string
+  pendingEmail?: string | null
+  linkValue: string
   isSubmitting: boolean
   errorMessage?: string | null
-  hasStoredKey: boolean
-  onApiKeyChange: (value: string) => void
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
-  onForgetStoredKey: () => void
+  onEmailChange: (value: string) => void
+  onLinkChange: (value: string) => void
+  onSendLink: () => void
+  onCompleteLink: () => void
+  onResetPending: () => void
 }
 
-function ApiKeyPrompt({
-  apiKey,
+function AuthPrompt({
+  mode,
+  emailValue,
+  pendingEmail,
+  linkValue,
   isSubmitting,
   errorMessage,
-  hasStoredKey,
-  onApiKeyChange,
-  onSubmit,
-  onForgetStoredKey,
-}: ApiKeyPromptProps) {
-  const buttonLabel = isSubmitting ? 'Signing in...' : 'Sign in'
+  onEmailChange,
+  onLinkChange,
+  onSendLink,
+  onCompleteLink,
+  onResetPending,
+}: AuthPromptProps) {
+  const buttonLabel = isSubmitting ? 'Sending link...' : 'Send sign-in link'
+  const finalizeLabel = isSubmitting ? 'Verifying...' : 'Complete sign-in'
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
@@ -284,43 +344,79 @@ function ApiKeyPrompt({
         <header className="space-y-2">
           <h1 className="text-xl font-semibold text-slate-900">Connect LeetStack</h1>
           <p className="text-sm text-slate-500">
-            Enter your API key to start saving problems from LeetCode.
+            We'll email you a secure sign-in link—no passwords required.
           </p>
         </header>
-        <form className="mt-6 space-y-4" onSubmit={onSubmit}>
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-700">LeetStack API Key</span>
-            <input
-              type="text"
-              value={apiKey}
-              onChange={(event) => onApiKeyChange(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              placeholder="Paste your API key"
-              autoFocus
-            />
-          </label>
+        <div className="mt-6 space-y-4">
           {errorMessage ? (
-            <p className="text-sm text-rose-600">
+            <p className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
               {errorMessage}
             </p>
           ) : null}
-          <button
-            type="submit"
-            disabled={isSubmitting || !apiKey.trim()}
-            className="w-full rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-70 hover:bg-slate-700"
-          >
-            {buttonLabel}
-          </button>
-        </form>
-        {hasStoredKey ? (
-          <button
-            type="button"
-            onClick={onForgetStoredKey}
-            className="mt-4 text-sm font-medium text-slate-500 underline underline-offset-4 transition hover:text-slate-700"
-          >
-            Clear saved key
-          </button>
-        ) : null}
+
+          {mode === 'enterEmail' ? (
+            <div className="space-y-3">
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-slate-700">Work Email</span>
+                <input
+                  type="email"
+                  value={emailValue}
+                  onChange={(event) => onEmailChange(event.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  placeholder="you@example.com"
+                  autoFocus
+                />
+              </label>
+              <button
+                type="button"
+                onClick={onSendLink}
+                disabled={isSubmitting || !emailValue.trim()}
+                className="w-full rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {buttonLabel}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600">
+                We sent a link to <span className="font-semibold text-slate-900">{pendingEmail ?? emailValue}</span>.
+                Open the email, copy the link, and paste it below to finish signing in.
+              </p>
+              <textarea
+                rows={3}
+                value={linkValue}
+                onChange={(event) => onLinkChange(event.target.value)}
+                placeholder="Paste the sign-in link here"
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onCompleteLink}
+                  disabled={isSubmitting || !linkValue.trim()}
+                  className="flex-1 rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {finalizeLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={onSendLink}
+                  disabled={isSubmitting}
+                  className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
+                >
+                  Resend link
+                </button>
+                <button
+                  type="button"
+                  onClick={onResetPending}
+                  className="text-xs font-semibold text-slate-500 underline underline-offset-4 transition hover:text-slate-700"
+                >
+                  Use a different email
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -328,7 +424,7 @@ function ApiKeyPrompt({
 
 const codeDefaultValue = `function twoSum(nums, target) {\n  const map = new Map();\n\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n\n    if (map.has(complement)) {\n      return [map.get(complement), i];\n    }\n\n    map.set(nums[i], i);\n  }\n}`
 
-function MainContent({ user }: { user: UserPrincipal }) {
+function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () => void }) {
   const [problemNumber, setProblemNumber] = useState('')
   const [problemLink, setProblemLink] = useState('')
   const [titleInput, setTitleInput] = useState('')
@@ -344,6 +440,7 @@ function MainContent({ user }: { user: UserPrincipal }) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [lastSavedTitle, setLastSavedTitle] = useState<string | null>(null)
   const isSaving = saveState === 'saving'
+  const userDisplayName = user.firstName || user.email || 'LeetStack member'
 
   const applyFormState = useCallback((state: PopupFormState) => {
     setProblemNumber(state.problemNumber ?? '')
@@ -544,7 +641,6 @@ function MainContent({ user }: { user: UserPrincipal }) {
 
     try {
       const response = await saveUserDsaQuestion({
-        userId: user.id,
         title: trimmedTitle,
         titleSlug,
         difficulty: 'Unknown',
@@ -617,6 +713,19 @@ function MainContent({ user }: { user: UserPrincipal }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
       <div className="w-[540px] max-w-full rounded-3xl bg-white p-8 shadow-dialog">
+        <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-4 text-sm">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-400">Signed in as</p>
+            <p className="font-semibold text-slate-900">{userDisplayName}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
+          >
+            Sign out
+          </button>
+        </div>
         <header className="flex items-start justify-between gap-6">
           <div className="flex flex-1 items-start gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500 text-white shadow-inner">
@@ -773,163 +882,188 @@ function MainContent({ user }: { user: UserPrincipal }) {
 }
 
 export default function App() {
-  const [authStatus, setAuthStatus] = useState<'checking' | 'authenticating' | 'needsApiKey' | 'authenticated'>('checking')
-  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [authStatus, setAuthStatus] = useState<'checking' | 'sendingLink' | 'awaitingLink' | 'authenticating' | 'needsAuth' | 'authenticated'>('checking')
   const [authError, setAuthError] = useState<string | null>(null)
-  const [hasStoredKey, setHasStoredKey] = useState(false)
   const [currentUser, setCurrentUser] = useState<UserPrincipal | null>(null)
-  const isAuthenticating = authStatus === 'authenticating'
+  const [emailInput, setEmailInput] = useState('')
+  const [linkInput, setLinkInput] = useState('')
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null)
+  const pendingEmailRef = useRef<string | null>(null)
+  const auth = useMemo(() => getFirebaseAuth(), [])
+  const actionCodeSettings = useMemo(() => getFirebaseActionCodeSettings(), [])
+
+  const syncPendingEmail = useCallback((value: string | null) => {
+    pendingEmailRef.current = value
+    setPendingEmail(value)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
 
-    async function bootstrap() {
-      let sessionPrincipal: UserPrincipal | null = null
-      try {
-        sessionPrincipal = await checkSession()
-      } catch (error) {
-        console.warn('[leetstack] Session check failed', error)
+    readPendingAuthEmail().then((stored) => {
+      if (cancelled) {
+        return
       }
+      if (stored) {
+        setEmailInput(stored)
+      }
+      syncPendingEmail(stored)
+      if (!auth.currentUser) {
+        setAuthStatus(stored ? 'awaitingLink' : 'needsAuth')
+      }
+    })
 
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (cancelled) {
         return
       }
 
-      if (sessionPrincipal) {
-        setCurrentUser(sessionPrincipal)
-        setAuthStatus('authenticated')
+      if (!firebaseUser) {
+        setCurrentUser(null)
+        setAuthStatus(pendingEmailRef.current ? 'awaitingLink' : 'needsAuth')
         return
       }
 
+      setAuthStatus('authenticating')
       try {
-        const storedKey = await readStoredApiKey()
+        await firebaseUser.getIdToken()
+        const principal = await checkSession()
         if (cancelled) {
           return
         }
 
-        if (storedKey) {
-          setHasStoredKey(true)
-          setApiKeyInput(storedKey)
-          setAuthStatus('authenticating')
+        if (principal) {
+          await clearPendingAuthEmail()
+          syncPendingEmail(null)
+          setLinkInput('')
           setAuthError(null)
-
-          try {
-            await loginWithKey(storedKey)
-            if (cancelled) {
-              return
-            }
-
-            const verifiedPrincipal = await checkSession().catch(() => null)
-            if (cancelled) {
-              return
-            }
-
-            if (verifiedPrincipal) {
-              setCurrentUser(verifiedPrincipal)
-              setAuthStatus('authenticated')
-              return
-            }
-
-            throw new Error('Unable to verify session')
-          } catch (error) {
-            if (!cancelled) {
-              const message = error instanceof Error && error.message ? error.message : 'Login failed'
-              setAuthError(message)
-              await clearStoredApiKey()
-              setHasStoredKey(false)
-              setCurrentUser(null)
-              setAuthStatus('needsApiKey')
-            }
-            return
-          }
+          setCurrentUser(principal)
+          setAuthStatus('authenticated')
+        } else {
+          setCurrentUser(null)
+          setAuthStatus(pendingEmailRef.current ? 'awaitingLink' : 'needsAuth')
         }
       } catch (error) {
         if (!cancelled) {
-          console.warn('[leetstack] Unable to restore stored API key', error)
+          console.warn('[leetstack] Unable to sync session with Firebase user', error)
+          setAuthError('Failed to verify your session. Please try again.')
+          setCurrentUser(null)
+          setAuthStatus(pendingEmailRef.current ? 'awaitingLink' : 'needsAuth')
         }
       }
-
-      if (!cancelled) {
-        setCurrentUser(null)
-        setAuthStatus('needsApiKey')
-      }
-    }
-
-    void bootstrap()
+    })
 
     return () => {
       cancelled = true
+      unsubscribe()
     }
-  }, [])
+  }, [auth, syncPendingEmail])
 
-  const handleApiKeyChange = (value: string) => {
-    setApiKeyInput(value)
-  }
-
-  const handleForgetStoredKey = async () => {
-    await clearStoredApiKey()
-    setHasStoredKey(false)
-    setApiKeyInput('')
-  }
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const trimmed = apiKeyInput.trim()
-    if (!trimmed) {
-      setAuthError('API key is required')
+  const handleSendLink = useCallback(async () => {
+    const email = emailInput.trim()
+    if (!email) {
+      setAuthError('Email is required')
       return
     }
 
-    setAuthStatus('authenticating')
     setAuthError(null)
-    setCurrentUser(null)
-
+    setAuthStatus('sendingLink')
     try {
-      await loginWithKey(trimmed)
-      const principal = await checkSession().catch(() => null)
-      if (!principal) {
-        throw new Error('Unable to verify session after login')
-      }
-
-      await storeApiKey(trimmed)
-      setHasStoredKey(true)
-      setCurrentUser(principal)
-      setAuthStatus('authenticated')
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings)
+      await storePendingAuthEmail(email)
+      syncPendingEmail(email)
+      setLinkInput('')
+      setAuthStatus('awaitingLink')
     } catch (error) {
-      const message = error instanceof Error && error.message ? error.message : 'Login failed'
+      console.warn('[leetstack] Failed to send sign-in link', error)
+      const message = error instanceof Error && error.message ? error.message : 'Unable to send sign-in link'
       setAuthError(message)
-      await clearStoredApiKey()
-      setHasStoredKey(false)
-      setCurrentUser(null)
-      setAuthStatus('needsApiKey')
+      setAuthStatus('needsAuth')
     }
-  }
+  }, [actionCodeSettings, auth, emailInput, syncPendingEmail])
+
+  const handleCompleteLink = useCallback(async () => {
+    const link = linkInput.trim()
+    const email = (pendingEmailRef.current ?? emailInput.trim())
+    if (!email) {
+      setAuthError('Enter the email you used for the sign-in link')
+      return
+    }
+    if (!link) {
+      setAuthError('Paste the sign-in link from your email')
+      return
+    }
+
+    setAuthError(null)
+    setAuthStatus('authenticating')
+    try {
+      if (!pendingEmailRef.current) {
+        await storePendingAuthEmail(email)
+        syncPendingEmail(email)
+      }
+      await signInWithEmailLink(auth, email, link)
+    } catch (error) {
+      console.warn('[leetstack] Failed to complete email link sign-in', error)
+      const message = error instanceof Error && error.message ? error.message : 'Unable to verify the link'
+      setAuthError(message)
+      setAuthStatus('awaitingLink')
+    }
+  }, [auth, emailInput, linkInput])
+
+  const handleResetPending = useCallback(async () => {
+    await clearPendingAuthEmail()
+    syncPendingEmail(null)
+    setEmailInput('')
+    setLinkInput('')
+    setAuthError(null)
+    setAuthStatus('needsAuth')
+  }, [syncPendingEmail])
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      await signOut(auth)
+    } catch (error) {
+      console.warn('[leetstack] Failed to sign out', error)
+    } finally {
+      await clearPendingAuthEmail()
+      syncPendingEmail(null)
+      setCurrentUser(null)
+      setAuthStatus('needsAuth')
+    }
+  }, [auth, syncPendingEmail])
 
   if (authStatus === 'authenticated' && currentUser) {
-    return <MainContent user={currentUser} />
+    return <MainContent user={currentUser} onSignOut={handleSignOut} />
   }
 
   if (authStatus === 'authenticated' && !currentUser) {
     return <LoadingScreen message="Loading your profile..." />
   }
 
-  if (authStatus === 'checking' || isAuthenticating) {
+  if (authStatus === 'checking') {
     return (
       <LoadingScreen
-        message={authStatus === 'authenticating' ? 'Signing you in...' : 'Checking your session...'}
+        message="Checking your session..."
       />
     )
   }
 
+  const authPromptMode = authStatus === 'awaitingLink' ? 'awaitingLink' : 'enterEmail'
+  const promptSubmitting = authStatus === 'sendingLink' || authStatus === 'authenticating'
+
   return (
-    <ApiKeyPrompt
-      apiKey={apiKeyInput}
+    <AuthPrompt
+      mode={authPromptMode}
+      emailValue={emailInput}
+      pendingEmail={pendingEmail}
+      linkValue={linkInput}
+      isSubmitting={promptSubmitting}
       errorMessage={authError}
-      hasStoredKey={hasStoredKey}
-      isSubmitting={isAuthenticating}
-      onApiKeyChange={handleApiKeyChange}
-      onForgetStoredKey={handleForgetStoredKey}
-      onSubmit={handleSubmit}
+      onEmailChange={setEmailInput}
+      onLinkChange={setLinkInput}
+      onSendLink={handleSendLink}
+      onCompleteLink={handleCompleteLink}
+      onResetPending={handleResetPending}
     />
   )
 }
