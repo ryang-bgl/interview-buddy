@@ -11,7 +11,7 @@
     "build:dev": "VITE_APP_ENV=dev tsc -b && VITE_APP_ENV=dev vite build"
   },
   "dependencies": {
-    "firebase": "^11.10.0",
+    "@supabase/supabase-js": "^2.47.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

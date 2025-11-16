@@ -4,7 +4,7 @@ import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { docClient } from '../../shared/dynamodb';
 import { badRequest, internalError, jsonResponse, unauthorized } from '../../shared/http';
 import { UserDsaQuestionRecord } from '../../shared/types';
-import { authenticateRequest, UnauthorizedError } from '../../shared/firebaseAuth';
+import { authenticateRequest, UnauthorizedError } from '../../shared/supabaseAuth';
 
 const userDsaTableName = process.env.USER_DSA_TABLE_NAME;
 

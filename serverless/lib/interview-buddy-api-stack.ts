@@ -36,10 +36,19 @@ export class InterviewBuddyApiStack extends Stack {
     const stage = props.stage ?? 'dev';
     const stageSuffix = stage.toLowerCase();
 
-    const firebaseProjectId = new CfnParameter(this, 'FirebaseProjectId', {
+    const supabaseProjectRef = new CfnParameter(this, 'SupabaseProjectRef', {
       type: 'String',
-      description: 'Firebase project identifier used for verifying ID tokens.',
+      description: 'Supabase project reference (e.g., abcdefghijklmnoqrst).',
     });
+
+    const supabaseJwtAudience = new CfnParameter(this, 'SupabaseJwtAudience', {
+      type: 'String',
+      description: 'Expected JWT audience from Supabase tokens.',
+      default: 'authenticated',
+    });
+
+    const supabaseAuthUrl = `https://${supabaseProjectRef.valueAsString}.supabase.co/auth/v1`;
+    const supabaseJwksUrl = `${supabaseAuthUrl}/certs`;
 
     const userIdIndexName = 'id-index';
     const usersTable = new Table(this, 'UsersTable', {
@@ -67,7 +76,10 @@ export class InterviewBuddyApiStack extends Stack {
       STAGE: stage,
       USERS_TABLE_NAME: usersTable.tableName,
       USERS_TABLE_ID_INDEX_NAME: userIdIndexName,
-      FIREBASE_PROJECT_ID: firebaseProjectId.valueAsString,
+      SUPABASE_PROJECT_REF: supabaseProjectRef.valueAsString,
+      SUPABASE_AUTH_URL: supabaseAuthUrl,
+      SUPABASE_JWKS_URL: supabaseJwksUrl,
+      SUPABASE_JWT_AUDIENCE: supabaseJwtAudience.valueAsString,
     } as const;
 
     const defaultLambdaProps = {

@@ -24,10 +24,10 @@ npm install
 npm run dev
 ```
 
-3. Configure Firebase Auth for email-link login:
-   - Generate Web credentials in Firebase and paste them into `src/config/appConfig.dev.json`/`.prod.json` (`apiKey`, `authDomain`, `projectId`).
-   - Set `actionCodeSettings.url` to the redirect returned by `chrome.identity.getRedirectURL('firebase-email-link')` (e.g., `https://<EXTENSION_ID>.chromiumapp.org/__/auth`) and add that domain to Firebase's authorized domains.
-   - Enable the **Email link (passwordless sign-in)** provider in Firebase Authentication.
+3. Configure Supabase email OTP:
+   - Create a Supabase project and copy the project URL + anon key into `src/config/appConfig.dev.json`/`.prod.json`.
+   - Under **Authentication → Settings**, enable **Email OTP** and customize the magic-link template if desired.
+   - Add your Chrome extension redirect (`https://<EXTENSION_ID>.chromiumapp.org/auth`) to the "Redirect URLs" list so Supabase is allowed to complete the flow.
 
 4. Open Chrome and navigate to `chrome://extensions/`, enable "Developer mode", and load the unpacked extension from the `dist` directory.
 
@@ -42,7 +42,7 @@ npm run build
 - `src/popup/` - Extension popup UI
 - `src/content/` - Content scripts
 - `manifest.config.ts` - Chrome extension manifest configuration
-- `src/lib/firebaseClient.ts` - Firebase initialization used by the popup
+- `src/lib/supabaseClient.ts` - Supabase client initialization used by the popup
 
 ## Documentation
 
@@ -52,7 +52,7 @@ npm run build
 
 ## Chrome Extension Development Notes
 
-- The popup uses Firebase email-link authentication (`sendSignInLinkToEmail` + `signInWithEmailLink`). Users enter their email, receive a passwordless link, and paste it into the popup to finish signing in—no API keys required.
-- Use `manifest.config.ts` to configure permissions/hosts; Firebase requires the `identity` permission plus Google/Firebase host access.
+- The popup uses Supabase email OTP. Users receive a short code via email, enter it, and the Supabase session token is forwarded to the AWS API Gateway.
+- Use `manifest.config.ts` to configure permissions/hosts; the extension needs `identity` plus access to your Supabase project URL and API Gateway domain.
 - The CRXJS plugin automatically handles manifest generation.
 - Content scripts should be placed in `src/content/` and popup UI in `src/popup/`.

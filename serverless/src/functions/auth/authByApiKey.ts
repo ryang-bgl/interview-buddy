@@ -1,5 +1,5 @@
 import { APIGatewayProxyHandlerV2 } from 'aws-lambda';
-import { authenticateRequest, UnauthorizedError } from '../../shared/firebaseAuth';
+import { authenticateRequest, UnauthorizedError } from '../../shared/supabaseAuth';
 import { badRequest, jsonResponse, unauthorized } from '../../shared/http';
 import { UserRecord } from '../../shared/types';
 

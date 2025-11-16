@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { onAuthStateChanged, sendSignInLinkToEmail, signInWithEmailLink, signOut } from 'firebase/auth'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { supabase } from '@/lib/supabaseClient'
 import { checkSession, saveUserDsaQuestion, type UserPrincipal } from '@/lib/api'
-import { getFirebaseActionCodeSettings, getFirebaseAuth } from '@/lib/firebaseClient'
 
 interface PageProblemDetails {
   problemNumber: string
@@ -309,16 +308,16 @@ function LoadingScreen({ message }: { message: string }) {
 }
 
 interface AuthPromptProps {
-  mode: 'enterEmail' | 'awaitingLink'
+  mode: 'enterEmail' | 'awaitingOtp'
   emailValue: string
   pendingEmail?: string | null
-  linkValue: string
+  otpValue: string
   isSubmitting: boolean
   errorMessage?: string | null
   onEmailChange: (value: string) => void
-  onLinkChange: (value: string) => void
-  onSendLink: () => void
-  onCompleteLink: () => void
+  onOtpChange: (value: string) => void
+  onSendOtp: () => void
+  onVerifyOtp: () => void
   onResetPending: () => void
 }
 
@@ -326,17 +325,17 @@ function AuthPrompt({
   mode,
   emailValue,
   pendingEmail,
-  linkValue,
+  otpValue,
   isSubmitting,
   errorMessage,
   onEmailChange,
-  onLinkChange,
-  onSendLink,
-  onCompleteLink,
+  onOtpChange,
+  onSendOtp,
+  onVerifyOtp,
   onResetPending,
 }: AuthPromptProps) {
-  const buttonLabel = isSubmitting ? 'Sending link...' : 'Send sign-in link'
-  const finalizeLabel = isSubmitting ? 'Verifying...' : 'Complete sign-in'
+  const buttonLabel = isSubmitting ? 'Sending code...' : 'Send login code'
+  const finalizeLabel = isSubmitting ? 'Verifying…' : 'Verify code'
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
@@ -369,7 +368,7 @@ function AuthPrompt({
               </label>
               <button
                 type="button"
-                onClick={onSendLink}
+                onClick={onSendOtp}
                 disabled={isSubmitting || !emailValue.trim()}
                 className="w-full rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
@@ -379,32 +378,33 @@ function AuthPrompt({
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-slate-600">
-                We sent a link to <span className="font-semibold text-slate-900">{pendingEmail ?? emailValue}</span>.
-                Open the email, copy the link, and paste it below to finish signing in.
+                We emailed a one-time code to <span className="font-semibold text-slate-900">{pendingEmail ?? emailValue}</span>.
+                Enter the 6-digit code to finish signing in.
               </p>
-              <textarea
-                rows={3}
-                value={linkValue}
-                onChange={(event) => onLinkChange(event.target.value)}
-                placeholder="Paste the sign-in link here"
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              <input
+                type="text"
+                value={otpValue}
+                onChange={(event) => onOtpChange(event.target.value)}
+                placeholder="Enter the 6-digit code"
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 tracking-widest text-center"
+                inputMode="numeric"
               />
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  onClick={onCompleteLink}
-                  disabled={isSubmitting || !linkValue.trim()}
+                  onClick={onVerifyOtp}
+                  disabled={isSubmitting || !otpValue.trim()}
                   className="flex-1 rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {finalizeLabel}
                 </button>
                 <button
                   type="button"
-                  onClick={onSendLink}
+                  onClick={onSendOtp}
                   disabled={isSubmitting}
                   className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
                 >
-                  Resend link
+                  Resend code
                 </button>
                 <button
                   type="button"
@@ -882,20 +882,41 @@ function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () =
 }
 
 export default function App() {
-  const [authStatus, setAuthStatus] = useState<'checking' | 'sendingLink' | 'awaitingLink' | 'authenticating' | 'needsAuth' | 'authenticated'>('checking')
+  const [authStatus, setAuthStatus] = useState<'checking' | 'sendingOtp' | 'awaitingOtp' | 'verifyingOtp' | 'authenticating' | 'needsAuth' | 'authenticated'>('checking')
   const [authError, setAuthError] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<UserPrincipal | null>(null)
   const [emailInput, setEmailInput] = useState('')
-  const [linkInput, setLinkInput] = useState('')
+  const [otpInput, setOtpInput] = useState('')
   const [pendingEmail, setPendingEmail] = useState<string | null>(null)
   const pendingEmailRef = useRef<string | null>(null)
-  const auth = useMemo(() => getFirebaseAuth(), [])
-  const actionCodeSettings = useMemo(() => getFirebaseActionCodeSettings(), [])
 
   const syncPendingEmail = useCallback((value: string | null) => {
     pendingEmailRef.current = value
     setPendingEmail(value)
   }, [])
+
+  const hydrateUser = useCallback(async () => {
+    setAuthStatus('authenticating')
+    try {
+      const principal = await checkSession()
+      if (principal) {
+        await clearPendingAuthEmail()
+        syncPendingEmail(null)
+        setOtpInput('')
+        setAuthError(null)
+        setCurrentUser(principal)
+        setAuthStatus('authenticated')
+      } else {
+        setCurrentUser(null)
+        setAuthStatus(pendingEmailRef.current ? 'awaitingOtp' : 'needsAuth')
+      }
+    } catch (error) {
+      console.warn('[leetstack] Failed to hydrate user session', error)
+      setAuthError('Could not verify your session. Please try again.')
+      setCurrentUser(null)
+      setAuthStatus(pendingEmailRef.current ? 'awaitingOtp' : 'needsAuth')
+    }
+  }, [syncPendingEmail])
 
   useEffect(() => {
     let cancelled = false
@@ -905,61 +926,42 @@ export default function App() {
         return
       }
       if (stored) {
-        setEmailInput(stored)
+        setEmailInput((prev) => prev || stored)
       }
       syncPendingEmail(stored)
-      if (!auth.currentUser) {
-        setAuthStatus(stored ? 'awaitingLink' : 'needsAuth')
+    })
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) {
+        return
+      }
+      if (data.session) {
+        void hydrateUser()
+      } else {
+        setAuthStatus(pendingEmailRef.current ? 'awaitingOtp' : 'needsAuth')
       }
     })
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (cancelled) {
         return
       }
 
-      if (!firebaseUser) {
+      if (session) {
+        void hydrateUser()
+      } else {
         setCurrentUser(null)
-        setAuthStatus(pendingEmailRef.current ? 'awaitingLink' : 'needsAuth')
-        return
-      }
-
-      setAuthStatus('authenticating')
-      try {
-        await firebaseUser.getIdToken()
-        const principal = await checkSession()
-        if (cancelled) {
-          return
-        }
-
-        if (principal) {
-          await clearPendingAuthEmail()
-          syncPendingEmail(null)
-          setLinkInput('')
-          setAuthError(null)
-          setCurrentUser(principal)
-          setAuthStatus('authenticated')
-        } else {
-          setCurrentUser(null)
-          setAuthStatus(pendingEmailRef.current ? 'awaitingLink' : 'needsAuth')
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.warn('[leetstack] Unable to sync session with Firebase user', error)
-          setAuthError('Failed to verify your session. Please try again.')
-          setCurrentUser(null)
-          setAuthStatus(pendingEmailRef.current ? 'awaitingLink' : 'needsAuth')
-        }
+        setAuthStatus(pendingEmailRef.current ? 'awaitingOtp' : 'needsAuth')
       }
     })
 
     return () => {
       cancelled = true
-      unsubscribe()
+      listener.subscription.unsubscribe()
     }
-  }, [auth, syncPendingEmail])
+  }, [hydrateUser, syncPendingEmail])
 
-  const handleSendLink = useCallback(async () => {
+  const handleSendOtp = useCallback(async () => {
     const email = emailInput.trim()
     if (!email) {
       setAuthError('Email is required')
@@ -967,61 +969,63 @@ export default function App() {
     }
 
     setAuthError(null)
-    setAuthStatus('sendingLink')
+    setAuthStatus('sendingOtp')
     try {
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings)
+      await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+        },
+      })
       await storePendingAuthEmail(email)
       syncPendingEmail(email)
-      setLinkInput('')
-      setAuthStatus('awaitingLink')
+      setOtpInput('')
+      setAuthStatus('awaitingOtp')
     } catch (error) {
-      console.warn('[leetstack] Failed to send sign-in link', error)
-      const message = error instanceof Error && error.message ? error.message : 'Unable to send sign-in link'
+      console.warn('[leetstack] Failed to send OTP', error)
+      const message = error instanceof Error && error.message ? error.message : 'Unable to send code'
       setAuthError(message)
       setAuthStatus('needsAuth')
     }
-  }, [actionCodeSettings, auth, emailInput, syncPendingEmail])
+  }, [emailInput, syncPendingEmail])
 
-  const handleCompleteLink = useCallback(async () => {
-    const link = linkInput.trim()
-    const email = (pendingEmailRef.current ?? emailInput.trim())
+  const handleVerifyOtp = useCallback(async () => {
+    const email = (pendingEmailRef.current ?? emailInput).trim()
+    const token = otpInput.trim()
     if (!email) {
-      setAuthError('Enter the email you used for the sign-in link')
+      setAuthError('Enter the email where you received the code')
       return
     }
-    if (!link) {
-      setAuthError('Paste the sign-in link from your email')
+    if (!token) {
+      setAuthError('Enter the 6-digit code from your email')
       return
     }
 
     setAuthError(null)
-    setAuthStatus('authenticating')
+    setAuthStatus('verifyingOtp')
     try {
-      if (!pendingEmailRef.current) {
-        await storePendingAuthEmail(email)
-        syncPendingEmail(email)
-      }
-      await signInWithEmailLink(auth, email, link)
+      await supabase.auth.verifyOtp({ email, token, type: 'email' })
+      setOtpInput('')
     } catch (error) {
-      console.warn('[leetstack] Failed to complete email link sign-in', error)
-      const message = error instanceof Error && error.message ? error.message : 'Unable to verify the link'
+      console.warn('[leetstack] Failed to verify OTP', error)
+      const message = error instanceof Error && error.message ? error.message : 'Invalid or expired code'
       setAuthError(message)
-      setAuthStatus('awaitingLink')
+      setAuthStatus('awaitingOtp')
     }
-  }, [auth, emailInput, linkInput])
+  }, [emailInput, otpInput])
 
   const handleResetPending = useCallback(async () => {
     await clearPendingAuthEmail()
     syncPendingEmail(null)
     setEmailInput('')
-    setLinkInput('')
+    setOtpInput('')
     setAuthError(null)
     setAuthStatus('needsAuth')
   }, [syncPendingEmail])
 
   const handleSignOut = useCallback(async () => {
     try {
-      await signOut(auth)
+      await supabase.auth.signOut()
     } catch (error) {
       console.warn('[leetstack] Failed to sign out', error)
     } finally {
@@ -1030,7 +1034,7 @@ export default function App() {
       setCurrentUser(null)
       setAuthStatus('needsAuth')
     }
-  }, [auth, syncPendingEmail])
+  }, [syncPendingEmail])
 
   if (authStatus === 'authenticated' && currentUser) {
     return <MainContent user={currentUser} onSignOut={handleSignOut} />
@@ -1041,28 +1045,24 @@ export default function App() {
   }
 
   if (authStatus === 'checking') {
-    return (
-      <LoadingScreen
-        message="Checking your session..."
-      />
-    )
+    return <LoadingScreen message="Checking your session..." />
   }
 
-  const authPromptMode = authStatus === 'awaitingLink' ? 'awaitingLink' : 'enterEmail'
-  const promptSubmitting = authStatus === 'sendingLink' || authStatus === 'authenticating'
+  const authPromptMode = authStatus === 'awaitingOtp' ? 'awaitingOtp' : 'enterEmail'
+  const promptSubmitting = authStatus === 'sendingOtp' || authStatus === 'verifyingOtp'
 
   return (
     <AuthPrompt
       mode={authPromptMode}
       emailValue={emailInput}
       pendingEmail={pendingEmail}
-      linkValue={linkInput}
+      otpValue={otpInput}
       isSubmitting={promptSubmitting}
       errorMessage={authError}
       onEmailChange={setEmailInput}
-      onLinkChange={setLinkInput}
-      onSendLink={handleSendLink}
-      onCompleteLink={handleCompleteLink}
+      onOtpChange={setOtpInput}
+      onSendOtp={handleSendOtp}
+      onVerifyOtp={handleVerifyOtp}
       onResetPending={handleResetPending}
     />
   )

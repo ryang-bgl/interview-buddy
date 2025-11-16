@@ -25,12 +25,9 @@ export default defineManifest({
     'identity'
   ],
   host_permissions: [
-    'http://localhost:8080/*',
-    'https://local.leetstack.app:8443/*',
-    'https://*.googleapis.com/*',
-    'https://*.google.com/*',
-    'https://*.firebaseapp.com/*',
-    'https://*.chromiumapp.org/*'
+    'https://w76ttvaua5.execute-api.us-east-1.amazonaws.com/*',
+    'https://*.chromiumapp.org/*',
+    'https://*.supabase.co/*'
   ],
   content_scripts: [{
     js: ['src/content/main.tsx'],

@@ -4,18 +4,21 @@ import { UserRecord } from './types';
 import { docClient } from './dynamodb';
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
-const projectId = process.env.FIREBASE_PROJECT_ID;
-const jwksUrl = new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com');
-const JWKS = createRemoteJWKSet(jwksUrl);
+const supabaseProjectRef = process.env.SUPABASE_PROJECT_REF;
+const supabaseJwtAudience = process.env.SUPABASE_JWT_AUDIENCE ?? 'authenticated';
+const supabaseIssuer = process.env.SUPABASE_AUTH_URL ?? (supabaseProjectRef ? `https://${supabaseProjectRef}.supabase.co/auth/v1` : undefined);
+const jwksUrl = process.env.SUPABASE_JWKS_URL ?? (supabaseProjectRef ? `https://${supabaseProjectRef}.supabase.co/auth/v1/certs` : undefined);
 
-if (!projectId) {
-  throw new Error('FIREBASE_PROJECT_ID must be set');
+if (!supabaseProjectRef || !jwksUrl || !supabaseIssuer) {
+  throw new Error('SUPABASE_PROJECT_REF and SUPABASE_AUTH_URL/SUPABASE_JWKS_URL must be configured');
 }
+
+const JWKS = createRemoteJWKSet(new URL(jwksUrl));
 
 export class UnauthorizedError extends Error {}
 
 export interface AuthenticatedUserContext {
-  token: JWTPayload & { user_id: string };
+  token: JWTPayload & { sub: string };
   user: UserRecord;
 }
 
@@ -25,33 +28,33 @@ export async function authenticateRequest(
 ): Promise<AuthenticatedUserContext> {
   const idToken = explicitToken?.trim() || extractBearerToken(event.headers ?? {}) || extractTokenFromQuery(event.queryStringParameters ?? {});
   if (!idToken) {
-    throw new UnauthorizedError('Missing Firebase ID token');
+    throw new UnauthorizedError('Missing Supabase session token');
   }
 
-  const verified = await verifyFirebaseToken(idToken);
+  const verified = await verifySupabaseToken(idToken);
   const user = await upsertUser(verified);
   return { token: verified, user };
 }
 
-async function verifyFirebaseToken(token: string) {
+async function verifySupabaseToken(token: string) {
   try {
     const { payload } = await jwtVerify(token, JWKS, {
-      issuer: `https://securetoken.google.com/${projectId}`,
-      audience: projectId,
+      issuer: supabaseIssuer,
+      audience: supabaseJwtAudience,
     });
 
-    if (!payload.user_id || !payload.email) {
+    if (!payload.sub || !payload.email) {
       throw new UnauthorizedError('Token missing required claims');
     }
 
-    return payload as JWTPayload & { user_id: string; email: string };
+    return payload as JWTPayload & { sub: string; email: string };
   } catch (error) {
-    console.error('Failed to verify Firebase token', error);
-    throw new UnauthorizedError('Invalid Firebase ID token');
+    console.error('Failed to verify Supabase token', error);
+    throw new UnauthorizedError('Invalid Supabase token');
   }
 }
 
-async function upsertUser(payload: JWTPayload & { user_id: string; email: string }): Promise<UserRecord> {
+async function upsertUser(payload: JWTPayload & { sub: string; email: string }): Promise<UserRecord> {
   const now = new Date().toISOString();
   const command = new UpdateCommand({
     TableName: process.env.USERS_TABLE_NAME,
@@ -64,7 +67,7 @@ async function upsertUser(payload: JWTPayload & { user_id: string; email: string
       '#createdDate': 'createdDate',
     },
     ExpressionAttributeValues: {
-      ':id': payload.user_id,
+      ':id': payload.sub,
       ':lastUpdated': now,
       ':createdDate': now,
     },
@@ -85,15 +88,12 @@ function extractBearerToken(headers: Record<string, string | undefined>): string
     if (key.toLowerCase() === 'authorization' && value.toLowerCase().startsWith('bearer ')) {
       return value.slice(7).trim();
     }
-    if (key.toLowerCase() === 'x-firebase-token') {
-      return value.trim();
-    }
   }
   return null;
 }
 
 function extractTokenFromQuery(params: Record<string, string | undefined>): string | null {
-  for (const name of ['idToken', 'token', 'firebaseIdToken']) {
+  for (const name of ['token', 'access_token']) {
     const value = params[name];
     if (typeof value === 'string' && value.trim()) {
       return value.trim();

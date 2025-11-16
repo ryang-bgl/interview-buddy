@@ -1,18 +1,17 @@
 import config from '@/config'
-import { getFirebaseAuth } from '@/lib/firebaseClient'
+import { supabase } from '@/lib/supabaseClient'
 
 async function getAuthHeader(): Promise<string | null> {
   try {
-    const auth = getFirebaseAuth()
-    const user = auth.currentUser
-    if (!user) {
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.access_token
+    if (!token) {
       return null
     }
-    const token = await user.getIdToken()
-    console.debug('[leetstack] Sending Firebase ID token to /api/users/me:', token)
+    console.debug('[leetstack] Sending Supabase access token to /api/users/me:', token)
     return `Bearer ${token}`
   } catch (error) {
-    console.warn('[leetstack] Failed to fetch Firebase ID token', error)
+    console.warn('[leetstack] Failed to fetch Supabase session token', error)
     return null
   }
 }
