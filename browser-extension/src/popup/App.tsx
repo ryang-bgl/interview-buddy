@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { checkSession, saveUserDsaQuestion, type UserPrincipal } from '@/lib/api'
+import { saveUserDsaQuestion, type UserPrincipal } from '@/lib/api'
 
 interface PageProblemDetails {
   problemNumber: string
@@ -748,7 +748,6 @@ function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () =
             <div className="flex flex-1 flex-col gap-1">
               <h1 className="text-xl font-semibold text-slate-900">
                 Save to LeetStack
-                {}
               </h1>
               <p className="text-sm text-slate-500">
                 Capture your code and notes for later review
@@ -872,7 +871,7 @@ function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () =
               disabled={isSaving}
               className="rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isSaving ? 'Saving...' : 'Save to LeetStack'}
+              {isSaving ? 'Saving...' : 'Save to LeetStack22'}
             </button>
           </div>
         </footer>
@@ -895,28 +894,67 @@ export default function App() {
     setPendingEmail(value)
   }, [])
 
+  const buildPrincipalFromSupabase = useCallback(async (): Promise<UserPrincipal | null> => {
+    const { data } = await supabase.auth.getUser()
+    const supaUser = data.user
+    if (!supaUser) {
+      return null
+    }
+
+    return {
+      id: supaUser.id,
+      email: supaUser.email ?? null,
+      firstName: (supaUser.user_metadata?.first_name as string | undefined) ?? null,
+      lastName: (supaUser.user_metadata?.last_name as string | undefined) ?? null,
+      leetstackUsername: (supaUser.user_metadata?.username as string | undefined) ?? null,
+      createdDate: supaUser.created_at ?? null,
+      lastUpdatedDate: supaUser.last_sign_in_at ?? null,
+    }
+  }, [])
+
+  const ensureSession = useCallback(async () => {
+    const { data } = await supabase.auth.getSession()
+    let session = data.session
+    if (session && session.expires_at) {
+      const expiresAt = session.expires_at * 1000
+      if (expiresAt <= Date.now() + 5000) {
+        const refresh = await supabase.auth.refreshSession()
+        session = refresh.data.session
+      }
+    }
+    return session
+  }, [])
+
   const hydrateUser = useCallback(async () => {
     setAuthStatus('authenticating')
     try {
-      const principal = await checkSession()
-      if (principal) {
-        await clearPendingAuthEmail()
-        syncPendingEmail(null)
-        setOtpInput('')
-        setAuthError(null)
-        setCurrentUser(principal)
-        setAuthStatus('authenticated')
-      } else {
+      const session = await ensureSession()
+      if (!session) {
         setCurrentUser(null)
         setAuthStatus(pendingEmailRef.current ? 'awaitingOtp' : 'needsAuth')
+        return
       }
+
+      const principal = await buildPrincipalFromSupabase()
+      if (!principal) {
+        setCurrentUser(null)
+        setAuthStatus(pendingEmailRef.current ? 'awaitingOtp' : 'needsAuth')
+        return
+      }
+
+      await clearPendingAuthEmail()
+      syncPendingEmail(null)
+      setOtpInput('')
+      setAuthError(null)
+      setCurrentUser(principal)
+      setAuthStatus('authenticated')
     } catch (error) {
-      console.warn('[leetstack] Failed to hydrate user session', error)
-      setAuthError('Could not verify your session. Please try again.')
+      console.warn('[leetstack] Unable to hydrate Supabase session', error)
+      setAuthError('Failed to verify your session. Please try again.')
       setCurrentUser(null)
       setAuthStatus(pendingEmailRef.current ? 'awaitingOtp' : 'needsAuth')
     }
-  }, [syncPendingEmail])
+  }, [buildPrincipalFromSupabase, ensureSession, syncPendingEmail])
 
   useEffect(() => {
     let cancelled = false
@@ -1006,13 +1044,14 @@ export default function App() {
     try {
       await supabase.auth.verifyOtp({ email, token, type: 'email' })
       setOtpInput('')
+      await hydrateUser()
     } catch (error) {
       console.warn('[leetstack] Failed to verify OTP', error)
       const message = error instanceof Error && error.message ? error.message : 'Invalid or expired code'
       setAuthError(message)
       setAuthStatus('awaitingOtp')
     }
-  }, [emailInput, otpInput])
+  }, [emailInput, otpInput, hydrateUser])
 
   const handleResetPending = useCallback(async () => {
     await clearPendingAuthEmail()
@@ -1044,8 +1083,8 @@ export default function App() {
     return <LoadingScreen message="Loading your profile..." />
   }
 
-  if (authStatus === 'checking') {
-    return <LoadingScreen message="Checking your session..." />
+  if (authStatus === 'checking' || authStatus === 'authenticating') {
+    return <LoadingScreen message="Logging in..." />
   }
 
   const authPromptMode = authStatus === 'awaitingOtp' ? 'awaitingOtp' : 'enterEmail'
