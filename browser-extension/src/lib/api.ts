@@ -66,6 +66,7 @@ export async function checkSession(): Promise<UserPrincipal | null> {
 }
 
 export interface CreateUserDsaQuestionRequest {
+  questionIndex: string
   title: string
   titleSlug: string
   difficulty: string
@@ -80,6 +81,8 @@ export interface CreateUserDsaQuestionRequest {
 export interface UserDsaQuestionResponse {
   id: number
   userId: string
+  questionIndex: string
+  index: string
   title: string
   titleSlug: string
   difficulty: string

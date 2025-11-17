@@ -10,6 +10,7 @@ export interface UserRecord {
 
 export interface UserDsaQuestionRecord {
   userId: string;
+  questionIndex: string;
   title: string;
   titleSlug: string;
   questionId: string;

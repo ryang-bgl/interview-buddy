@@ -1,5 +1,5 @@
 {
-  "serverOrigin": "https://w76ttvaua5.execute-api.us-east-1.amazonaws.com",
+  "serverOrigin": "https://w2ikvgnue9.execute-api.us-east-1.amazonaws.com",
   "supabase": {
     "url": "https://YOUR_PROD_PROJECT.supabase.co",
     "anonKey": "YOUR_PROD_SUPABASE_ANON_KEY",

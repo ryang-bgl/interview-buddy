@@ -71,7 +71,7 @@ export class InterviewBuddyApiStack extends Stack {
     const userDsaTable = new Table(this, "UserDsaQuestionsTable", {
       tableName: `interview-buddy-user-dsa-questions-${stageSuffix}`,
       partitionKey: { name: "userId", type: AttributeType.STRING },
-      sortKey: { name: "titleSlug", type: AttributeType.STRING },
+      sortKey: { name: "questionIndex", type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.DESTROY,
     });

@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { APIGatewayProxyHandlerV2 } from 'aws-lambda';
-import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { docClient } from '../../shared/dynamodb';
 import { badRequest, internalError, jsonResponse, unauthorized } from '../../shared/http';
 import { UserDsaQuestionRecord } from '../../shared/types';
@@ -43,19 +43,44 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     return badRequest(`Missing required fields: ${missingFields.join(', ')}`);
   }
 
+  const userId = auth.user.email?.trim();
+  if (!userId) {
+    console.error('Authenticated user missing email identifier');
+    return internalError();
+  }
+
+  const questionIndex = normalizeQuestionIndex(payload.questionIndex ?? payload.index);
+  if (!questionIndex) {
+    return badRequest('questionIndex must be provided');
+  }
+
+  let existingQuestion: UserDsaQuestionRecord | null = null;
+  try {
+    existingQuestion = await getExistingQuestion(userId, questionIndex);
+  } catch (error) {
+    console.error('Failed to load existing question', error);
+    return internalError();
+  }
+
   const now = new Date().toISOString();
-  const questionId = (payload.id as string) || (payload.questionId as string) || crypto.randomUUID();
+  const questionId =
+    (payload.id as string) ||
+    (payload.questionId as string) ||
+    existingQuestion?.questionId ||
+    crypto.randomUUID();
+  const createdAt = existingQuestion?.createdAt ?? now;
 
   const command = new UpdateCommand({
     TableName: userDsaTableName,
     Key: {
-      userId: auth.user.id,
-      titleSlug: String(payload.titleSlug).trim(),
+      userId,
+      questionIndex,
     },
     UpdateExpression:
-      'SET #title = :title, difficulty = :difficulty, paidOnly = :paidOnly, description = :description, solution = :solution, idealSolutionCode = :idealSolutionCode, #note = :note, exampleTestcases = :exampleTestcases, updatedAt = :updatedAt, questionId = if_not_exists(questionId, :questionId), createdAt = if_not_exists(createdAt, :createdAt)',
+      'SET #title = :title, titleSlug = :titleSlug, difficulty = :difficulty, paidOnly = :paidOnly, description = :description, solution = :solution, idealSolutionCode = :idealSolutionCode, #note = :note, exampleTestcases = :exampleTestcases, updatedAt = :updatedAt, questionId = :questionId, createdAt = :createdAt',
     ExpressionAttributeValues: {
       ':title': String(payload.title).trim(),
+      ':titleSlug': String(payload.titleSlug).trim(),
       ':difficulty': String(payload.difficulty).trim(),
       ':paidOnly': Boolean(payload.isPaidOnly ?? payload.paidOnly ?? false),
       ':description': String(payload.description).trim(),
@@ -64,7 +89,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       ':note': stringifyOptional(payload.note),
       ':exampleTestcases': stringifyOptional(payload.exampleTestcases),
       ':updatedAt': now,
-      ':createdAt': now,
+      ':createdAt': createdAt,
       ':questionId': questionId,
     },
     ExpressionAttributeNames: {
@@ -79,12 +104,22 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     if (!Attributes) {
       return internalError();
     }
-    return jsonResponse(201, mapQuestion(Attributes as UserDsaQuestionRecord));
+    const statusCode = existingQuestion ? 200 : 201;
+    return jsonResponse(statusCode, mapQuestion(Attributes as UserDsaQuestionRecord));
   } catch (error) {
     console.error('Failed to persist user question', error);
     return internalError();
   }
 };
+
+async function getExistingQuestion(userId: string, questionIndex: string): Promise<UserDsaQuestionRecord | null> {
+  const getCommand = new GetCommand({
+    TableName: userDsaTableName,
+    Key: { userId, questionIndex },
+  });
+  const { Item } = await docClient.send(getCommand);
+  return Item ? (Item as UserDsaQuestionRecord) : null;
+}
 
 function stringifyOptional(value: unknown): string | null {
   if (value === undefined || value === null) {
@@ -108,10 +143,24 @@ function decodeBody(body: string | undefined, isBase64Encoded?: boolean): string
   return body;
 }
 
+function normalizeQuestionIndex(value: unknown): string | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  return null;
+}
+
 function mapQuestion(record: UserDsaQuestionRecord) {
+  const questionIndex = record.questionIndex ?? (record as unknown as { index?: string }).index;
   return {
     id: record.questionId,
     userId: record.userId,
+    questionIndex,
+    index: questionIndex,
     title: record.title,
     titleSlug: record.titleSlug,
     difficulty: record.difficulty,

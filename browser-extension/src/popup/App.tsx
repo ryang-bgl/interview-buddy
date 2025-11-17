@@ -1,84 +1,102 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { supabase } from '@/lib/supabaseClient'
-import { saveUserDsaQuestion, type UserPrincipal } from '@/lib/api'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { saveUserDsaQuestion, type UserPrincipal } from "@/lib/api";
 
 interface PageProblemDetails {
-  problemNumber: string
-  problemTitle: string
-  href: string
-  descriptionHtml?: string
-  descriptionText?: string
+  problemNumber: string;
+  problemTitle: string;
+  href: string;
+  descriptionHtml?: string;
+  descriptionText?: string;
 }
 
 function toPlainText(html: string): string {
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(html, 'text/html')
-  const text = doc.body.textContent ?? ''
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const text = doc.body.textContent ?? "";
   return text
-    .replace(/\u00a0/g, ' ')
-    .replace(/\r\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim()
+    .replace(/\u00a0/g, " ")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
 }
 
-async function findLeetCodeProblemDetailsInActivePage(tabId: number): Promise<PageProblemDetails | null> {
-  if (typeof chrome === 'undefined' || !chrome.scripting?.executeScript) {
-    return null
+async function findLeetCodeProblemDetailsInActivePage(
+  tabId: number
+): Promise<PageProblemDetails | null> {
+  if (typeof chrome === "undefined" || !chrome.scripting?.executeScript) {
+    return null;
   }
 
   try {
     const [result] = await chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
-        const containers = Array.from(document.querySelectorAll('div.text-title-large')) as HTMLElement[]
+        const containers = Array.from(
+          document.querySelectorAll("div.text-title-large")
+        ) as HTMLElement[];
         for (const container of containers) {
-          const link = container.querySelector('a[href^="/problems/"]') as HTMLAnchorElement | null
+          const link = container.querySelector(
+            'a[href^="/problems/"]'
+          ) as HTMLAnchorElement | null;
           if (!link) {
-            continue
+            continue;
           }
 
-          const rawText = link.textContent?.trim() ?? ''
+          const rawText = link.textContent?.trim() ?? "";
           if (!rawText) {
-            continue
+            continue;
           }
 
-          const titleMatch = rawText.match(/^(\d+)\.\s*(.+)$/)
+          const titleMatch = rawText.match(/^(\d+)\.\s*(.+)$/);
           if (!titleMatch) {
-            continue
+            continue;
           }
 
-          const nextDataElement = document.getElementById('__NEXT_DATA__')
-          let descriptionHtml: string | undefined
+          const nextDataElement = document.getElementById("__NEXT_DATA__");
+          let descriptionHtml: string | undefined;
           if (nextDataElement?.textContent) {
             try {
-              const data = JSON.parse(nextDataElement.textContent)
-              const queries = data?.props?.pageProps?.dehydratedState?.queries ?? []
+              const data = JSON.parse(nextDataElement.textContent);
+              const queries =
+                data?.props?.pageProps?.dehydratedState?.queries ?? [];
               for (const query of queries) {
-                const question = query?.state?.data?.question
+                const question = query?.state?.data?.question;
                 if (question?.content) {
-                  descriptionHtml = question.content
-                  break
+                  descriptionHtml = question.content;
+                  break;
                 }
               }
             } catch (error) {
-              console.warn('[leetstack] Failed to parse __NEXT_DATA__ on page', error)
+              console.warn(
+                "[leetstack] Failed to parse __NEXT_DATA__ on page",
+                error
+              );
             }
           }
 
           if (!descriptionHtml) {
-            const descriptionNode = document.querySelector('[data-track-load="description_content"]') as HTMLElement | null
+            const descriptionNode = document.querySelector(
+              '[data-track-load="description_content"]'
+            ) as HTMLElement | null;
             if (descriptionNode) {
-              descriptionHtml = descriptionNode.innerHTML
+              descriptionHtml = descriptionNode.innerHTML;
             }
           }
 
-          let descriptionText: string | undefined
+          let descriptionText: string | undefined;
           if (descriptionHtml) {
-            const tempContainer = document.createElement('div')
-            tempContainer.innerHTML = descriptionHtml
-            descriptionText = tempContainer.textContent?.trim()
+            const tempContainer = document.createElement("div");
+            tempContainer.innerHTML = descriptionHtml;
+            descriptionText = tempContainer.textContent?.trim();
           }
 
           return {
@@ -87,64 +105,67 @@ async function findLeetCodeProblemDetailsInActivePage(tabId: number): Promise<Pa
             href: link.href,
             descriptionHtml,
             descriptionText,
-          }
+          };
         }
 
-        return null
+        return null;
       },
-    })
-    return (result?.result ?? null) as PageProblemDetails | null
+    });
+    return (result?.result ?? null) as PageProblemDetails | null;
   } catch (error) {
-    console.warn('[leetstack] Failed to read LeetCode title from active page', error)
-    return null
+    console.warn(
+      "[leetstack] Failed to read LeetCode title from active page",
+      error
+    );
+    return null;
   }
 }
 
 function normalizeLeetCodeUrl(url: string): string {
   if (!url) {
-    return ''
+    return "";
   }
 
   try {
-    const parsed = new URL(url)
-    if (!parsed.hostname.includes('leetcode.com')) {
-      return parsed.toString()
+    const parsed = new URL(url);
+    if (!parsed.hostname.includes("leetcode.com")) {
+      return parsed.toString();
     }
 
-    const segments = parsed.pathname.split('/').filter(Boolean)
-    const problemsIndex = segments.indexOf('problems')
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    const problemsIndex = segments.indexOf("problems");
     if (problemsIndex === -1 || problemsIndex + 1 >= segments.length) {
-      return parsed.toString()
+      return parsed.toString();
     }
 
-    const slug = segments[problemsIndex + 1]
-    parsed.pathname = `/problems/${slug}/`
-    parsed.search = ''
-    parsed.hash = ''
-    return parsed.toString()
+    const slug = segments[problemsIndex + 1];
+    parsed.pathname = `/problems/${slug}/`;
+    parsed.search = "";
+    parsed.hash = "";
+    return parsed.toString();
   } catch (error) {
-    console.warn('[leetstack] Failed to normalize LeetCode URL', error)
-    return url
+    console.warn("[leetstack] Failed to normalize LeetCode URL", error);
+    return url;
   }
 }
 
 function extractSlugFromUrl(url: string): string | null {
   if (!url) {
-    return null
+    return null;
   }
 
   try {
-    const parsed = new URL(url)
-    const segments = parsed.pathname.split('/').filter(Boolean)
-    const problemsIndex = segments.indexOf('problems')
+    const parsed = new URL(url);
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    const problemsIndex = segments.indexOf("problems");
     if (problemsIndex === -1 || problemsIndex + 1 >= segments.length) {
-      return null
+      return null;
     }
 
-    return segments[problemsIndex + 1]
+    return segments[problemsIndex + 1];
   } catch (error) {
-    console.warn('[leetstack] Failed to extract slug from url', error)
-    return null
+    console.warn("[leetstack] Failed to extract slug from url", error);
+    return null;
   }
 }
 
@@ -152,135 +173,153 @@ function slugify(value: string): string {
   return value
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-const STORAGE_KEY = 'leetstack.leetPopupState'
-const PENDING_EMAIL_STORAGE_KEY = 'leetstack.pendingAuthEmail'
+const STORAGE_KEY = "leetstack.leetPopupState";
+const PENDING_EMAIL_STORAGE_KEY = "leetstack.pendingAuthEmail";
 
 interface PopupFormState {
-  url: string
-  problemNumber: string
-  title: string
-  description: string
-  code: string
-  idealSolutionCode: string
-  notes: string
+  url: string;
+  problemNumber: string;
+  title: string;
+  description: string;
+  code: string;
+  idealSolutionCode: string;
+  notes: string;
 }
 
-type PopupStorageMap = Record<string, PopupFormState>
+type PopupStorageMap = Record<string, PopupFormState>;
 
 function getActiveTab(): Promise<chrome.tabs.Tab | null> {
-  if (typeof chrome === 'undefined' || !chrome.tabs?.query) {
-    return Promise.resolve(null)
+  if (typeof chrome === "undefined" || !chrome.tabs?.query) {
+    return Promise.resolve(null);
   }
 
   return new Promise((resolve) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (chrome.runtime.lastError) {
-        console.warn('[leetstack] Failed to query active tab', chrome.runtime.lastError)
-        resolve(null)
-        return
+        console.warn(
+          "[leetstack] Failed to query active tab",
+          chrome.runtime.lastError
+        );
+        resolve(null);
+        return;
       }
 
-      resolve(tabs[0] ?? null)
-    })
-  })
+      resolve(tabs[0] ?? null);
+    });
+  });
 }
 
 function readStoredMap(): Promise<PopupStorageMap> {
-  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
-    return Promise.resolve({})
+  if (typeof chrome === "undefined" || !chrome.storage?.local) {
+    return Promise.resolve({});
   }
 
   return new Promise((resolve) => {
     chrome.storage.local.get(STORAGE_KEY, (result) => {
       if (chrome.runtime.lastError) {
-        console.warn('[leetstack] Failed to read popup storage', chrome.runtime.lastError)
-        resolve({})
-        return
+        console.warn(
+          "[leetstack] Failed to read popup storage",
+          chrome.runtime.lastError
+        );
+        resolve({});
+        return;
       }
 
-      const map = result[STORAGE_KEY]
-      if (map && typeof map === 'object') {
-        resolve(map as PopupStorageMap)
+      const map = result[STORAGE_KEY];
+      if (map && typeof map === "object") {
+        resolve(map as PopupStorageMap);
       } else {
-        resolve({})
+        resolve({});
       }
-    })
-  })
+    });
+  });
 }
 
 function writeStoredMap(map: PopupStorageMap): Promise<void> {
-  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
-    return Promise.resolve()
+  if (typeof chrome === "undefined" || !chrome.storage?.local) {
+    return Promise.resolve();
   }
 
   return new Promise((resolve) => {
     chrome.storage.local.set({ [STORAGE_KEY]: map }, () => {
       if (chrome.runtime.lastError) {
-        console.warn('[leetstack] Failed to persist popup storage', chrome.runtime.lastError)
+        console.warn(
+          "[leetstack] Failed to persist popup storage",
+          chrome.runtime.lastError
+        );
       }
-      resolve()
-    })
-  })
+      resolve();
+    });
+  });
 }
 
 function readPendingAuthEmail(): Promise<string | null> {
-  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
-    return Promise.resolve(null)
+  if (typeof chrome === "undefined" || !chrome.storage?.local) {
+    return Promise.resolve(null);
   }
 
   return new Promise((resolve) => {
     chrome.storage.local.get(PENDING_EMAIL_STORAGE_KEY, (result) => {
       if (chrome.runtime.lastError) {
-        console.warn('[leetstack] Failed to read pending auth email', chrome.runtime.lastError)
-        resolve(null)
-        return
+        console.warn(
+          "[leetstack] Failed to read pending auth email",
+          chrome.runtime.lastError
+        );
+        resolve(null);
+        return;
       }
 
-      const value = result?.[PENDING_EMAIL_STORAGE_KEY]
-      resolve(typeof value === 'string' ? value : null)
-    })
-  })
+      const value = result?.[PENDING_EMAIL_STORAGE_KEY];
+      resolve(typeof value === "string" ? value : null);
+    });
+  });
 }
 
 function storePendingAuthEmail(email: string): Promise<void> {
-  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
-    return Promise.resolve()
+  if (typeof chrome === "undefined" || !chrome.storage?.local) {
+    return Promise.resolve();
   }
 
   return new Promise((resolve) => {
     chrome.storage.local.set({ [PENDING_EMAIL_STORAGE_KEY]: email }, () => {
       if (chrome.runtime.lastError) {
-        console.warn('[leetstack] Failed to persist pending auth email', chrome.runtime.lastError)
+        console.warn(
+          "[leetstack] Failed to persist pending auth email",
+          chrome.runtime.lastError
+        );
       }
-      resolve()
-    })
-  })
+      resolve();
+    });
+  });
 }
 
 function clearPendingAuthEmail(): Promise<void> {
-  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
-    return Promise.resolve()
+  if (typeof chrome === "undefined" || !chrome.storage?.local) {
+    return Promise.resolve();
   }
 
   return new Promise((resolve) => {
     chrome.storage.local.remove(PENDING_EMAIL_STORAGE_KEY, () => {
       if (chrome.runtime.lastError) {
-        console.warn('[leetstack] Failed to clear pending auth email', chrome.runtime.lastError)
+        console.warn(
+          "[leetstack] Failed to clear pending auth email",
+          chrome.runtime.lastError
+        );
       }
-      resolve()
-    })
-  })
+      resolve();
+    });
+  });
 }
 
 interface FieldLabelProps {
-  label: string
-  children: ReactNode
-  hint?: string
+  label: string;
+  children: ReactNode;
+  hint?: string;
 }
 
 function FieldLabel({ label, hint, children }: FieldLabelProps) {
@@ -288,37 +327,40 @@ function FieldLabel({ label, hint, children }: FieldLabelProps) {
     <div className="space-y-2">
       <div className="flex items-center justify-between text-sm font-medium text-slate-700">
         <span>{label}</span>
-        {hint ? <span className="text-xs font-normal text-slate-400">{hint}</span> : null}
+        {hint ? (
+          <span className="text-xs font-normal text-slate-400">{hint}</span>
+        ) : null}
       </div>
       {children}
     </div>
-  )
+  );
 }
-
 
 function LoadingScreen({ message }: { message: string }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
       <div className="w-[360px] max-w-full rounded-3xl bg-white p-8 text-center shadow-dialog">
         <div className="text-sm font-semibold text-slate-900">{message}</div>
-        <div className="mt-3 text-xs text-slate-500">This should only take a moment.</div>
+        <div className="mt-3 text-xs text-slate-500">
+          This should only take a moment.
+        </div>
       </div>
     </div>
-  )
+  );
 }
 
 interface AuthPromptProps {
-  mode: 'enterEmail' | 'awaitingOtp'
-  emailValue: string
-  pendingEmail?: string | null
-  otpValue: string
-  isSubmitting: boolean
-  errorMessage?: string | null
-  onEmailChange: (value: string) => void
-  onOtpChange: (value: string) => void
-  onSendOtp: () => void
-  onVerifyOtp: () => void
-  onResetPending: () => void
+  mode: "enterEmail" | "awaitingOtp";
+  emailValue: string;
+  pendingEmail?: string | null;
+  otpValue: string;
+  isSubmitting: boolean;
+  errorMessage?: string | null;
+  onEmailChange: (value: string) => void;
+  onOtpChange: (value: string) => void;
+  onSendOtp: () => void;
+  onVerifyOtp: () => void;
+  onResetPending: () => void;
 }
 
 function AuthPrompt({
@@ -334,14 +376,16 @@ function AuthPrompt({
   onVerifyOtp,
   onResetPending,
 }: AuthPromptProps) {
-  const buttonLabel = isSubmitting ? 'Sending code...' : 'Send login code'
-  const finalizeLabel = isSubmitting ? 'Verifying…' : 'Verify code'
+  const buttonLabel = isSubmitting ? "Sending code..." : "Send login code";
+  const finalizeLabel = isSubmitting ? "Verifying…" : "Verify code";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
       <div className="w-[420px] max-w-full rounded-3xl bg-white p-8 shadow-dialog">
         <header className="space-y-2">
-          <h1 className="text-xl font-semibold text-slate-900">Connect LeetStack</h1>
+          <h1 className="text-xl font-semibold text-slate-900">
+            Connect LeetStack
+          </h1>
           <p className="text-sm text-slate-500">
             We'll email you a secure sign-in link—no passwords required.
           </p>
@@ -353,10 +397,12 @@ function AuthPrompt({
             </p>
           ) : null}
 
-          {mode === 'enterEmail' ? (
+          {mode === "enterEmail" ? (
             <div className="space-y-3">
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-slate-700">Work Email</span>
+                <span className="text-sm font-medium text-slate-700">
+                  Work Email
+                </span>
                 <input
                   type="email"
                   value={emailValue}
@@ -378,8 +424,11 @@ function AuthPrompt({
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-slate-600">
-                We emailed a one-time code to <span className="font-semibold text-slate-900">{pendingEmail ?? emailValue}</span>.
-                Enter the 6-digit code to finish signing in.
+                We emailed a one-time code to{" "}
+                <span className="font-semibold text-slate-900">
+                  {pendingEmail ?? emailValue}
+                </span>
+                . Enter the 6-digit code to finish signing in.
               </p>
               <input
                 type="text"
@@ -419,63 +468,71 @@ function AuthPrompt({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-const codeDefaultValue = `function twoSum(nums, target) {\n  const map = new Map();\n\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n\n    if (map.has(complement)) {\n      return [map.get(complement), i];\n    }\n\n    map.set(nums[i], i);\n  }\n}`
+const codeDefaultValue = `function twoSum(nums, target) {\n  const map = new Map();\n\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n\n    if (map.has(complement)) {\n      return [map.get(complement), i];\n    }\n\n    map.set(nums[i], i);\n  }\n}`;
 
-function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () => void }) {
-  const [problemNumber, setProblemNumber] = useState('')
-  const [problemLink, setProblemLink] = useState('')
-  const [titleInput, setTitleInput] = useState('')
-  const [descriptionInput, setDescriptionInput] = useState('')
-  const [codeInput, setCodeInput] = useState(codeDefaultValue)
-  const [idealSolutionCodeInput, setIdealSolutionCodeInput] = useState('')
-  const [notesInput, setNotesInput] = useState('')
-  const [currentUrl, setCurrentUrl] = useState('')
-  const [isInitialized, setIsInitialized] = useState(false)
-  const storageCacheRef = useRef<PopupStorageMap>({})
-  const initialStateRef = useRef<PopupFormState | null>(null)
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [lastSavedTitle, setLastSavedTitle] = useState<string | null>(null)
-  const isSaving = saveState === 'saving'
-  const userDisplayName = user.firstName || user.email || 'LeetStack member'
+function MainContent({
+  user,
+  onSignOut,
+}: {
+  user: UserPrincipal;
+  onSignOut: () => void;
+}) {
+  const [problemNumber, setProblemNumber] = useState("");
+  const [problemLink, setProblemLink] = useState("");
+  const [titleInput, setTitleInput] = useState("");
+  const [descriptionInput, setDescriptionInput] = useState("");
+  const [codeInput, setCodeInput] = useState(codeDefaultValue);
+  const [idealSolutionCodeInput, setIdealSolutionCodeInput] = useState("");
+  const [notesInput, setNotesInput] = useState("");
+  const [currentUrl, setCurrentUrl] = useState("");
+  const [isInitialized, setIsInitialized] = useState(false);
+  const storageCacheRef = useRef<PopupStorageMap>({});
+  const initialStateRef = useRef<PopupFormState | null>(null);
+  const [saveState, setSaveState] = useState<
+    "idle" | "saving" | "success" | "error"
+  >("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [lastSavedTitle, setLastSavedTitle] = useState<string | null>(null);
+  const isSaving = saveState === "saving";
+  const userDisplayName = user.firstName || user.email || "LeetStack member";
 
   const applyFormState = useCallback((state: PopupFormState) => {
-    setProblemNumber(state.problemNumber ?? '')
-    setProblemLink(state.url ?? '')
-    setTitleInput(state.title ?? '')
-    setDescriptionInput(state.description ?? '')
-    setCodeInput(state.code ?? codeDefaultValue)
-    setIdealSolutionCodeInput(state.idealSolutionCode ?? '')
-    setNotesInput(state.notes ?? '')
-  }, [])
+    setProblemNumber(state.problemNumber ?? "");
+    setProblemLink(state.url ?? "");
+    setTitleInput(state.title ?? "");
+    setDescriptionInput(state.description ?? "");
+    setCodeInput(state.code ?? codeDefaultValue);
+    setIdealSolutionCodeInput(state.idealSolutionCode ?? "");
+    setNotesInput(state.notes ?? "");
+  }, []);
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
 
     async function initialize() {
-      const storedMap = await readStoredMap()
+      const storedMap = await readStoredMap();
       if (cancelled) {
-        return
+        return;
       }
-      storageCacheRef.current = storedMap
+      storageCacheRef.current = storedMap;
 
-      const tab = await getActiveTab()
+      const tab = await getActiveTab();
       if (cancelled) {
-        return
+        return;
       }
 
-      const tabUrl = tab?.url ?? ''
-      const tabId = tab?.id
-      const normalizedTabUrl = tabUrl ? normalizeLeetCodeUrl(tabUrl) : ''
-      const storageKey = normalizedTabUrl || tabUrl
+      const tabUrl = tab?.url ?? "";
+      const tabId = tab?.id;
+      const normalizedTabUrl = tabUrl ? normalizeLeetCodeUrl(tabUrl) : "";
+      const storageKey = normalizedTabUrl || tabUrl;
 
       if (storageKey) {
-        setCurrentUrl(storageKey)
-        setProblemLink(storageKey)
-        const storedState = storedMap[storageKey]
+        setCurrentUrl(storageKey);
+        setProblemLink(storageKey);
+        const storedState = storedMap[storageKey];
         if (storedState) {
           const snapshot: PopupFormState = {
             url: storedState.url,
@@ -483,78 +540,80 @@ function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () =
             title: storedState.title,
             description: storedState.description,
             code: storedState.code,
-            idealSolutionCode: storedState.idealSolutionCode ?? '',
-            notes: storedState.notes ?? '',
-          }
-          applyFormState(snapshot)
-          initialStateRef.current = { ...snapshot }
-          setIsInitialized(true)
-          return
+            idealSolutionCode: storedState.idealSolutionCode ?? "",
+            notes: storedState.notes ?? "",
+          };
+          applyFormState(snapshot);
+          initialStateRef.current = { ...snapshot };
+          setIsInitialized(true);
+          return;
         }
       }
 
       if (tabId === undefined) {
-        setIsInitialized(true)
-        return
+        setIsInitialized(true);
+        return;
       }
 
       try {
-        const pageDetails = await findLeetCodeProblemDetailsInActivePage(tabId)
+        const pageDetails = await findLeetCodeProblemDetailsInActivePage(tabId);
         if (cancelled || !pageDetails) {
-          setIsInitialized(true)
-          return
+          setIsInitialized(true);
+          return;
         }
 
-        const normalizedUrl = normalizeLeetCodeUrl(pageDetails.href || tabUrl || '')
-        const key = normalizedUrl || storageKey
+        const normalizedUrl = normalizeLeetCodeUrl(
+          pageDetails.href || tabUrl || ""
+        );
+        const key = normalizedUrl || storageKey;
         if (key) {
-          setCurrentUrl(key)
-          setProblemLink(key)
+          setCurrentUrl(key);
+          setProblemLink(key);
         }
 
         const description = pageDetails.descriptionHtml
           ? toPlainText(pageDetails.descriptionHtml)
-          : pageDetails.descriptionText ?? ''
+          : pageDetails.descriptionText ?? "";
         const initialState: PopupFormState = {
-          url: key || pageDetails.href || '',
-          problemNumber: pageDetails.problemNumber ?? '',
-          title: pageDetails.problemTitle ?? '',
-          description: description || '',
+          url: key || pageDetails.href || "",
+          problemNumber: pageDetails.problemNumber ?? "",
+          title: pageDetails.problemTitle ?? "",
+          description: description || "",
           code: codeDefaultValue,
-          idealSolutionCode: '',
-          notes: '',
-        }
+          idealSolutionCode: "",
+          notes: "",
+        };
 
-        applyFormState(initialState)
-        initialStateRef.current = { ...initialState }
+        applyFormState(initialState);
+        initialStateRef.current = { ...initialState };
 
         if (key) {
           const updatedMap = {
             ...storageCacheRef.current,
             [key]: initialState,
-          }
-          storageCacheRef.current = updatedMap
-          await writeStoredMap(updatedMap)
+          };
+          storageCacheRef.current = updatedMap;
+          await writeStoredMap(updatedMap);
         }
       } catch (error) {
-        console.warn('[leetstack] Unable to discover LeetCode title', error)
+        console.warn("[leetstack] Unable to discover LeetCode title", error);
       } finally {
         if (!cancelled) {
-          setIsInitialized(true)
+          setIsInitialized(true);
         }
       }
     }
 
-    void initialize()
+    void initialize();
 
     return () => {
-      cancelled = true
-    }
-  }, [])
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!currentUrl || !isInitialized) {
-      return
+      return;
     }
 
     const state: PopupFormState = {
@@ -565,20 +624,20 @@ function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () =
       code: codeInput,
       idealSolutionCode: idealSolutionCodeInput,
       notes: notesInput,
-    }
+    };
 
     storageCacheRef.current = {
       ...storageCacheRef.current,
       [currentUrl]: state,
-    }
+    };
 
     const timeoutId = window.setTimeout(() => {
-      void writeStoredMap(storageCacheRef.current)
-    }, 250)
+      void writeStoredMap(storageCacheRef.current);
+    }, 250);
 
     return () => {
-      window.clearTimeout(timeoutId)
-    }
+      window.clearTimeout(timeoutId);
+    };
   }, [
     currentUrl,
     problemNumber,
@@ -588,72 +647,81 @@ function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () =
     idealSolutionCodeInput,
     notesInput,
     isInitialized,
-  ])
+  ]);
 
   const handleClose = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      window.close()
+    if (typeof window !== "undefined") {
+      window.close();
     }
-  }, [])
+  }, []);
 
   const handleCancel = useCallback(() => {
     const baseline = initialStateRef.current ?? {
       url: currentUrl,
-      problemNumber: '',
-      title: '',
-      description: '',
+      problemNumber: "",
+      title: "",
+      description: "",
       code: codeDefaultValue,
-      idealSolutionCode: '',
-      notes: '',
-    }
+      idealSolutionCode: "",
+      notes: "",
+    };
 
-    const snapshot: PopupFormState = { ...baseline }
-    applyFormState(snapshot)
+    const snapshot: PopupFormState = { ...baseline };
+    applyFormState(snapshot);
 
     if (currentUrl) {
       storageCacheRef.current = {
         ...storageCacheRef.current,
         [currentUrl]: snapshot,
-      }
-      void writeStoredMap(storageCacheRef.current)
+      };
+      void writeStoredMap(storageCacheRef.current);
     }
 
-    initialStateRef.current = snapshot
-    setSaveState('idle')
-    setSaveError(null)
-    setLastSavedTitle(null)
-  }, [currentUrl])
+    initialStateRef.current = snapshot;
+    setSaveState("idle");
+    setSaveError(null);
+    setLastSavedTitle(null);
+  }, [currentUrl]);
 
   const handleSave = async () => {
-    const trimmedTitle = titleInput.trim() || (problemNumber ? `LeetCode Problem ${problemNumber}` : 'Untitled Problem')
-    const slugFromUrl = extractSlugFromUrl(problemLink)
-    const derivedSlug = slugFromUrl || slugify(trimmedTitle)
-    const fallbackSlug = problemNumber ? `problem-${problemNumber}` : `problem-${Date.now()}`
-    const titleSlug = derivedSlug || fallbackSlug
-    const description = descriptionInput.trim() || 'No description provided.'
-    const solution = codeInput.trim() || null
-    const idealSolutionCode = idealSolutionCodeInput.trim() || null
-    const note = notesInput.trim() || null
+    const trimmedTitle =
+      titleInput.trim() ||
+      (problemNumber
+        ? `LeetCode Problem ${problemNumber}`
+        : "Untitled Problem");
+    const slugFromUrl = extractSlugFromUrl(problemLink);
+    const derivedSlug = slugFromUrl || slugify(trimmedTitle);
+    const fallbackSlug = problemNumber
+      ? `problem-${problemNumber}`
+      : `problem-${Date.now()}`;
+    const titleSlug = derivedSlug || fallbackSlug;
+    const normalizedProblemNumber = problemNumber.trim();
+    const questionIndex = normalizedProblemNumber || titleSlug;
+    const description = descriptionInput.trim() || "No description provided.";
+    const solution = codeInput.trim() || null;
+    const idealSolutionCode = idealSolutionCodeInput.trim() || null;
+    const note = notesInput.trim() || null;
 
-    setSaveState('saving')
-    setSaveError(null)
-    setLastSavedTitle(null)
+    setSaveState("saving");
+    setSaveError(null);
+    setLastSavedTitle(null);
 
     try {
       const response = await saveUserDsaQuestion({
+        questionIndex,
         title: trimmedTitle,
         titleSlug,
-        difficulty: 'Unknown',
+        difficulty: "Unknown",
         isPaidOnly: false,
         description,
         solution,
         idealSolutionCode,
         note,
         exampleTestcases: null,
-      })
+      });
 
-      setSaveState('success')
-      setLastSavedTitle(response.title)
+      setSaveState("success");
+      setLastSavedTitle(response.title);
       if (currentUrl) {
         const snapshot: PopupFormState = {
           url: currentUrl,
@@ -663,59 +731,67 @@ function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () =
           code: codeInput,
           idealSolutionCode: idealSolutionCodeInput,
           notes: notesInput,
-        }
-        initialStateRef.current = { ...snapshot }
+        };
+        initialStateRef.current = { ...snapshot };
         storageCacheRef.current = {
           ...storageCacheRef.current,
           [currentUrl]: snapshot,
-        }
-        void writeStoredMap(storageCacheRef.current)
+        };
+        void writeStoredMap(storageCacheRef.current);
       }
       window.setTimeout(() => {
-        setSaveState('idle')
-        setLastSavedTitle(null)
-      }, 4000)
+        setSaveState("idle");
+        setLastSavedTitle(null);
+      }, 4000);
     } catch (error) {
-      const message = error instanceof Error && error.message ? error.message : 'Failed to save problem'
-      setSaveError(message)
-      setSaveState('error')
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to save problem";
+      setSaveError(message);
+      setSaveState("error");
     }
-  }
+  };
 
-  const headerProblemLabel = problemNumber ? `Problem #${problemNumber}` : 'Problem'
-  const headerTitleText = titleInput || 'Open a LeetCode problem to capture details.'
-  const headerLink = problemLink
+  const headerProblemLabel = problemNumber
+    ? `Problem #${problemNumber}`
+    : "Problem";
+  const headerTitleText =
+    titleInput || "Open a LeetCode problem to capture details.";
+  const headerLink = problemLink;
   const statusMessage = (() => {
-    if (saveState === 'saving') {
-      return 'Saving problem...'
+    if (saveState === "saving") {
+      return "Saving problem...";
     }
-    if (saveState === 'success') {
-      return lastSavedTitle ? `Saved "${lastSavedTitle}"` : 'Problem saved'
+    if (saveState === "success") {
+      return lastSavedTitle ? `Saved "${lastSavedTitle}"` : "Problem saved";
     }
-    if (saveState === 'error' && saveError) {
-      return saveError
+    if (saveState === "error" && saveError) {
+      return saveError;
     }
-    return 'Ready to save...'
-  })()
+    return "Ready to save...";
+  })();
   const statusMessageClassName = (() => {
-    if (saveState === 'error') {
-      return 'text-red-600'
+    if (saveState === "error") {
+      return "text-red-600";
     }
-    if (saveState === 'success') {
-      return 'text-green-600'
+    if (saveState === "success") {
+      return "text-green-600";
     }
-    if (saveState === 'saving') {
-      return 'text-blue-600'
+    if (saveState === "saving") {
+      return "text-blue-600";
     }
-    return 'text-slate-500'
-  })()
+    return "text-slate-500";
+  })();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
       <div className="w-[540px] max-w-full rounded-3xl bg-white p-8 shadow-dialog">
         <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-4 text-sm">
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Signed in as</p>
+            <p className="text-xs uppercase tracking-wide text-slate-400">
+              Signed in as
+            </p>
             <p className="font-semibold text-slate-900">{userDisplayName}</p>
           </div>
           <button
@@ -739,10 +815,7 @@ function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () =
                   fill="currentColor"
                   d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2m6 1v5h5"
                 />
-                <path
-                  fill="currentColor"
-                  d="M8 14h8v2H8zm0 3h5v2H8z"
-                />
+                <path fill="currentColor" d="M8 14h8v2H8zm0 3h5v2H8z" />
               </svg>
             </div>
             <div className="flex flex-1 flex-col gap-1">
@@ -795,7 +868,9 @@ function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () =
                     {headerLink}
                   </a>
                 ) : (
-                  <span className="text-sm text-slate-500">No problem link detected.</span>
+                  <span className="text-sm text-slate-500">
+                    No problem link detected.
+                  </span>
                 )}
               </div>
               <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-500 shadow-sm">
@@ -828,17 +903,28 @@ function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () =
               value={codeInput}
               onChange={(event) => setCodeInput(event.target.value)}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
+              style={{
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+              }}
             />
           </FieldLabel>
 
-          <FieldLabel label="Ideal Solution Code" hint="Capture the canonical or editorial implementation">
+          <FieldLabel
+            label="Ideal Solution Code"
+            hint="Capture the canonical or editorial implementation"
+          >
             <textarea
               rows={6}
               value={idealSolutionCodeInput}
-              onChange={(event) => setIdealSolutionCodeInput(event.target.value)}
+              onChange={(event) =>
+                setIdealSolutionCodeInput(event.target.value)
+              }
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
-              style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
+              style={{
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+              }}
               placeholder="Paste the optimal solution for quick reference"
             />
           </FieldLabel>
@@ -855,7 +941,9 @@ function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () =
         </section>
 
         <footer className="mt-8 flex flex-wrap items-center justify-between gap-4">
-          <span className={`text-sm ${statusMessageClassName}`}>{statusMessage}</span>
+          <span className={`text-sm ${statusMessageClassName}`}>
+            {statusMessage}
+          </span>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -871,224 +959,246 @@ function MainContent({ user, onSignOut }: { user: UserPrincipal; onSignOut: () =
               disabled={isSaving}
               className="rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isSaving ? 'Saving...' : 'Save to LeetStack22'}
+              {isSaving ? "Saving..." : "Save to LeetStack"}
             </button>
           </div>
         </footer>
       </div>
     </div>
-  )
+  );
 }
 
 export default function App() {
-  const [authStatus, setAuthStatus] = useState<'checking' | 'sendingOtp' | 'awaitingOtp' | 'verifyingOtp' | 'authenticating' | 'needsAuth' | 'authenticated'>('checking')
-  const [authError, setAuthError] = useState<string | null>(null)
-  const [currentUser, setCurrentUser] = useState<UserPrincipal | null>(null)
-  const [emailInput, setEmailInput] = useState('')
-  const [otpInput, setOtpInput] = useState('')
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null)
-  const pendingEmailRef = useRef<string | null>(null)
+  const [authStatus, setAuthStatus] = useState<
+    | "checking"
+    | "sendingOtp"
+    | "awaitingOtp"
+    | "verifyingOtp"
+    | "authenticating"
+    | "needsAuth"
+    | "authenticated"
+  >("checking");
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserPrincipal | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [otpInput, setOtpInput] = useState("");
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const pendingEmailRef = useRef<string | null>(null);
 
   const syncPendingEmail = useCallback((value: string | null) => {
-    pendingEmailRef.current = value
-    setPendingEmail(value)
-  }, [])
+    pendingEmailRef.current = value;
+    setPendingEmail(value);
+  }, []);
 
-  const buildPrincipalFromSupabase = useCallback(async (): Promise<UserPrincipal | null> => {
-    const { data } = await supabase.auth.getUser()
-    const supaUser = data.user
-    if (!supaUser) {
-      return null
-    }
+  const buildPrincipalFromSupabase =
+    useCallback(async (): Promise<UserPrincipal | null> => {
+      const { data } = await supabase.auth.getUser();
+      const supaUser = data.user;
+      if (!supaUser) {
+        return null;
+      }
 
-    return {
-      id: supaUser.id,
-      email: supaUser.email ?? null,
-      firstName: (supaUser.user_metadata?.first_name as string | undefined) ?? null,
-      lastName: (supaUser.user_metadata?.last_name as string | undefined) ?? null,
-      leetstackUsername: (supaUser.user_metadata?.username as string | undefined) ?? null,
-      createdDate: supaUser.created_at ?? null,
-      lastUpdatedDate: supaUser.last_sign_in_at ?? null,
-    }
-  }, [])
+      return {
+        id: supaUser.id,
+        email: supaUser.email ?? null,
+        firstName:
+          (supaUser.user_metadata?.first_name as string | undefined) ?? null,
+        lastName:
+          (supaUser.user_metadata?.last_name as string | undefined) ?? null,
+        leetstackUsername:
+          (supaUser.user_metadata?.username as string | undefined) ?? null,
+        createdDate: supaUser.created_at ?? null,
+        lastUpdatedDate: supaUser.last_sign_in_at ?? null,
+      };
+    }, []);
 
   const ensureSession = useCallback(async () => {
-    const { data } = await supabase.auth.getSession()
-    let session = data.session
+    const { data } = await supabase.auth.getSession();
+    let session = data.session;
     if (session && session.expires_at) {
-      const expiresAt = session.expires_at * 1000
+      const expiresAt = session.expires_at * 1000;
       if (expiresAt <= Date.now() + 5000) {
-        const refresh = await supabase.auth.refreshSession()
-        session = refresh.data.session
+        const refresh = await supabase.auth.refreshSession();
+        session = refresh.data.session;
       }
     }
-    return session
-  }, [])
+    return session;
+  }, []);
 
   const hydrateUser = useCallback(async () => {
-    setAuthStatus('authenticating')
+    setAuthStatus("authenticating");
     try {
-      const session = await ensureSession()
+      const session = await ensureSession();
       if (!session) {
-        setCurrentUser(null)
-        setAuthStatus(pendingEmailRef.current ? 'awaitingOtp' : 'needsAuth')
-        return
+        setCurrentUser(null);
+        setAuthStatus(pendingEmailRef.current ? "awaitingOtp" : "needsAuth");
+        return;
       }
 
-      const principal = await buildPrincipalFromSupabase()
+      const principal = await buildPrincipalFromSupabase();
       if (!principal) {
-        setCurrentUser(null)
-        setAuthStatus(pendingEmailRef.current ? 'awaitingOtp' : 'needsAuth')
-        return
+        setCurrentUser(null);
+        setAuthStatus(pendingEmailRef.current ? "awaitingOtp" : "needsAuth");
+        return;
       }
 
-      await clearPendingAuthEmail()
-      syncPendingEmail(null)
-      setOtpInput('')
-      setAuthError(null)
-      setCurrentUser(principal)
-      setAuthStatus('authenticated')
+      await clearPendingAuthEmail();
+      syncPendingEmail(null);
+      setOtpInput("");
+      setAuthError(null);
+      setCurrentUser(principal);
+      setAuthStatus("authenticated");
     } catch (error) {
-      console.warn('[leetstack] Unable to hydrate Supabase session', error)
-      setAuthError('Failed to verify your session. Please try again.')
-      setCurrentUser(null)
-      setAuthStatus(pendingEmailRef.current ? 'awaitingOtp' : 'needsAuth')
+      console.warn("[leetstack] Unable to hydrate Supabase session", error);
+      setAuthError("Failed to verify your session. Please try again.");
+      setCurrentUser(null);
+      setAuthStatus(pendingEmailRef.current ? "awaitingOtp" : "needsAuth");
     }
-  }, [buildPrincipalFromSupabase, ensureSession, syncPendingEmail])
+  }, [buildPrincipalFromSupabase, ensureSession, syncPendingEmail]);
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
 
     readPendingAuthEmail().then((stored) => {
       if (cancelled) {
-        return
+        return;
       }
       if (stored) {
-        setEmailInput((prev) => prev || stored)
+        setEmailInput((prev) => prev || stored);
       }
-      syncPendingEmail(stored)
-    })
+      syncPendingEmail(stored);
+    });
 
     supabase.auth.getSession().then(({ data }) => {
       if (cancelled) {
-        return
+        return;
       }
       if (data.session) {
-        void hydrateUser()
+        void hydrateUser();
       } else {
-        setAuthStatus(pendingEmailRef.current ? 'awaitingOtp' : 'needsAuth')
+        setAuthStatus(pendingEmailRef.current ? "awaitingOtp" : "needsAuth");
       }
-    })
+    });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (cancelled) {
-        return
-      }
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (cancelled) {
+          return;
+        }
 
-      if (session) {
-        void hydrateUser()
-      } else {
-        setCurrentUser(null)
-        setAuthStatus(pendingEmailRef.current ? 'awaitingOtp' : 'needsAuth')
+        if (session) {
+          void hydrateUser();
+        } else {
+          setCurrentUser(null);
+          setAuthStatus(pendingEmailRef.current ? "awaitingOtp" : "needsAuth");
+        }
       }
-    })
+    );
 
     return () => {
-      cancelled = true
-      listener.subscription.unsubscribe()
-    }
-  }, [hydrateUser, syncPendingEmail])
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
+  }, [hydrateUser, syncPendingEmail]);
 
   const handleSendOtp = useCallback(async () => {
-    const email = emailInput.trim()
+    const email = emailInput.trim();
     if (!email) {
-      setAuthError('Email is required')
-      return
+      setAuthError("Email is required");
+      return;
     }
 
-    setAuthError(null)
-    setAuthStatus('sendingOtp')
+    setAuthError(null);
+    setAuthStatus("sendingOtp");
     try {
       await supabase.auth.signInWithOtp({
         email,
         options: {
           shouldCreateUser: true,
         },
-      })
-      await storePendingAuthEmail(email)
-      syncPendingEmail(email)
-      setOtpInput('')
-      setAuthStatus('awaitingOtp')
+      });
+      await storePendingAuthEmail(email);
+      syncPendingEmail(email);
+      setOtpInput("");
+      setAuthStatus("awaitingOtp");
     } catch (error) {
-      console.warn('[leetstack] Failed to send OTP', error)
-      const message = error instanceof Error && error.message ? error.message : 'Unable to send code'
-      setAuthError(message)
-      setAuthStatus('needsAuth')
+      console.warn("[leetstack] Failed to send OTP", error);
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Unable to send code";
+      setAuthError(message);
+      setAuthStatus("needsAuth");
     }
-  }, [emailInput, syncPendingEmail])
+  }, [emailInput, syncPendingEmail]);
 
   const handleVerifyOtp = useCallback(async () => {
-    const email = (pendingEmailRef.current ?? emailInput).trim()
-    const token = otpInput.trim()
+    const email = (pendingEmailRef.current ?? emailInput).trim();
+    const token = otpInput.trim();
     if (!email) {
-      setAuthError('Enter the email where you received the code')
-      return
+      setAuthError("Enter the email where you received the code");
+      return;
     }
     if (!token) {
-      setAuthError('Enter the 6-digit code from your email')
-      return
+      setAuthError("Enter the 6-digit code from your email");
+      return;
     }
 
-    setAuthError(null)
-    setAuthStatus('verifyingOtp')
+    setAuthError(null);
+    setAuthStatus("verifyingOtp");
     try {
-      await supabase.auth.verifyOtp({ email, token, type: 'email' })
-      setOtpInput('')
-      await hydrateUser()
+      await supabase.auth.verifyOtp({ email, token, type: "email" });
+      setOtpInput("");
+      await hydrateUser();
     } catch (error) {
-      console.warn('[leetstack] Failed to verify OTP', error)
-      const message = error instanceof Error && error.message ? error.message : 'Invalid or expired code'
-      setAuthError(message)
-      setAuthStatus('awaitingOtp')
+      console.warn("[leetstack] Failed to verify OTP", error);
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Invalid or expired code";
+      setAuthError(message);
+      setAuthStatus("awaitingOtp");
     }
-  }, [emailInput, otpInput, hydrateUser])
+  }, [emailInput, otpInput, hydrateUser]);
 
   const handleResetPending = useCallback(async () => {
-    await clearPendingAuthEmail()
-    syncPendingEmail(null)
-    setEmailInput('')
-    setOtpInput('')
-    setAuthError(null)
-    setAuthStatus('needsAuth')
-  }, [syncPendingEmail])
+    await clearPendingAuthEmail();
+    syncPendingEmail(null);
+    setEmailInput("");
+    setOtpInput("");
+    setAuthError(null);
+    setAuthStatus("needsAuth");
+  }, [syncPendingEmail]);
 
   const handleSignOut = useCallback(async () => {
     try {
-      await supabase.auth.signOut()
+      await supabase.auth.signOut();
     } catch (error) {
-      console.warn('[leetstack] Failed to sign out', error)
+      console.warn("[leetstack] Failed to sign out", error);
     } finally {
-      await clearPendingAuthEmail()
-      syncPendingEmail(null)
-      setCurrentUser(null)
-      setAuthStatus('needsAuth')
+      await clearPendingAuthEmail();
+      syncPendingEmail(null);
+      setCurrentUser(null);
+      setAuthStatus("needsAuth");
     }
-  }, [syncPendingEmail])
+  }, [syncPendingEmail]);
 
-  if (authStatus === 'authenticated' && currentUser) {
-    return <MainContent user={currentUser} onSignOut={handleSignOut} />
+  if (authStatus === "authenticated" && currentUser) {
+    return <MainContent user={currentUser} onSignOut={handleSignOut} />;
   }
 
-  if (authStatus === 'authenticated' && !currentUser) {
-    return <LoadingScreen message="Loading your profile..." />
+  if (authStatus === "authenticated" && !currentUser) {
+    return <LoadingScreen message="Loading your profile..." />;
   }
 
-  if (authStatus === 'checking' || authStatus === 'authenticating') {
-    return <LoadingScreen message="Logging in..." />
+  if (authStatus === "checking" || authStatus === "authenticating") {
+    return <LoadingScreen message="Logging in..." />;
   }
 
-  const authPromptMode = authStatus === 'awaitingOtp' ? 'awaitingOtp' : 'enterEmail'
-  const promptSubmitting = authStatus === 'sendingOtp' || authStatus === 'verifyingOtp'
+  const authPromptMode =
+    authStatus === "awaitingOtp" ? "awaitingOtp" : "enterEmail";
+  const promptSubmitting =
+    authStatus === "sendingOtp" || authStatus === "verifyingOtp";
 
   return (
     <AuthPrompt
@@ -1104,5 +1214,5 @@ export default function App() {
       onVerifyOtp={handleVerifyOtp}
       onResetPending={handleResetPending}
     />
-  )
+  );
 }
