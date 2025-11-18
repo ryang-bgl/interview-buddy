@@ -118,6 +118,27 @@ export class InterviewBuddyApiStack extends Stack {
       }
     );
 
+    const getUserQuestionsFn = new NodejsFunction(
+      this,
+      "GetUserQuestionsFunction",
+      {
+        ...defaultLambdaProps,
+        entry: path.join(
+          __dirname,
+          "..",
+          "src",
+          "functions",
+          "dsa",
+          "getUserQuestions.ts"
+        ),
+        handler: "handler",
+        environment: {
+          ...commonLambdaEnv,
+          USER_DSA_TABLE_NAME: userDsaTable.tableName,
+        },
+      }
+    );
+
     const authByApiKeyFn = new NodejsFunction(this, "AuthByApiKeyFunction", {
       ...defaultLambdaProps,
       entry: path.join(
@@ -169,6 +190,7 @@ export class InterviewBuddyApiStack extends Stack {
     );
 
     userDsaTable.grantReadWriteData(createUserQuestionFn);
+    userDsaTable.grantReadData(getUserQuestionsFn);
     usersTable.grantReadWriteData(createUserQuestionFn);
     usersTable.grantReadWriteData(authByApiKeyFn);
     usersTable.grantReadWriteData(currentPrincipalFn);
@@ -192,6 +214,15 @@ export class InterviewBuddyApiStack extends Stack {
       integration: new HttpLambdaIntegration(
         "CreateUserQuestionIntegration",
         createUserQuestionFn
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: "/api/dsa/questions",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration(
+        "GetUserQuestionsIntegration",
+        getUserQuestionsFn
       ),
     });
 
