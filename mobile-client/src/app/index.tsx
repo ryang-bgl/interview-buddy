@@ -1,16 +1,22 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
 import {
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
   ActivityIndicator,
-} from 'react-native';
-import { Link, router } from 'expo-router';
-import { useAuth } from '@/hooks/useStores';
+} from "react-native";
+import { Link, router } from "expo-router";
+import { useAuth } from "@/hooks/useStores";
 
 export default function WelcomeScreen() {
-  const { isAuthenticated, isInitialized, isLoading, initialize, checkForMagicLink } = useAuth();
+  const {
+    isAuthenticated,
+    isInitialized,
+    isLoading,
+    initialize,
+    checkForMagicLink,
+  } = useAuth();
 
   useEffect(() => {
     // Initialize Firebase Auth
@@ -25,7 +31,7 @@ export default function WelcomeScreen() {
         const magicLinkSuccess = await checkForMagicLink();
 
         if (magicLinkSuccess || isAuthenticated) {
-          router.replace('/(tabs)');
+          router.replace("/(tabs)");
         }
       }
     };
@@ -38,6 +44,9 @@ export default function WelcomeScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
         <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>
+          {isInitialized ? "true" : "false"}
+        </Text>
       </View>
     );
   }
@@ -87,7 +96,9 @@ export default function WelcomeScreen() {
 
           <Link href="/(auth)/login" asChild>
             <TouchableOpacity style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>Sign In with Password</Text>
+              <Text style={styles.secondaryButtonText}>
+                Sign In with Password
+              </Text>
             </TouchableOpacity>
           </Link>
         </View>
@@ -99,49 +110,49 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: "#000",
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
-    color: 'white',
+    color: "white",
     marginTop: 16,
     fontSize: 16,
   },
   content: {
     flex: 1,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     padding: 20,
     paddingTop: 60,
   },
   headerContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   title: {
     fontSize: 36,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
+    fontWeight: "bold",
+    color: "white",
+    textAlign: "center",
     marginBottom: 16,
   },
   subtitle: {
     fontSize: 18,
-    color: '#888',
-    textAlign: 'center',
+    color: "#888",
+    textAlign: "center",
     lineHeight: 26,
   },
   featuresContainer: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     gap: 30,
   },
   feature: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: 20,
   },
   featureIcon: {
@@ -150,14 +161,14 @@ const styles = StyleSheet.create({
   },
   featureTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: 'white',
+    fontWeight: "600",
+    color: "white",
     marginBottom: 8,
   },
   featureDescription: {
     fontSize: 16,
-    color: '#888',
-    textAlign: 'center',
+    color: "#888",
+    textAlign: "center",
     lineHeight: 22,
   },
   buttonContainer: {
@@ -165,27 +176,27 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     borderRadius: 12,
     padding: 18,
-    alignItems: 'center',
+    alignItems: "center",
   },
   primaryButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   secondaryButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 2,
-    borderColor: '#007AFF',
+    borderColor: "#007AFF",
     borderRadius: 12,
     padding: 18,
-    alignItems: 'center',
+    alignItems: "center",
   },
   secondaryButtonText: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

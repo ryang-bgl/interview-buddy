@@ -1,5 +1,6 @@
 import { LeetCodeSolution, UserStats } from '@/types/solution';
 import { DsaQuestion } from '@/types/question';
+import { getSupabaseClient } from '@/config/supabase';
 
 // Configuration
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
@@ -48,7 +49,8 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    authMode: 'default' | 'supabase' = 'default'
   ): Promise<ApiResponse<T>> {
     try {
       const headers: Record<string, string> = {
@@ -56,7 +58,18 @@ class ApiClient {
         ...((options.headers as Record<string, string>) || {}),
       };
 
-      if (this.token) {
+      if (authMode === 'supabase') {
+        try {
+          const supabase = getSupabaseClient();
+          const { data } = await supabase.auth.getSession();
+          const supabaseToken = data.session?.access_token;
+          if (supabaseToken) {
+            headers.Authorization = `Bearer ${supabaseToken}`;
+          }
+        } catch (error) {
+          console.warn('Failed to get Supabase session for DSA request', error);
+        }
+      } else if (this.token) {
         headers.Authorization = `Bearer ${this.token}`;
       }
 
@@ -149,7 +162,7 @@ class ApiClient {
   }
 
   async getQuestions(): Promise<ApiResponse<DsaQuestion[]>> {
-    return this.request<DsaQuestion[]>('/dsa/questions');
+    return this.request<DsaQuestion[]>('/api/dsa/questions', {}, 'supabase');
   }
 
   // Health check

@@ -40,7 +40,7 @@ A React Native app built with Expo Router that helps you review your LeetCode so
 
 4. Start the development server:
    ```bash
-   npm start
+EXPO_PUBLIC_API_URL=https://w2ikvgnue9.execute-api.us-east-1.amazonaws.com EXPO_PUBLIC_USE_MOCK_AUTH=false npm run start
    ```
 
 5. Run on your preferred platform:

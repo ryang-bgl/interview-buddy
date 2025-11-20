@@ -2,7 +2,7 @@ import { APIGatewayProxyEventV2 } from "aws-lambda";
 import { createRemoteJWKSet, JWTPayload, jwtVerify } from "jose";
 import { UserRecord } from "./types";
 import { docClient } from "./dynamodb";
-import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 const supabaseProjectRef = process.env.SUPABASE_PROJECT_REF;
 const supabaseJwtAudience =
@@ -71,12 +71,28 @@ async function verifySupabaseToken(token: string) {
 async function upsertUser(
   payload: JWTPayload & { sub: string; email: string }
 ): Promise<UserRecord> {
-  const now = new Date().toISOString();
+  const tableName = process.env.USERS_TABLE_NAME;
+  if (!tableName) {
+    throw new Error("USERS_TABLE_NAME must be configured");
+  }
+
+  const existing = await docClient.send(
+    new GetCommand({
+      TableName: tableName,
+      Key: { email: payload.email },
+    })
+  );
+
+  if (existing.Item) {
+    return existing.Item as UserRecord;
+  }
+
+  const timestamp = new Date().toISOString();
   const command = new UpdateCommand({
-    TableName: process.env.USERS_TABLE_NAME,
+    TableName: tableName,
     Key: { email: payload.email },
     UpdateExpression:
-      "SET #id = if_not_exists(#id, :id), #lastUpdated = :lastUpdated, #createdDate = if_not_exists(#createdDate, :createdDate)",
+      "SET #id = :id, #lastUpdated = :lastUpdated, #createdDate = :createdDate",
     ExpressionAttributeNames: {
       "#id": "id",
       "#lastUpdated": "lastUpdatedDate",
@@ -84,8 +100,8 @@ async function upsertUser(
     },
     ExpressionAttributeValues: {
       ":id": payload.sub,
-      ":lastUpdated": now,
-      ":createdDate": now,
+      ":lastUpdated": timestamp,
+      ":createdDate": timestamp,
     },
     ReturnValues: "ALL_NEW",
   });

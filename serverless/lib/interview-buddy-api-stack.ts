@@ -192,6 +192,7 @@ export class InterviewBuddyApiStack extends Stack {
     userDsaTable.grantReadWriteData(createUserQuestionFn);
     userDsaTable.grantReadData(getUserQuestionsFn);
     usersTable.grantReadWriteData(createUserQuestionFn);
+    usersTable.grantReadData(getUserQuestionsFn);
     usersTable.grantReadWriteData(authByApiKeyFn);
     usersTable.grantReadWriteData(currentPrincipalFn);
     usersTable.grantReadWriteData(getCurrentUserFn);

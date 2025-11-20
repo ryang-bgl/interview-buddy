@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -9,26 +9,37 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-} from 'react-native';
-import { Link, router } from 'expo-router';
-import { useAuth } from '@/hooks/useStores';
+  SafeAreaView,
+} from "react-native";
+import { Link, router } from "expo-router";
+import { Feather } from "@expo/vector-icons";
+
+import { useAuth } from "@/hooks/useStores";
+
+type Step = "email" | "code";
+
+const CODE_LENGTH = 8;
 
 export default function MagicLoginScreen() {
-  const [email, setEmail] = useState('');
-  const [emailSent, setEmailSent] = useState(false);
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<Step>("email");
 
-  const { sendMagicLink, isLoading, error, clearError } = useAuth();
+  const {
+    sendMagicLink,
+    completeMagicLinkSignIn,
+    isLoading,
+    error,
+    clearError,
+  } = useAuth();
 
-  const handleSendMagicLink = async () => {
-    if (!email) {
-      return;
-    }
-
-    const success = await sendMagicLink(email);
-    if (success) {
-      setEmailSent(true);
-    }
-  };
+  const trimmedEmail = email.trim();
+  const trimmedCode = code.trim();
+  const isEmailValid = useMemo(
+    () => /.+@.+\..+/.test(trimmedEmail),
+    [trimmedEmail]
+  );
+  const canSubmitCode = trimmedCode.length >= CODE_LENGTH;
 
   const clearErrorOnFocus = () => {
     if (error) {
@@ -36,414 +47,337 @@ export default function MagicLoginScreen() {
     }
   };
 
-  const handleTryAgain = () => {
-    setEmailSent(false);
+  const handleSendCode = async () => {
+    if (!isEmailValid) {
+      return;
+    }
+
+    setStep("code");
+    const success = await sendMagicLink(trimmedEmail);
+    if (!success) {
+      setStep("email");
+    } else {
+      setCode("");
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!canSubmitCode) {
+      return;
+    }
+
+    const success = await completeMagicLinkSignIn(trimmedEmail, trimmedCode);
+    if (success) {
+      router.replace("/(tabs)");
+    }
+  };
+
+  const handleEditEmail = () => {
+    setStep("email");
+    setCode("");
     clearError();
   };
 
-  if (emailSent) {
-    return (
+  const primaryActionDisabled =
+    isLoading || (step === "email" ? !isEmailValid : !canSubmitCode);
+
+  const renderCodeSection = () => (
+    <View style={styles.codeSection}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Enter your code</Text>
+        <TouchableOpacity onPress={handleEditEmail}>
+          <Text style={styles.sectionLink}>Change email</Text>
+        </TouchableOpacity>
+      </View>
+      <Text style={styles.sectionSubtitle}>
+        Paste the 8-digit code we just sent to {trimmedEmail}.
+      </Text>
+
+      <View style={styles.emailPill}>
+        <Feather name="mail" size={16} color="#2563EB" />
+        <Text style={styles.emailPillText}>{trimmedEmail}</Text>
+      </View>
+
+      <TextInput
+        style={styles.codeInput}
+        value={code}
+        onChangeText={(text) => setCode(text.replace(/\s/g, ""))}
+        onFocus={clearErrorOnFocus}
+        keyboardType="number-pad"
+        placeholder="00000000"
+        placeholderTextColor="#94A3B8"
+        maxLength={CODE_LENGTH}
+        autoFocus={Platform.OS === "web"}
+      />
+
+      <Text style={styles.helperText}>
+        Codes expire in one hour. Can't find the email? Check spam or promotions
+        tabs.
+      </Text>
+
+      <TouchableOpacity
+        style={styles.resendButton}
+        onPress={handleSendCode}
+        disabled={isLoading}
+      >
+        <Feather name="refresh-cw" size={16} color="#2563EB" />
+        <Text style={styles.resendText}>Resend code</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const primaryButtonLabel = step === "email" ? "Send login code" : "Login";
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.headerContainer}>
-            <Text style={styles.successIcon}>📧</Text>
-            <Text style={styles.title}>Check Your Email</Text>
-            <Text style={styles.subtitle}>
-              We've sent a 6-digit code and login link to{'\n'}<Text style={styles.emailText}>{email}</Text>
+          <View style={styles.hero}>
+            <Text style={styles.heroTitle}>Sign in to LeetStack</Text>
+            <Text style={styles.heroSubtitle}>
+              We'll email you a one-time code so you can log in without a
+              password.
             </Text>
           </View>
 
-          <View style={styles.instructionsContainer}>
-            <View style={styles.instructionItem}>
-              <Text style={styles.stepNumber}>1</Text>
-              <Text style={styles.instructionText}>Check your email inbox</Text>
+          <View style={styles.card}>
+            {error && (
+              <View style={styles.errorContainer}>
+                <Feather name="alert-circle" size={18} color="#B91C1C" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.sectionTitle}>Work email</Text>
+              <Text style={styles.sectionSubtitle}>
+                We'll send an 8-digit code to this address.
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  step === "code" && styles.inputDisabled,
+                ]}
+                value={email}
+                onChangeText={setEmail}
+                onFocus={clearErrorOnFocus}
+                placeholder="you@example.com"
+                placeholderTextColor="#94A3B8"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isLoading && step === "email"}
+              />
             </View>
 
-            <View style={styles.instructionItem}>
-              <Text style={styles.stepNumber}>2</Text>
-              <Text style={styles.instructionText}>Grab the one-time code in the email</Text>
-            </View>
+            {step === "code" && renderCodeSection()}
 
-            <View style={styles.instructionItem}>
-              <Text style={styles.stepNumber}>3</Text>
-              <Text style={styles.instructionText}>Enter the code here to complete sign in</Text>
-            </View>
-          </View>
-
-          <View style={styles.noteContainer}>
-            <Text style={styles.noteTitle}>📋 Note</Text>
-            <Text style={styles.noteText}>
-              Codes expire in 1 hour. If you don't see the email, check spam or the promotions tab.
-            </Text>
-          </View>
-
-          <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={() => router.push({ pathname: '/(auth)/verify', params: { email } })}
-            >
-              <Text style={styles.secondaryButtonText}>Enter Code Manually</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => handleSendMagicLink()}
-              disabled={isLoading}
+              style={[styles.primaryButton, primaryActionDisabled && styles.primaryButtonDisabled]}
+              onPress={step === "email" ? handleSendCode : handleVerifyCode}
+              disabled={primaryActionDisabled}
             >
               {isLoading ? (
-                <ActivityIndicator color="white" />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.primaryButtonText}>Resend Code</Text>
+                <Text style={styles.primaryButtonText}>{primaryButtonLabel}</Text>
               )}
             </TouchableOpacity>
           </View>
 
-          <View style={styles.backContainer}>
-            <Text style={styles.backText}>Need to try a different email? </Text>
-            <TouchableOpacity onPress={handleTryAgain}>
-              <Text style={styles.backLink}>Start over</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.alternativeContainer}>
-            <Text style={styles.alternativeText}>Prefer using a password? </Text>
+          <View style={styles.footerLinks}>
+            <Text style={styles.footerText}>Have a password instead?</Text>
             <Link href="/(auth)/login" asChild>
               <TouchableOpacity>
-                <Text style={styles.alternativeLink}>Sign in with password</Text>
+                <Text style={styles.footerLink}>Sign in with password</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
+
+          <View style={styles.footerLinks}>
+            <Text style={styles.footerText}>Need an account?</Text>
+            <Link href="/(auth)/register" asChild>
+              <TouchableOpacity>
+                <Text style={styles.footerLink}>Create one</Text>
               </TouchableOpacity>
             </Link>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    );
-  }
-
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.magicIcon}>✨</Text>
-          <Text style={styles.title}>Passwordless Email Login</Text>
-          <Text style={styles.subtitle}>
-            Enter your email and we'll send you a one-time code (and login link) to sign in instantly
-          </Text>
-        </View>
-
-        <View style={styles.formContainer}>
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Email Address</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              onFocus={clearErrorOnFocus}
-              placeholder="Enter your email"
-              placeholderTextColor="#888"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!isLoading}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.primaryButton, (!email || isLoading) && styles.primaryButtonDisabled]}
-            onPress={handleSendMagicLink}
-            disabled={!email || isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Send Magic Link</Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.benefitsContainer}>
-            <Text style={styles.benefitsTitle}>Why Passwordless?</Text>
-
-            <View style={styles.benefitItem}>
-              <Text style={styles.benefitIcon}>🔒</Text>
-              <Text style={styles.benefitText}>More secure than passwords</Text>
-            </View>
-
-            <View style={styles.benefitItem}>
-              <Text style={styles.benefitIcon}>⚡</Text>
-              <Text style={styles.benefitText}>Codes arrive in seconds</Text>
-            </View>
-
-            <View style={styles.benefitItem}>
-              <Text style={styles.benefitIcon}>🧠</Text>
-              <Text style={styles.benefitText}>No passwords to remember</Text>
-            </View>
-          </View>
-
-          <View style={styles.alternativeContainer}>
-            <Text style={styles.alternativeText}>Already have a code? </Text>
-            <Link href="/(auth)/verify" asChild>
-              <TouchableOpacity>
-                <Text style={styles.alternativeLink}>Enter it here</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-
-          <View style={styles.passwordPrompt}>
-            <Text style={styles.alternativeText}>Prefer using a password? </Text>
-            <Link href="/(auth)/login" asChild>
-              <TouchableOpacity>
-                <Text style={styles.alternativeLink}>Sign in with password</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-
-          <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>Don't have an account? </Text>
-            <Link href="/(auth)/register" asChild>
-              <TouchableOpacity>
-                <Text style={styles.signupLink}>Sign up</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F5F6FA",
+  },
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: "#F5F6FA",
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
+    justifyContent: "center",
+    padding: 24,
+    gap: 20,
   },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
+  hero: {
+    alignItems: "center",
+    gap: 12,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
-    textAlign: 'center',
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#0F172A",
+    textAlign: "center",
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#888',
-    textAlign: 'center',
+  heroSubtitle: {
+    fontSize: 15,
+    color: "#475569",
+    textAlign: "center",
     lineHeight: 22,
   },
-  magicIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  successIcon: {
-    fontSize: 80,
-    marginBottom: 16,
-  },
-  emailText: {
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  formContainer: {
-    width: '100%',
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 24,
+    gap: 20,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
   },
   errorContainer: {
-    backgroundColor: '#ff4444',
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "#FEE2E2",
+    borderRadius: 12,
     padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
   },
   errorText: {
-    color: 'white',
-    textAlign: 'center',
-    fontSize: 14,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'white',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: 'white',
-  },
-  primaryButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  primaryButtonDisabled: {
-    backgroundColor: '#555',
-  },
-  primaryButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#007AFF',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  secondaryButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonContainer: {
-    marginTop: 30,
-    marginBottom: 20,
-  },
-  instructionsContainer: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 30,
-  },
-  instructionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#007AFF',
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginRight: 12,
-  },
-  instructionText: {
-    color: 'white',
-    fontSize: 16,
+    color: "#B91C1C",
     flex: 1,
+    fontSize: 14,
   },
-  noteContainer: {
-    backgroundColor: 'rgba(255, 165, 0, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 165, 0, 0.3)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 30,
+  inputGroup: {
+    gap: 8,
   },
-  noteTitle: {
-    color: '#FFA500',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
   },
-  noteText: {
-    color: '#888',
+  sectionTitle: {
+    color: "#0F172A",
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  sectionSubtitle: {
+    color: "#475569",
     fontSize: 14,
     lineHeight: 20,
   },
-  benefitsContainer: {
-    marginBottom: 30,
+  sectionLink: {
+    color: "#2563EB",
+    fontWeight: "600",
+    fontSize: 13,
   },
-  benefitsTitle: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 10,
-  },
-  benefitIcon: {
-    fontSize: 20,
-    marginRight: 12,
-  },
-  benefitText: {
-    color: '#888',
+  input: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 16,
+    color: "#0F172A",
   },
-  alternativeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
+  inputDisabled: {
+    backgroundColor: "#F1F5F9",
+    color: "#94A3B8",
   },
-  alternativeText: {
-    color: '#888',
+  primaryButton: {
+    backgroundColor: "#2563EB",
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  primaryButtonDisabled: {
+    backgroundColor: "#93C5FD",
+  },
+  primaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  codeSection: {
+    gap: 14,
+  },
+  emailPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "flex-start",
+    backgroundColor: "#EFF6FF",
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  emailPillText: {
+    color: "#1D4ED8",
+    fontWeight: "600",
     fontSize: 14,
   },
-  alternativeLink: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '600',
+  codeInput: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#CBD5F5",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 26,
+    fontWeight: "700",
+    letterSpacing: 12,
+    textAlign: "center",
+    color: "#0F172A",
   },
-  passwordPrompt: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12,
+  helperText: {
+    fontSize: 13,
+    color: "#475569",
+    textAlign: "center",
+    lineHeight: 18,
   },
-  signupContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  resendButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
   },
-  signupText: {
-    color: '#888',
-    fontSize: 14,
+  resendText: {
+    color: "#2563EB",
+    fontWeight: "600",
+    fontSize: 13,
   },
-  signupLink: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '600',
+  footerLinks: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 4,
   },
-  backContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
+  footerText: {
+    color: "#475569",
+    fontSize: 13,
   },
-  backText: {
-    color: '#888',
-    fontSize: 14,
-  },
-  backLink: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '600',
+  footerLink: {
+    color: "#2563EB",
+    fontWeight: "600",
+    fontSize: 13,
   },
 });

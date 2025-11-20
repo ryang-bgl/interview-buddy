@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  SafeAreaView,
 } from "react-native";
 import { Link, router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
@@ -36,7 +37,7 @@ export default function LoginScreen() {
     () => /.+@.+\..+/.test(trimmedEmail),
     [trimmedEmail]
   );
-  const canSubmitCode = trimmedCode.length >= 6;
+  const canSubmitCode = trimmedCode.length >= 8;
 
   const clearErrorOnFocus = () => {
     if (error) {
@@ -49,9 +50,10 @@ export default function LoginScreen() {
       return;
     }
 
+    setStep("code");
     const success = await sendMagicLink(trimmedEmail);
-    if (success) {
-      setStep("code");
+    if (!success) {
+      setStep("email");
     }
   };
 
@@ -76,7 +78,7 @@ export default function LoginScreen() {
     <>
       <Text style={styles.sectionTitle}>Sign in with email</Text>
       <Text style={styles.sectionSubtitle}>
-        We'll text you a 6-digit code so you can hop back into the app.
+        We'll email you an 8-digit code to quickly get you logged in.
       </Text>
       <TextInput
         style={styles.input}
@@ -84,7 +86,7 @@ export default function LoginScreen() {
         onChangeText={setEmail}
         onFocus={clearErrorOnFocus}
         placeholder="you@example.com"
-        placeholderTextColor="#475569"
+        placeholderTextColor="#94A3B8"
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
@@ -110,19 +112,18 @@ export default function LoginScreen() {
   const renderCodeStep = () => (
     <>
       <View style={styles.sectionHeader}>
-        <View>
-          <Text style={styles.sectionTitle}>Enter the 6-digit code</Text>
-          <Text style={styles.sectionSubtitle}>
-            Copy the code from your inbox to finish signing in.
-          </Text>
-        </View>
+        <Text style={styles.sectionTitle}>Enter your code</Text>
         <TouchableOpacity onPress={handleEditEmail}>
-          <Text style={styles.sectionLink}>Change</Text>
+          <Text style={styles.sectionLink}>Change email</Text>
         </TouchableOpacity>
       </View>
+      <Text style={styles.sectionSubtitle}>
+        Paste the 8-digit code from {trimmedEmail || "your inbox"} to finish
+        signing in.
+      </Text>
 
       <View style={styles.emailPill}>
-        <Feather name="mail" size={16} color="#38BDF8" />
+        <Feather name="mail" size={16} color="#2563EB" />
         <Text style={styles.emailPillText}>{trimmedEmail}</Text>
       </View>
 
@@ -132,15 +133,15 @@ export default function LoginScreen() {
         onChangeText={(text) => setCode(text.replace(/\s/g, ""))}
         onFocus={clearErrorOnFocus}
         keyboardType="number-pad"
-        placeholder="000000"
-        placeholderTextColor="#334155"
-        maxLength={6}
+        placeholder="00000000"
+        placeholderTextColor="#94A3B8"
+        maxLength={8}
         editable={!isLoading}
       />
 
       <Text style={styles.helperText}>
-        Codes expire after an hour. Make sure you paste the exact 6 digits we
-        emailed you.
+        Codes expire after an hour. Make sure to enter all 8 digits exactly as
+        shown in the email.
       </Text>
 
       <TouchableOpacity
@@ -154,7 +155,7 @@ export default function LoginScreen() {
         {isLoading ? (
           <ActivityIndicator color="#FFFFFF" />
         ) : (
-          <Text style={styles.primaryButtonText}>Verify & continue</Text>
+          <Text style={styles.primaryButtonText}>Login</Text>
         )}
       </TouchableOpacity>
 
@@ -163,65 +164,68 @@ export default function LoginScreen() {
         onPress={handleSendCode}
         disabled={isLoading}
       >
-        <Feather name="refresh-cw" size={16} color="#38BDF8" />
+        <Feather name="refresh-cw" size={16} color="#2563EB" />
         <Text style={styles.resendText}>Resend code</Text>
       </TouchableOpacity>
     </>
   );
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.hero}>
-          <View style={styles.heroIcon}>
-            <Feather name="zap" size={22} color="#38BDF8" />
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.hero}>
+            <Text style={styles.heroTitle}>Welcome back 👋</Text>
+            <Text style={styles.heroSubtitle}>
+              Sign in with a quick one-time code to pick up where you left off.
+            </Text>
           </View>
-          <Text style={styles.heroTitle}>Welcome back</Text>
-          <Text style={styles.heroSubtitle}>
-            Sign in with a quick one-time code and pick up where you left off.
-          </Text>
-        </View>
 
-        <View style={styles.card}>
-          {error && (
-            <View style={styles.errorContainer}>
-              <Feather name="alert-circle" size={18} color="#F87171" />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
+          <View style={styles.card}>
+            {error && (
+              <View style={styles.errorContainer}>
+                <Feather name="alert-circle" size={18} color="#DC2626" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
 
-          {step === "email" ? renderEmailStep() : renderCodeStep()}
-        </View>
+            {step === "email" ? renderEmailStep() : renderCodeStep()}
+          </View>
 
-        <View style={styles.footerNote}>
-          <Text style={styles.footerText}>Need an account?</Text>
-          <Link href="/(auth)/register" asChild>
-            <TouchableOpacity>
-              <Text style={styles.footerLink}>Sign up</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
+          <View style={styles.footerNote}>
+            <Text style={styles.footerText}>Need an account?</Text>
+            <Link href="/(auth)/register" asChild>
+              <TouchableOpacity>
+                <Text style={styles.footerLink}>Sign up</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
 
-        <View style={styles.altLink}>
-          <Text style={styles.altText}>Have a link instead?</Text>
-          <Link href="/(auth)/magic-login" asChild>
-            <TouchableOpacity>
-              <Text style={styles.footerLink}>Open magic login</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <View style={styles.altLink}>
+            <Text style={styles.altText}>Have a link instead?</Text>
+            <Link href="/(auth)/magic-login" asChild>
+              <TouchableOpacity>
+                <Text style={styles.footerLink}>Open magic login</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F5F6FA",
+  },
   container: {
     flex: 1,
-    backgroundColor: "#000000",
+    backgroundColor: "#F5F6FA",
   },
   scrollContainer: {
     flexGrow: 1,
@@ -233,45 +237,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  heroIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#082F49",
-    borderWidth: 1,
-    borderColor: "#0EA5E9",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   heroTitle: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: "700",
-    color: "#F8FAFC",
+    color: "#0F172A",
+    textAlign: "center",
   },
   heroSubtitle: {
-    fontSize: 15,
-    color: "#94A3B8",
+    fontSize: 16,
+    color: "#475569",
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: 22,
   },
   card: {
-    backgroundColor: "#0B1120",
-    borderRadius: 24,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
     padding: 24,
     gap: 18,
-    borderWidth: 1,
-    borderColor: "rgba(148, 163, 184, 0.15)",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
   },
   errorContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 10,
-    backgroundColor: "rgba(248, 113, 113, 0.15)",
+    backgroundColor: "#FEE2E2",
     borderRadius: 12,
     padding: 12,
   },
   errorText: {
-    color: "#FCA5A5",
+    color: "#B91C1C",
     flex: 1,
     fontSize: 14,
   },
@@ -281,58 +278,58 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   sectionTitle: {
-    color: "#F8FAFC",
+    color: "#0F172A",
     fontWeight: "600",
     fontSize: 15,
   },
   sectionSubtitle: {
-    color: "#94A3B8",
-    fontSize: 13,
-    marginTop: 4,
-    lineHeight: 18,
+    color: "#475569",
+    fontSize: 14,
+    marginTop: 6,
+    lineHeight: 20,
   },
   sectionLink: {
-    color: "#38BDF8",
+    color: "#2563EB",
     fontWeight: "600",
     fontSize: 13,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#1E293B",
-    borderRadius: 16,
+    borderColor: "#E2E8F0",
+    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: "#F8FAFC",
-    backgroundColor: "#0F172A",
+    color: "#0F172A",
+    backgroundColor: "#F8FAFC",
   },
   codeInput: {
     borderWidth: 1,
-    borderColor: "#1E293B",
-    borderRadius: 20,
+    borderColor: "#CBD5F5",
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 16,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "700",
-    letterSpacing: 16,
+    letterSpacing: 12,
     textAlign: "center",
-    color: "#F8FAFC",
-    backgroundColor: "#020617",
+    color: "#0F172A",
+    backgroundColor: "#F8FAFC",
   },
   helperText: {
     fontSize: 13,
-    color: "#94A3B8",
+    color: "#475569",
     lineHeight: 18,
     textAlign: "center",
   },
   primaryButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 16,
+    backgroundColor: "#2563EB",
+    borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
   },
   primaryButtonDisabled: {
-    backgroundColor: "#1D4ED8",
+    backgroundColor: "#93C5FD",
   },
   primaryButtonText: {
     color: "#FFFFFF",
@@ -347,7 +344,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   resendText: {
-    color: "#38BDF8",
+    color: "#2563EB",
     fontWeight: "600",
   },
   footerNote: {
@@ -357,11 +354,11 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   footerText: {
-    color: "#94A3B8",
+    color: "#475569",
     fontSize: 14,
   },
   footerLink: {
-    color: "#38BDF8",
+    color: "#2563EB",
     fontWeight: "600",
   },
   altLink: {
@@ -371,20 +368,20 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   altText: {
-    color: "#94A3B8",
+    color: "#94A3AF",
     fontSize: 14,
   },
   emailPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "rgba(56, 189, 248, 0.1)",
+    backgroundColor: "#EFF6FF",
     borderRadius: 999,
     paddingVertical: 8,
     paddingHorizontal: 14,
   },
   emailPillText: {
-    color: "#E2E8F0",
+    color: "#1D4ED8",
     fontWeight: "600",
     fontSize: 14,
   },
