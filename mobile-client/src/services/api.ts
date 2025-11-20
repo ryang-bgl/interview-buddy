@@ -165,6 +165,20 @@ class ApiClient {
     return this.request<DsaQuestion[]>('/api/dsa/questions', {}, 'supabase');
   }
 
+  async updateQuestionReview(
+    questionIndex: string,
+    payload: { lastReviewedAt: string; lastReviewStatus?: 'easy' | 'good' | 'hard' }
+  ): Promise<ApiResponse<DsaQuestion>> {
+    return this.request<DsaQuestion>(
+      `/api/dsa/questions/${encodeURIComponent(questionIndex)}/review`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      },
+      'supabase'
+    );
+  }
+
   // Health check
   async healthCheck(): Promise<ApiResponse<{ status: string; timestamp: string }>> {
     return this.request<{ status: string; timestamp: string }>('/health');

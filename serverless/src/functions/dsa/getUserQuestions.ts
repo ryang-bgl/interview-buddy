@@ -70,6 +70,8 @@ function mapQuestion(record: UserDsaQuestionRecord) {
     idealSolutionCode: record.idealSolutionCode ?? null,
     note: record.note ?? null,
     exampleTestcases: record.exampleTestcases ?? null,
+    lastReviewedAt: record.lastReviewedAt ?? null,
+    lastReviewStatus: record.lastReviewStatus ?? null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };

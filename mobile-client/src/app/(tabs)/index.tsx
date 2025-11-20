@@ -221,7 +221,12 @@ export default function HomeScreen() {
                 const identifier = review.questionIndex || review.id || "-";
 
                 return (
-                  <View key={review.id} style={styles.reviewCard}>
+                  <TouchableOpacity
+                    key={review.id}
+                    style={styles.reviewCard}
+                    activeOpacity={0.85}
+                    onPress={handleViewAllPress}
+                  >
                     <View style={styles.reviewTopRow}>
                       <Text style={styles.reviewProblemNumber}>
                         #{identifier}
@@ -253,19 +258,24 @@ export default function HomeScreen() {
                       </View>
                     )}
                     <View style={styles.reviewFooterRow}>
-                      <Text
-                        style={[
-                          styles.reviewDueStatus,
-                          dueStatus.isCritical && styles.reviewDueCritical,
-                        ]}
-                      >
-                        {dueStatus.label}
-                      </Text>
+                      <View>
+                        <Text
+                          style={[
+                            styles.reviewDueStatus,
+                            dueStatus.isCritical && styles.reviewDueCritical,
+                          ]}
+                        >
+                          {dueStatus.label}
+                        </Text>
+                        <Text style={styles.reviewMetaTime}>
+                          Scheduled at {new Date(review.nextReviewDate).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
                       <Text style={styles.reviewCountText}>
                         Reviewed {reviewCount}x
                       </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -458,6 +468,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6B7280",
     fontWeight: "500",
+  },
+  reviewMetaTime: {
+    fontSize: 12,
+    color: "#94A3B8",
   },
   reviewStatusText: {
     fontSize: 14,

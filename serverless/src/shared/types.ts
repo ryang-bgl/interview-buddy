@@ -23,4 +23,6 @@ export interface UserDsaQuestionRecord {
   paidOnly: boolean;
   createdAt: string;
   updatedAt: string;
+  lastReviewedAt?: string;
+  lastReviewStatus?: 'easy' | 'good' | 'hard';
 }

@@ -77,7 +77,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       questionIndex,
     },
     UpdateExpression:
-      'SET #title = :title, titleSlug = :titleSlug, difficulty = :difficulty, paidOnly = :paidOnly, description = :description, solution = :solution, idealSolutionCode = :idealSolutionCode, #note = :note, exampleTestcases = :exampleTestcases, updatedAt = :updatedAt, questionId = :questionId, createdAt = :createdAt',
+      'SET #title = :title, titleSlug = :titleSlug, difficulty = :difficulty, paidOnly = :paidOnly, description = :description, solution = :solution, idealSolutionCode = :idealSolutionCode, #note = :note, exampleTestcases = :exampleTestcases, updatedAt = :updatedAt, questionId = :questionId, createdAt = :createdAt, lastReviewedAt = if_not_exists(lastReviewedAt, :lastReviewedAt), lastReviewStatus = if_not_exists(lastReviewStatus, :lastReviewStatus)',
     ExpressionAttributeValues: {
       ':title': String(payload.title).trim(),
       ':titleSlug': String(payload.titleSlug).trim(),
@@ -91,6 +91,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       ':updatedAt': now,
       ':createdAt': createdAt,
       ':questionId': questionId,
+      ':lastReviewedAt': existingQuestion?.lastReviewedAt ?? null,
+      ':lastReviewStatus': existingQuestion?.lastReviewStatus ?? null,
     },
     ExpressionAttributeNames: {
       '#title': 'title',
@@ -170,6 +172,8 @@ function mapQuestion(record: UserDsaQuestionRecord) {
     idealSolutionCode: record.idealSolutionCode ?? null,
     note: record.note ?? null,
     exampleTestcases: record.exampleTestcases ?? null,
+    lastReviewedAt: record.lastReviewedAt ?? null,
+    lastReviewStatus: record.lastReviewStatus ?? null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };

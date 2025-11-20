@@ -14,65 +14,78 @@ export interface SpacedRepetitionResult {
   lastReviewedAt: Date;
 }
 
-const MIN_EASE_FACTOR = 1.3;
-const INITIAL_EASE_FACTOR = 2.5;
-
 export class SpacedRepetitionScheduler {
   constructor(private readonly config = spacedRepetitionConfig) {}
 
   getInitialIntervalSeconds(): number {
-    return this.config.patternSeconds[0];
+    return this.config.learningStepsSeconds[0] ?? this.config.daySeconds;
   }
 
   schedule(
     snapshot: SpacedRepetitionSnapshot | undefined,
     difficulty: ReviewDifficulty
   ): SpacedRepetitionResult {
-    const currentEase = snapshot?.easeFactor ?? INITIAL_EASE_FACTOR;
-    const currentStage = snapshot?.repetitions ?? 0;
-    const stageCount = this.config.patternSeconds.length;
+    const now = new Date();
+    const easeFactor = snapshot?.easeFactor ?? this.config.initialEaseFactor;
+    const repetitions = snapshot?.repetitions ?? 0;
+    const intervalSeconds = snapshot?.interval ?? this.getInitialIntervalSeconds();
 
-    let nextStage = currentStage;
-    switch (difficulty) {
-      case 'easy':
-        nextStage = Math.min(currentStage + this.config.easyStep, stageCount - 1);
-        break;
-      case 'medium':
-        nextStage = Math.max(currentStage - this.config.mediumStep, 0);
-        break;
-      case 'hard':
-        nextStage = 0;
-        break;
+    if (difficulty === 'hard') {
+      const resetInterval = this.config.learningStepsSeconds[0] ?? this.config.daySeconds;
+      const updatedEase = this.calculateEaseFactor(easeFactor, 2);
+      const nextReviewDate = new Date(now.getTime() + resetInterval * 1000);
+      return {
+        easeFactor: updatedEase,
+        interval: resetInterval,
+        repetitions: 0,
+        nextReviewDate,
+        lastReviewedAt: now,
+      };
     }
 
-    const intervalSeconds = this.config.patternSeconds[nextStage] ?? this.config.patternSeconds[stageCount - 1];
-    const lastReviewedAt = new Date();
-    const nextReviewDate = new Date(lastReviewedAt.getTime() + intervalSeconds * 1000);
+    const quality = difficulty === 'easy' ? 5 : 4;
+    const updatedEase = this.calculateEaseFactor(easeFactor, quality);
+    const nextRepetitions = repetitions + 1;
+    const nextIntervalSeconds = this.calculateInterval(
+      intervalSeconds,
+      nextRepetitions,
+      updatedEase,
+      difficulty
+    );
+
+    const nextReviewDate = new Date(now.getTime() + nextIntervalSeconds * 1000);
 
     return {
-      easeFactor: this.calculateEaseFactor(currentEase, difficulty),
-      repetitions: nextStage,
-      interval: intervalSeconds,
+      easeFactor: updatedEase,
+      interval: nextIntervalSeconds,
+      repetitions: nextRepetitions,
       nextReviewDate,
-      lastReviewedAt,
+      lastReviewedAt: now,
     };
   }
 
-  private calculateEaseFactor(current: number, difficulty: ReviewDifficulty): number {
-    let delta = 0;
-    switch (difficulty) {
-      case 'easy':
-        delta = 0.15;
-        break;
-      case 'medium':
-        delta = -0.05;
-        break;
-      case 'hard':
-        delta = -0.3;
-        break;
+  private calculateInterval(
+    currentInterval: number,
+    repetitions: number,
+    easeFactor: number,
+    difficulty: ReviewDifficulty
+  ): number {
+    const steps = this.config.learningStepsSeconds;
+    if (repetitions <= steps.length) {
+      const index = Math.max(0, Math.min(repetitions - 1, steps.length - 1));
+      return steps[index];
     }
 
-    return Math.max(MIN_EASE_FACTOR, current + delta);
+    const currentDays = Math.max(1, currentInterval / this.config.daySeconds);
+    const bonus = difficulty === 'easy' ? this.config.easyBonus : 1;
+    const nextDays = Math.max(1, Math.round(currentDays * easeFactor * bonus));
+    return nextDays * this.config.daySeconds;
+  }
+
+  private calculateEaseFactor(current: number, quality: number): number {
+    const updated =
+      current + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+    return Math.max(this.config.minEaseFactor, updated);
   }
 }
 

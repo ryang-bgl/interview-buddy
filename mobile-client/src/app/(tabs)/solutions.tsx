@@ -75,7 +75,7 @@ export default function ProblemListsScreen() {
     if (!hasAttemptedInitialSync && !isQuestionLoading) {
       loadQuestions();
     }
-  }, [hasAttemptedInitialSync, isQuestionLoading]);
+  }, [hasAttemptedInitialSync, isQuestionLoading, loadQuestions]);
 
   const allReminders = useMemo(() => getAllReminders(), [questions, reviewStates]);
   const dueReminderCount = useMemo(() => getDueQuestions().length, [questions, reviewStates]);
@@ -171,7 +171,12 @@ export default function ProblemListsScreen() {
                     </View>
                     <Text style={styles.reminderNote}>{snippet}</Text>
                     <View style={styles.reminderFooter}>
-                      <Text style={styles.reminderMeta}>Next review {formatReminderDate(reminder.nextReviewDate)}</Text>
+                      <View>
+                        <Text style={styles.reminderMeta}>Next review {formatReminderDate(reminder.nextReviewDate)}</Text>
+                        <Text style={styles.reminderTime}>
+                          {new Date(reminder.nextReviewDate).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
                       <Text style={[styles.reminderStatus, isDue && styles.reminderStatusDue]}>
                         {isDue ? 'Due now' : 'Scheduled'}
                       </Text>
@@ -410,6 +415,10 @@ const styles = StyleSheet.create({
   reminderMeta: {
     fontSize: 12,
     color: '#6B7280',
+  },
+  reminderTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
   },
   reminderStatus: {
     fontSize: 12,

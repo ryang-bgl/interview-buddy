@@ -4,9 +4,11 @@ import { SpacedRepetitionScheduler } from '@/utils/spacedRepetitionScheduler';
 import type { SpacedRepetitionConfig } from '@/config/spacedRepetition';
 
 const testConfig: SpacedRepetitionConfig = {
-  patternSeconds: [20, 60, 180],
-  easyStep: 1,
-  mediumStep: 1,
+  learningStepsSeconds: [20, 60],
+  easyBonus: 1.4,
+  daySeconds: 86_400,
+  initialEaseFactor: 2.5,
+  minEaseFactor: 1.3,
 };
 
 const scheduler = new SpacedRepetitionScheduler(testConfig);
@@ -25,41 +27,40 @@ describe('SpacedRepetitionScheduler', () => {
     expect(scheduler.getInitialIntervalSeconds()).toBe(20);
   });
 
-  it('advances to the next stage for easy reviews', () => {
+  it('schedules first learning step for the initial good review', () => {
     const result = scheduler.schedule(
       {
         easeFactor: 2.5,
         repetitions: 0,
         interval: 20,
       },
-      'easy'
+      'good'
     );
 
     expect(result.repetitions).toBe(1);
-    expect(result.interval).toBe(60);
-    expect(result.nextReviewDate.getTime() - result.lastReviewedAt.getTime()).toBe(60_000);
-  });
-
-  it('moves backwards for medium reviews but never below first stage', () => {
-    const result = scheduler.schedule(
-      {
-        easeFactor: 2.5,
-        repetitions: 0,
-        interval: 20,
-      },
-      'medium'
-    );
-
-    expect(result.repetitions).toBe(0);
     expect(result.interval).toBe(20);
   });
 
-  it('resets to stage zero for hard reviews and decreases ease factor', () => {
+  it('moves to the next learning step after the first success', () => {
+    const result = scheduler.schedule(
+      {
+        easeFactor: 2.5,
+        repetitions: 1,
+        interval: 20,
+      },
+      'good'
+    );
+
+    expect(result.repetitions).toBe(2);
+    expect(result.interval).toBe(60);
+  });
+
+  it('resets to first step on hard (again)', () => {
     const result = scheduler.schedule(
       {
         easeFactor: 2.0,
-        repetitions: 2,
-        interval: 180,
+        repetitions: 3,
+        interval: 1_000,
       },
       'hard'
     );
@@ -69,17 +70,31 @@ describe('SpacedRepetitionScheduler', () => {
     expect(result.easeFactor).toBeLessThan(2);
   });
 
-  it('clamps to the highest available stage when already at the end', () => {
+  it('extends interval using SM-2 style growth for easy answers', () => {
     const result = scheduler.schedule(
       {
-        easeFactor: 2.5,
-        repetitions: 2,
-        interval: 180,
+        easeFactor: 2.4,
+        repetitions: 5,
+        interval: 86_400 * 6,
       },
       'easy'
     );
 
-    expect(result.repetitions).toBe(2);
-    expect(result.interval).toBe(180);
+    expect(result.interval).toBeGreaterThan(86_400 * 6);
+    expect(result.repetitions).toBe(6);
+  });
+
+  it('increases interval steadily for good answers', () => {
+    const result = scheduler.schedule(
+      {
+        easeFactor: 2.3,
+        repetitions: 4,
+        interval: 86_400 * 10,
+      },
+      'good'
+    );
+
+    expect(result.interval).toBeGreaterThan(86_400 * 10);
+    expect(result.repetitions).toBe(5);
   });
 });

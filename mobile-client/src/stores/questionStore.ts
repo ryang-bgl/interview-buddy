@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '@/services/api';
 import { DsaQuestion, QuestionReminder, QuestionReviewState } from '@/types/question';
 import { spacedRepetitionScheduler } from '@/utils/spacedRepetitionScheduler';
+import { ReviewDifficulty } from '@/config/spacedRepetition';
 
 export interface QuestionState {
   questions: DsaQuestion[];
@@ -16,7 +17,7 @@ export interface QuestionState {
 
   loadQuestions: () => Promise<void>;
   refreshQuestions: () => Promise<void>;
-  reviewQuestion: (questionId: string, difficulty: 'easy' | 'medium' | 'hard') => void;
+  reviewQuestion: (questionId: string, difficulty: ReviewDifficulty) => void;
   getDueQuestions: () => QuestionReminder[];
   getAllReminders: () => QuestionReminder[];
   clearError: () => void;
@@ -37,7 +38,7 @@ const createInitialReviewState = (): QuestionReviewState => {
 
 const calculateNextState = (
   current: QuestionReviewState,
-  difficulty: 'easy' | 'medium' | 'hard'
+  difficulty: ReviewDifficulty
 ): QuestionReviewState => {
   const result = spacedRepetitionScheduler.schedule(current, difficulty);
 
@@ -58,7 +59,7 @@ const mapToReminder = (
   ...(state ?? createInitialReviewState()),
 });
 
-const getQuestionKey = (question: DsaQuestion) => question.id || question.questionIndex;
+const getQuestionKey = (question: DsaQuestion) => question.questionIndex || question.id;
 
 export const useQuestionStore = create<QuestionState>()(
   persist(
@@ -118,11 +119,41 @@ export const useQuestionStore = create<QuestionState>()(
 
       reviewQuestion: (questionId, difficulty) => {
         const reviewStates = { ...get().reviewStates };
-        const current = reviewStates[questionId] ?? createInitialReviewState();
+        const currentQuestions = get().questions;
+        const matchedQuestion = currentQuestions.find(
+          question => question.questionIndex === questionId || question.id === questionId
+        );
+        const stateKey = matchedQuestion?.questionIndex || questionId;
+        const current = reviewStates[stateKey] ?? createInitialReviewState();
         const nextState = calculateNextState(current, difficulty);
-        reviewStates[questionId] = nextState;
+        reviewStates[stateKey] = nextState;
 
-        set({ reviewStates });
+        let updatedQuestions = currentQuestions;
+        let questionIndexValue = stateKey;
+        const targetIdx = matchedQuestion
+          ? currentQuestions.findIndex(question => question.questionIndex === matchedQuestion.questionIndex)
+          : -1;
+        if (targetIdx >= 0) {
+          const updatedQuestion = {
+            ...currentQuestions[targetIdx],
+            lastReviewedAt: nextState.lastReviewedAt,
+            lastReviewStatus: difficulty,
+          };
+          updatedQuestions = [...currentQuestions];
+          updatedQuestions[targetIdx] = updatedQuestion;
+          questionIndexValue = updatedQuestion.questionIndex;
+        }
+
+        set({ reviewStates, questions: updatedQuestions });
+
+        apiClient
+          .updateQuestionReview(questionIndexValue, {
+            lastReviewedAt: nextState.lastReviewedAt ?? new Date().toISOString(),
+            lastReviewStatus: difficulty,
+          })
+          .catch(error => {
+            console.warn('Failed to sync question review timestamp', error);
+          });
       },
 
       getDueQuestions: () => {

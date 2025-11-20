@@ -13,6 +13,8 @@ export interface DsaQuestion {
   exampleTestcases: string | null;
   tags?: string[];
   topicTags?: string[];
+  lastReviewedAt?: string;
+  lastReviewStatus?: 'easy' | 'good' | 'hard';
   createdAt?: string;
   updatedAt?: string;
 }
