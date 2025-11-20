@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, GestureResponderEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -225,7 +225,7 @@ export default function HomeScreen() {
                     key={review.id}
                     style={styles.reviewCard}
                     activeOpacity={0.85}
-                    onPress={handleViewAllPress}
+                    onPress={() => router.push('/(tabs)/review')}
                   >
                     <View style={styles.reviewTopRow}>
                       <Text style={styles.reviewProblemNumber}>
@@ -271,9 +271,20 @@ export default function HomeScreen() {
                           Scheduled at {new Date(review.nextReviewDate).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                         </Text>
                       </View>
-                      <Text style={styles.reviewCountText}>
-                        Reviewed {reviewCount}x
-                      </Text>
+                      <View style={styles.reviewActions}>
+                        <Text style={styles.reviewCountText}>
+                          Reviewed {reviewCount}x
+                        </Text>
+                        <TouchableOpacity
+                          onPress={(event: GestureResponderEvent) => {
+                            event.stopPropagation();
+                            router.push(`/problem/${identifier}`);
+                          }}
+                          style={styles.detailLink}
+                        >
+                          <Text style={styles.detailLinkText}>View Detail</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 );
@@ -456,6 +467,10 @@ const styles = StyleSheet.create({
     borderColor: "#F3F4F6",
     paddingTop: 12,
   },
+  reviewActions: {
+    alignItems: "flex-end",
+    gap: 6,
+  },
   reviewDueStatus: {
     fontSize: 14,
     fontWeight: "600",
@@ -472,6 +487,17 @@ const styles = StyleSheet.create({
   reviewMetaTime: {
     fontSize: 12,
     color: "#94A3B8",
+  },
+  detailLink: {
+    backgroundColor: "#E0E7FF",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  detailLinkText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1D4ED8",
   },
   reviewStatusText: {
     fontSize: 14,

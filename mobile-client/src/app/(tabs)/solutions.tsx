@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { useSolutions, useQuestions } from '@/hooks/useStores';
 
@@ -122,18 +123,6 @@ export default function ProblemListsScreen() {
           <Text style={styles.subheading}>Choose from curated lists or create your own</Text>
         </View>
 
-        <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.85}>
-            <Feather name="book-open" size={18} color="#111827" style={styles.buttonIcon} />
-            <Text style={styles.secondaryButtonText}>All Problems ({personalCount})</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.9}>
-            <Feather name="plus" size={18} color="#FFFFFF" style={styles.buttonIcon} />
-            <Text style={styles.primaryButtonText}>Create List</Text>
-          </TouchableOpacity>
-        </View>
-
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
@@ -163,8 +152,14 @@ export default function ProblemListsScreen() {
               {topReminders.map(reminder => {
                 const snippet = reminder.note?.trim() || reminder.description?.slice(0, 100) || 'No note yet';
                 const isDue = new Date(reminder.nextReviewDate) <= new Date();
+                const identifier = reminder.questionIndex || reminder.id;
                 return (
-                  <View key={reminder.id || reminder.questionIndex} style={styles.reminderCard}>
+                  <TouchableOpacity
+                    key={reminder.id || reminder.questionIndex}
+                    style={styles.reminderCard}
+                    activeOpacity={0.85}
+                    onPress={() => router.push('/(tabs)/review')}
+                  >
                     <View style={styles.reminderHeader}>
                       <Text style={styles.reminderTitle}>{reminder.title}</Text>
                       <Text style={styles.reminderDifficulty}>{reminder.difficulty}</Text>
@@ -177,11 +172,22 @@ export default function ProblemListsScreen() {
                           {new Date(reminder.nextReviewDate).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                         </Text>
                       </View>
-                      <Text style={[styles.reminderStatus, isDue && styles.reminderStatusDue]}>
-                        {isDue ? 'Due now' : 'Scheduled'}
-                      </Text>
+                      <View style={styles.reminderActions}>
+                        <Text style={[styles.reminderStatus, isDue && styles.reminderStatusDue]}>
+                          {isDue ? 'Due now' : 'Scheduled'}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.detailLink}
+                          onPress={(event) => {
+                            event.stopPropagation();
+                            router.push(`/problem/${identifier}`);
+                          }}
+                        >
+                          <Text style={styles.detailLinkText}>View Detail</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -420,6 +426,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
   },
+  reminderActions: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
   reminderStatus: {
     fontSize: 12,
     fontWeight: '600',
@@ -427,5 +437,16 @@ const styles = StyleSheet.create({
   },
   reminderStatusDue: {
     color: '#B91C1C',
+  },
+  detailLink: {
+    backgroundColor: '#E0E7FF',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  detailLinkText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1D4ED8',
   },
 });
