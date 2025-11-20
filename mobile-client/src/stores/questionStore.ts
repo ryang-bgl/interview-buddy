@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { apiClient } from '@/services/api';
 import { DsaQuestion, QuestionReminder, QuestionReviewState } from '@/types/question';
+import { spacedRepetitionScheduler } from '@/utils/spacedRepetitionScheduler';
 
 export interface QuestionState {
   questions: DsaQuestion[];
@@ -21,47 +22,31 @@ export interface QuestionState {
   clearError: () => void;
 }
 
-const createInitialReviewState = (): QuestionReviewState => ({
-  easeFactor: 2.5,
-  interval: 1,
-  repetitions: 0,
-  nextReviewDate: new Date().toISOString(),
-});
+const createInitialReviewState = (): QuestionReviewState => {
+  const initialInterval = spacedRepetitionScheduler.getInitialIntervalSeconds();
+  const nextReviewDate = new Date();
+  nextReviewDate.setSeconds(nextReviewDate.getSeconds() + initialInterval);
+
+  return {
+    easeFactor: 2.5,
+    interval: initialInterval,
+    repetitions: 0,
+    nextReviewDate: nextReviewDate.toISOString(),
+  };
+};
 
 const calculateNextState = (
   current: QuestionReviewState,
   difficulty: 'easy' | 'medium' | 'hard'
 ): QuestionReviewState => {
-  let easeFactor = current.easeFactor;
-  let interval = current.interval;
-  let repetitions = current.repetitions;
-
-  switch (difficulty) {
-    case 'easy':
-      easeFactor = Math.max(1.3, easeFactor + 0.1);
-      repetitions += 1;
-      interval = repetitions === 1 ? 1 : repetitions === 2 ? 6 : Math.round(interval * easeFactor);
-      break;
-    case 'medium':
-      repetitions = Math.max(1, repetitions + 1);
-      interval = Math.max(1, Math.round(interval * 0.9));
-      break;
-    case 'hard':
-      easeFactor = Math.max(1.3, easeFactor - 0.2);
-      repetitions = 0;
-      interval = 1;
-      break;
-  }
-
-  const nextReviewDate = new Date();
-  nextReviewDate.setDate(nextReviewDate.getDate() + Math.max(1, interval));
+  const result = spacedRepetitionScheduler.schedule(current, difficulty);
 
   return {
-    easeFactor,
-    interval,
-    repetitions,
-    lastReviewedAt: new Date().toISOString(),
-    nextReviewDate: nextReviewDate.toISOString(),
+    easeFactor: result.easeFactor,
+    interval: result.interval,
+    repetitions: result.repetitions,
+    lastReviewedAt: result.lastReviewedAt.toISOString(),
+    nextReviewDate: result.nextReviewDate.toISOString(),
   };
 };
 

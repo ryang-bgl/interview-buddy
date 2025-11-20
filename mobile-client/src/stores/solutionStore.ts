@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LeetCodeSolution, UserStats, ReviewSession } from '@/types/solution';
 import { apiClient } from '@/services/api';
+import { spacedRepetitionScheduler } from '@/utils/spacedRepetitionScheduler';
 
 export interface SolutionState {
   // State
@@ -186,39 +187,23 @@ export const useSolutionStore = create<SolutionState>()(
 
         if (!solution) return;
 
-        // Spaced repetition algorithm (simplified FSR)
-        let newEaseFactor = solution.easeFactor;
-        let newInterval = solution.interval;
-        let newRepetitions = solution.repetitions;
-
-        switch (difficulty) {
-          case 'easy':
-            newEaseFactor = Math.max(1.3, solution.easeFactor + 0.1);
-            newRepetitions += 1;
-            newInterval = newRepetitions === 1 ? 1 : newRepetitions === 2 ? 6 : Math.round(solution.interval * newEaseFactor);
-            break;
-          case 'medium':
-            newRepetitions += 1;
-            newInterval = Math.max(1, Math.round(solution.interval * 0.8));
-            break;
-          case 'hard':
-            newEaseFactor = Math.max(1.3, solution.easeFactor - 0.2);
-            newRepetitions = 0;
-            newInterval = 1;
-            break;
-        }
-
-        const nextReviewDate = new Date();
-        nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
+        const result = spacedRepetitionScheduler.schedule(
+          {
+            easeFactor: solution.easeFactor,
+            repetitions: solution.repetitions,
+            interval: solution.interval,
+          },
+          difficulty
+        );
 
         const updatedSolution = {
           ...solution,
-          easeFactor: newEaseFactor,
-          interval: newInterval,
-          repetitions: newRepetitions,
-          nextReviewDate,
-          lastReviewedAt: new Date(),
-          updatedAt: new Date(),
+          easeFactor: result.easeFactor,
+          interval: result.interval,
+          repetitions: result.repetitions,
+          nextReviewDate: result.nextReviewDate,
+          lastReviewedAt: result.lastReviewedAt,
+          updatedAt: result.lastReviewedAt,
         };
 
         // Update locally immediately

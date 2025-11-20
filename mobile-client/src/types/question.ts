@@ -11,13 +11,15 @@ export interface DsaQuestion {
   idealSolutionCode: string | null;
   note: string | null;
   exampleTestcases: string | null;
+  tags?: string[];
+  topicTags?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface QuestionReviewState {
   easeFactor: number;
-  interval: number;
+  interval: number; // spacing duration in seconds
   repetitions: number;
   nextReviewDate: string;
   lastReviewedAt?: string;

@@ -10,7 +10,7 @@ export interface LeetCodeSolution {
 
   // FSR scheduling data
   easeFactor: number;
-  interval: number;
+  interval: number; // spacing duration in seconds
   repetitions: number;
   nextReviewDate: Date;
   lastReviewedAt?: Date;

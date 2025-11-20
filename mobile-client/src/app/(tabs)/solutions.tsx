@@ -138,7 +138,7 @@ export default function ProblemListsScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
               <Feather name="bookmark" size={18} color="#7C3AED" style={styles.sectionIcon} />
-              <Text style={styles.sectionTitle}>Your Notes & Reminders</Text>
+              <Text style={styles.sectionTitle}>Saved List</Text>
               <View style={styles.dueBadge}>
                 <Text style={styles.dueBadgeText}>{dueReminderCount} due</Text>
               </View>
