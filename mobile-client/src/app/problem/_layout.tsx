@@ -12,6 +12,14 @@ export default function ProblemLayout() {
         headerTintColor: '#1D4ED8',
         headerTitle: 'Problem Detail',
         headerLeft: () => <BackHeaderButton />,
+        headerStyle: {
+          height: 56,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        headerTitleStyle: {
+          fontSize: 16,
+        },
       }}
     />
   );

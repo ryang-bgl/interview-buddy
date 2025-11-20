@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity, GestureResponderEvent } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import React, { useEffect, useMemo } from 'react';
+import { ScrollView, StyleSheet, TouchableOpacity, GestureResponderEvent, View, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
+import { router } from 'expo-router';
+
+import { useColorScheme } from '@/components/useColorScheme';
 
 import {
   useAuth,
@@ -10,7 +12,7 @@ import {
   useAppState,
   useSolutions,
   useQuestions,
-} from "@/hooks/useStores";
+} from '@/hooks/useStores';
 
 const difficultyStyles: Record<
   string,
@@ -21,7 +23,268 @@ const difficultyStyles: Record<
   Hard: { backgroundColor: "#FECACA", textColor: "#B91C1C" },
 };
 
+const lightPalette = {
+  background: '#F5F6FA',
+  surface: '#FFFFFF',
+  textPrimary: '#111827',
+  textSecondary: '#6B7280',
+  textMuted: '#94A3B8',
+  quickCardDue: '#FEF3C7',
+  quickCardReviewed: '#DBEAFE',
+  quickCardStreak: '#E0E7FF',
+  cardBorder: '#E5E7EB',
+  highlight: '#2563EB',
+  critical: '#DC2626',
+  buttonBackground: '#E0E7FF',
+  buttonText: '#1D4ED8',
+};
+
+const darkPalette = {
+  background: '#0B1220',
+  surface: '#111827',
+  textPrimary: '#F9FAFB',
+  textSecondary: '#CBD5F5',
+  textMuted: '#94A3B8',
+  quickCardDue: '#5B3A00',
+  quickCardReviewed: '#1E3A8A',
+  quickCardStreak: '#312E81',
+  cardBorder: '#1F2937',
+  highlight: '#60A5FA',
+  critical: '#F87171',
+  buttonBackground: '#1D4ED8',
+  buttonText: '#F8FAFC',
+};
+
+type Palette = typeof lightPalette;
+
+const createStyles = (palette: Palette) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: palette.background,
+    },
+    contentContainer: {
+      paddingBottom: 32,
+      paddingHorizontal: 20,
+      gap: 18,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    avatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: palette.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+    },
+    avatarText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: palette.textPrimary,
+    },
+    headerTextContainer: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    greeting: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: palette.textPrimary,
+    },
+    subGreeting: {
+      fontSize: 14,
+      color: palette.textSecondary,
+      marginTop: 4,
+    },
+    iconPill: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: palette.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+    },
+    quickStatsRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    quickStatCard: {
+      flex: 1,
+      borderRadius: 16,
+      paddingVertical: 16,
+      paddingHorizontal: 12,
+    },
+    quickStatValue: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: palette.textPrimary,
+    },
+    quickStatLabel: {
+      marginTop: 4,
+      fontSize: 12,
+      color: palette.textSecondary,
+      fontWeight: '600',
+    },
+    quickStatDue: {
+      backgroundColor: palette.quickCardDue,
+    },
+    quickStatReviewed: {
+      backgroundColor: palette.quickCardReviewed,
+    },
+    quickStatStreak: {
+      backgroundColor: palette.quickCardStreak,
+    },
+    reviewSection: {
+      gap: 12,
+      paddingTop: 4,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: palette.textPrimary,
+    },
+    viewAllButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    viewAllText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: palette.highlight,
+    },
+    reviewCards: {
+      gap: 14,
+    },
+    reviewCard: {
+      backgroundColor: palette.surface,
+      borderRadius: 18,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+    },
+    reviewTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    reviewProblemNumber: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: palette.textSecondary,
+    },
+    difficultyPill: {
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+    },
+    difficultyPillText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    reviewTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: palette.textPrimary,
+      marginTop: 8,
+    },
+    reviewTagRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 10,
+    },
+    tagPill: {
+      backgroundColor: palette.surface,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+    },
+    tagPillText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.textSecondary,
+    },
+    reviewFooterRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 14,
+      borderTopWidth: 1,
+      borderColor: palette.cardBorder,
+      paddingTop: 12,
+    },
+    reviewActions: {
+      alignItems: 'flex-end',
+      gap: 6,
+    },
+    reviewDueStatus: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: palette.textSecondary,
+    },
+    reviewDueCritical: {
+      color: palette.critical,
+    },
+    reviewCountText: {
+      fontSize: 12,
+      color: palette.textSecondary,
+      fontWeight: '500',
+    },
+    reviewMetaTime: {
+      fontSize: 12,
+      color: palette.textMuted,
+    },
+    detailLink: {
+      backgroundColor: palette.buttonBackground,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+    },
+    detailLinkText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.buttonText,
+    },
+    reviewStatusText: {
+      fontSize: 14,
+      color: palette.textSecondary,
+      marginTop: 8,
+    },
+    reviewErrorText: {
+      fontSize: 14,
+      color: palette.critical,
+      marginTop: 8,
+    },
+    emptyStateText: {
+      fontSize: 14,
+      color: palette.textSecondary,
+      marginTop: 8,
+    },
+  });
+
 export default function HomeScreen() {
+  const colorScheme = useColorScheme();
+  const palette = useMemo<Palette>(
+    () => (colorScheme === 'dark' ? darkPalette : lightPalette),
+    [colorScheme]
+  );
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const { user } = useAuth();
   const { currentStreak } = useAppState();
   const { dueForReview } = useReview();

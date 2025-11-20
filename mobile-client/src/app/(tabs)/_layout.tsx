@@ -29,9 +29,9 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor,
           borderTopColor: borderColor,
-          height: 72,
-          paddingBottom: 12,
-          paddingTop: 8,
+          height: 56,
+          paddingBottom: 6,
+          paddingTop: 4,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -39,6 +39,7 @@ export default function TabLayout() {
           fontWeight: "600",
         },
         headerShown: useClientOnlyValue(false, true),
+        headerStyle: { backgroundColor: "#111827", height: 20 },
       }}
     >
       <Tabs.Screen
