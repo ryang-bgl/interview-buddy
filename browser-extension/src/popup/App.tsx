@@ -16,6 +16,7 @@ interface PageProblemDetails {
   descriptionText?: string;
   language?: string;
   solutionCode?: string;
+  difficulty?: string;
 }
 
 function toPlainText(html: string): string {
@@ -94,6 +95,80 @@ async function findLeetCodeProblemDetailsInActivePage(
             }
           }
 
+          const normalizeDifficulty = (
+            value?: string | null
+          ): string | undefined => {
+            if (!value) {
+              return undefined;
+            }
+            const normalized = value.trim().toLowerCase();
+            if (!normalized) {
+              return undefined;
+            }
+            if (normalized.includes("easy")) {
+              return "Easy";
+            }
+            if (normalized.includes("medium")) {
+              return "Medium";
+            }
+            if (normalized.includes("hard")) {
+              return "Hard";
+            }
+            return undefined;
+          };
+
+          const detectDifficulty = (): string | undefined => {
+            const inspectNode = (node: Element | null): string | undefined => {
+              if (!node) {
+                return undefined;
+              }
+              const elements: Element[] = [
+                node,
+                ...Array.from(node.querySelectorAll("*")),
+              ];
+              for (const element of elements) {
+                const classList = Array.from(element.classList ?? []);
+                for (const cls of classList) {
+                  const normalizedByClass = normalizeDifficulty(cls);
+                  if (normalizedByClass) {
+                    return normalizedByClass;
+                  }
+                }
+
+                const textMatch = normalizeDifficulty(element.textContent);
+                if (textMatch) {
+                  return textMatch;
+                }
+              }
+              return undefined;
+            };
+
+            const parent = container.parentElement;
+            const grandParent = parent?.parentElement;
+            const primarySibling = grandParent?.nextElementSibling as HTMLElement | null;
+            const fallbackSiblings: (Element | null | undefined)[] = [
+              primarySibling,
+              parent?.nextElementSibling,
+              container.nextElementSibling,
+            ];
+
+            for (const sibling of fallbackSiblings) {
+              if (!sibling) {
+                continue;
+              }
+              const directText = normalizeDifficulty(sibling.textContent);
+              if (directText) {
+                return directText;
+              }
+              const nested = inspectNode(sibling);
+              if (nested) {
+                return nested;
+              }
+            }
+
+            return inspectNode(primarySibling);
+          };
+
           const detectLanguage = (): string | undefined => {
             const selectors = [
               '[data-cy="language-select-menu"] button span',
@@ -116,7 +191,6 @@ async function findLeetCodeProblemDetailsInActivePage(
           ): Promise<{ code: string; language?: string } | null> => {
             return new Promise((resolve) => {
               const normalizedProblemNum = `${problemNum ?? ""}`.trim();
-              console.log("=====normalizedProblemNum", normalizedProblemNum);
               if (!normalizedProblemNum || !(window as any).indexedDB) {
                 resolve(null);
                 return;
@@ -186,12 +260,12 @@ async function findLeetCodeProblemDetailsInActivePage(
             });
           };
 
+          const detectedDifficulty = detectDifficulty();
           let solutionCode: string | undefined;
           let detectedLanguage = detectLanguage();
 
           try {
             const indexed = await readIndexedDbSolution(titleMatch[1]);
-            console.log("====result", indexed);
             if (indexed?.code) {
               solutionCode = indexed.code;
               if (!detectedLanguage && indexed.language) {
@@ -209,8 +283,6 @@ async function findLeetCodeProblemDetailsInActivePage(
             descriptionText = tempContainer.textContent?.trim();
           }
 
-          console.log("=====solution code", solutionCode);
-
           return {
             problemNumber: titleMatch[1],
             problemTitle: titleMatch[2],
@@ -219,6 +291,7 @@ async function findLeetCodeProblemDetailsInActivePage(
             descriptionText,
             solutionCode,
             language: detectedLanguage,
+            difficulty: detectedDifficulty,
           };
         }
 
@@ -303,6 +376,7 @@ interface PopupFormState {
   code: string;
   notes: string;
   language?: string;
+  difficulty?: string;
 }
 
 type PopupStorageMap = Record<string, PopupFormState>;
@@ -599,6 +673,7 @@ function MainContent({
   const [codeInput, setCodeInput] = useState("");
   const [notesInput, setNotesInput] = useState("");
   const [languageLabel, setLanguageLabel] = useState("Unknown");
+  const [difficultyLabel, setDifficultyLabel] = useState("Unknown");
   const [currentUrl, setCurrentUrl] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
   const storageCacheRef = useRef<PopupStorageMap>({});
@@ -619,6 +694,7 @@ function MainContent({
     setCodeInput(state.code ?? "");
     setNotesInput(state.notes ?? "");
     setLanguageLabel(state.language ?? "Unknown");
+    setDifficultyLabel(state.difficulty ?? "Unknown");
   }, []);
 
   useEffect(() => {
@@ -678,6 +754,7 @@ function MainContent({
           code: pageDetails.solutionCode?.trim() ?? "",
           notes: "",
           language: pageDetails.language ?? "Unknown",
+          difficulty: pageDetails.difficulty ?? "Unknown",
         };
 
         applyFormState(initialState);
@@ -720,6 +797,7 @@ function MainContent({
       code: codeInput,
       notes: notesInput,
       language: languageLabel,
+      difficulty: difficultyLabel,
     };
 
     storageCacheRef.current = {
@@ -742,6 +820,7 @@ function MainContent({
     codeInput,
     notesInput,
     languageLabel,
+    difficultyLabel,
     isInitialized,
   ]);
 
@@ -760,11 +839,13 @@ function MainContent({
       code: "",
       notes: "",
       language: languageLabel,
+      difficulty: difficultyLabel,
     };
 
     const snapshot: PopupFormState = {
       ...baseline,
       language: baseline.language ?? languageLabel ?? "Unknown",
+      difficulty: baseline.difficulty ?? difficultyLabel ?? "Unknown",
     };
     applyFormState(snapshot);
 
@@ -780,7 +861,7 @@ function MainContent({
     setSaveState("idle");
     setSaveError(null);
     setLastSavedTitle(null);
-  }, [applyFormState, currentUrl, languageLabel]);
+  }, [applyFormState, currentUrl, languageLabel, difficultyLabel]);
 
   const handleSave = async () => {
     const trimmedTitle =
@@ -799,6 +880,7 @@ function MainContent({
     const description = descriptionInput.trim() || "No description provided.";
     const solution = codeInput.trim() || null;
     const note = notesInput.trim() || null;
+    const difficultyValue = difficultyLabel?.trim() || "Unknown";
 
     setSaveState("saving");
     setSaveError(null);
@@ -809,7 +891,7 @@ function MainContent({
         questionIndex,
         title: trimmedTitle,
         titleSlug,
-        difficulty: "Unknown",
+        difficulty: difficultyValue,
         isPaidOnly: false,
         description,
         solution,
@@ -828,6 +910,7 @@ function MainContent({
           code: codeInput,
           notes: notesInput,
           language: languageLabel,
+          difficulty: difficultyValue,
         };
         initialStateRef.current = { ...snapshot };
         storageCacheRef.current = {
@@ -856,6 +939,20 @@ function MainContent({
   const headerTitleText =
     titleInput || "Open a LeetCode problem to capture details.";
   const headerLink = problemLink;
+  const difficultyDisplay = difficultyLabel || "Unknown";
+  const difficultyToneClass = (() => {
+    const normalized = difficultyDisplay.toLowerCase();
+    if (normalized === "easy") {
+      return "bg-emerald-100 text-emerald-600";
+    }
+    if (normalized === "medium") {
+      return "bg-amber-100 text-amber-600";
+    }
+    if (normalized === "hard") {
+      return "bg-rose-100 text-rose-600";
+    }
+    return "bg-slate-200 text-slate-600";
+  })();
   const statusMessage = (() => {
     if (saveState === "saving") {
       return "Saving problem...";
@@ -950,8 +1047,10 @@ function MainContent({
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-blue-600">
                   <span>{headerProblemLabel}</span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-600">
-                    Easy
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${difficultyToneClass}`}
+                  >
+                    {difficultyDisplay}
                   </span>
                 </div>
                 <div className="text-sm text-slate-700">{headerTitleText}</div>
