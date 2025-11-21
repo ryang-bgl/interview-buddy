@@ -301,7 +301,6 @@ interface PopupFormState {
   title: string;
   description: string;
   code: string;
-  idealSolutionCode: string;
   notes: string;
   language?: string;
 }
@@ -598,7 +597,6 @@ function MainContent({
   const [titleInput, setTitleInput] = useState("");
   const [descriptionInput, setDescriptionInput] = useState("");
   const [codeInput, setCodeInput] = useState("");
-  const [idealSolutionCodeInput, setIdealSolutionCodeInput] = useState("");
   const [notesInput, setNotesInput] = useState("");
   const [languageLabel, setLanguageLabel] = useState("Unknown");
   const [currentUrl, setCurrentUrl] = useState("");
@@ -619,7 +617,6 @@ function MainContent({
     setTitleInput(state.title ?? "");
     setDescriptionInput(state.description ?? "");
     setCodeInput(state.code ?? "");
-    setIdealSolutionCodeInput(state.idealSolutionCode ?? "");
     setNotesInput(state.notes ?? "");
     setLanguageLabel(state.language ?? "Unknown");
   }, []);
@@ -647,23 +644,6 @@ function MainContent({
       if (storageKey) {
         setCurrentUrl(storageKey);
         setProblemLink(storageKey);
-        const storedState = storedMap[storageKey];
-        // if (storedState) {
-        //   const snapshot: PopupFormState = {
-        //     url: storedState.url,
-        //     problemNumber: storedState.problemNumber,
-        //     title: storedState.title,
-        //     description: storedState.description,
-        //     code: storedState.code,
-        //     idealSolutionCode: storedState.idealSolutionCode ?? "",
-        //     notes: storedState.notes ?? "",
-        //     language: storedState.language ?? "Unknown",
-        //   };
-        //   applyFormState(snapshot);
-        //   initialStateRef.current = { ...snapshot };
-        //   setIsInitialized(true);
-        //   return;
-        // }
       }
 
       if (tabId === undefined) {
@@ -696,7 +676,6 @@ function MainContent({
           title: pageDetails.problemTitle ?? "",
           description: description || "",
           code: pageDetails.solutionCode?.trim() ?? "",
-          idealSolutionCode: "",
           notes: "",
           language: pageDetails.language ?? "Unknown",
         };
@@ -739,7 +718,6 @@ function MainContent({
       title: titleInput,
       description: descriptionInput,
       code: codeInput,
-      idealSolutionCode: idealSolutionCodeInput,
       notes: notesInput,
       language: languageLabel,
     };
@@ -762,7 +740,6 @@ function MainContent({
     titleInput,
     descriptionInput,
     codeInput,
-    idealSolutionCodeInput,
     notesInput,
     languageLabel,
     isInitialized,
@@ -781,7 +758,6 @@ function MainContent({
       title: "",
       description: "",
       code: "",
-      idealSolutionCode: "",
       notes: "",
       language: languageLabel,
     };
@@ -822,7 +798,6 @@ function MainContent({
     const questionIndex = normalizedProblemNumber || titleSlug;
     const description = descriptionInput.trim() || "No description provided.";
     const solution = codeInput.trim() || null;
-    const idealSolutionCode = idealSolutionCodeInput.trim() || null;
     const note = notesInput.trim() || null;
 
     setSaveState("saving");
@@ -838,7 +813,6 @@ function MainContent({
         isPaidOnly: false,
         description,
         solution,
-        idealSolutionCode,
         note,
         exampleTestcases: null,
       });
@@ -852,7 +826,6 @@ function MainContent({
           title: titleInput,
           description: descriptionInput,
           code: codeInput,
-          idealSolutionCode: idealSolutionCodeInput,
           notes: notesInput,
           language: languageLabel,
         };
@@ -1031,25 +1004,6 @@ function MainContent({
                 fontFamily:
                   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
               }}
-            />
-          </FieldLabel>
-
-          <FieldLabel
-            label="Ideal Solution Code"
-            hint="Capture the canonical or editorial implementation"
-          >
-            <textarea
-              rows={6}
-              value={idealSolutionCodeInput}
-              onChange={(event) =>
-                setIdealSolutionCodeInput(event.target.value)
-              }
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
-              style={{
-                fontFamily:
-                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-              }}
-              placeholder="Paste the optimal solution for quick reference"
             />
           </FieldLabel>
 
