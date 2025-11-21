@@ -1,10 +1,17 @@
-import React, { useEffect, useMemo } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, GestureResponderEvent, View, Text } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import React, { useEffect, useMemo } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  GestureResponderEvent,
+  View,
+  Text,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { useColorScheme } from "@/components/useColorScheme";
 
 import {
   useAuth,
@@ -12,7 +19,7 @@ import {
   useAppState,
   useSolutions,
   useQuestions,
-} from '@/hooks/useStores';
+} from "@/hooks/useStores";
 
 const difficultyStyles: Record<
   string,
@@ -24,35 +31,35 @@ const difficultyStyles: Record<
 };
 
 const lightPalette = {
-  background: '#F5F6FA',
-  surface: '#FFFFFF',
-  textPrimary: '#111827',
-  textSecondary: '#6B7280',
-  textMuted: '#94A3B8',
-  quickCardDue: '#FEF3C7',
-  quickCardReviewed: '#DBEAFE',
-  quickCardStreak: '#E0E7FF',
-  cardBorder: '#E5E7EB',
-  highlight: '#2563EB',
-  critical: '#DC2626',
-  buttonBackground: '#E0E7FF',
-  buttonText: '#1D4ED8',
+  background: "#F5F6FA",
+  surface: "#FFFFFF",
+  textPrimary: "#111827",
+  textSecondary: "#6B7280",
+  textMuted: "#94A3B8",
+  quickCardDue: "#FEF3C7",
+  quickCardReviewed: "#DBEAFE",
+  quickCardStreak: "#E0E7FF",
+  cardBorder: "#E5E7EB",
+  highlight: "#2563EB",
+  critical: "#DC2626",
+  buttonBackground: "#E0E7FF",
+  buttonText: "#1D4ED8",
 };
 
 const darkPalette = {
-  background: '#0B1220',
-  surface: '#111827',
-  textPrimary: '#F9FAFB',
-  textSecondary: '#CBD5F5',
-  textMuted: '#94A3B8',
-  quickCardDue: '#5B3A00',
-  quickCardReviewed: '#1E3A8A',
-  quickCardStreak: '#312E81',
-  cardBorder: '#1F2937',
-  highlight: '#60A5FA',
-  critical: '#F87171',
-  buttonBackground: '#1D4ED8',
-  buttonText: '#F8FAFC',
+  background: "#0B1220",
+  surface: "#111827",
+  textPrimary: "#F9FAFB",
+  textSecondary: "#CBD5F5",
+  textMuted: "#94A3B8",
+  quickCardDue: "#5B3A00",
+  quickCardReviewed: "#1E3A8A",
+  quickCardStreak: "#312E81",
+  cardBorder: "#1F2937",
+  highlight: "#60A5FA",
+  critical: "#F87171",
+  buttonBackground: "#1D4ED8",
+  buttonText: "#F8FAFC",
 };
 
 type Palette = typeof lightPalette;
@@ -69,23 +76,31 @@ const createStyles = (palette: Palette) =>
       gap: 18,
     },
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    headerSection: {
+      gap: 8,
+    },
+    heading: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: palette.textPrimary,
     },
     avatar: {
       width: 48,
       height: 48,
       borderRadius: 24,
       backgroundColor: palette.surface,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       borderWidth: 1,
       borderColor: palette.cardBorder,
     },
     avatarText: {
       fontSize: 18,
-      fontWeight: '600',
+      fontWeight: "600",
       color: palette.textPrimary,
     },
     headerTextContainer: {
@@ -94,7 +109,7 @@ const createStyles = (palette: Palette) =>
     },
     greeting: {
       fontSize: 20,
-      fontWeight: '600',
+      fontWeight: "600",
       color: palette.textPrimary,
     },
     subGreeting: {
@@ -107,13 +122,13 @@ const createStyles = (palette: Palette) =>
       height: 36,
       borderRadius: 18,
       backgroundColor: palette.surface,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       borderWidth: 1,
       borderColor: palette.cardBorder,
     },
     quickStatsRow: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: 12,
     },
     quickStatCard: {
@@ -124,14 +139,14 @@ const createStyles = (palette: Palette) =>
     },
     quickStatValue: {
       fontSize: 18,
-      fontWeight: '700',
+      fontWeight: "700",
       color: palette.textPrimary,
     },
     quickStatLabel: {
       marginTop: 4,
       fontSize: 12,
       color: palette.textSecondary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     quickStatDue: {
       backgroundColor: palette.quickCardDue,
@@ -147,23 +162,23 @@ const createStyles = (palette: Palette) =>
       paddingTop: 4,
     },
     sectionHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
     },
     sectionTitle: {
       fontSize: 18,
-      fontWeight: '700',
+      fontWeight: "700",
       color: palette.textPrimary,
     },
     viewAllButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 4,
     },
     viewAllText: {
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: "600",
       color: palette.highlight,
     },
     reviewCards: {
@@ -177,13 +192,13 @@ const createStyles = (palette: Palette) =>
       borderColor: palette.cardBorder,
     },
     reviewTopRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
     },
     reviewProblemNumber: {
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: "600",
       color: palette.textSecondary,
     },
     difficultyPill: {
@@ -193,17 +208,17 @@ const createStyles = (palette: Palette) =>
     },
     difficultyPillText: {
       fontSize: 12,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     reviewTitle: {
       fontSize: 18,
-      fontWeight: '600',
+      fontWeight: "600",
       color: palette.textPrimary,
       marginTop: 8,
     },
     reviewTagRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: 8,
       marginTop: 10,
     },
@@ -217,25 +232,25 @@ const createStyles = (palette: Palette) =>
     },
     tagPillText: {
       fontSize: 12,
-      fontWeight: '600',
+      fontWeight: "600",
       color: palette.textSecondary,
     },
     reviewFooterRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       marginTop: 14,
       borderTopWidth: 1,
       borderColor: palette.cardBorder,
       paddingTop: 12,
     },
     reviewActions: {
-      alignItems: 'flex-end',
+      alignItems: "flex-end",
       gap: 6,
     },
     reviewDueStatus: {
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: "600",
       color: palette.textSecondary,
     },
     reviewDueCritical: {
@@ -244,7 +259,7 @@ const createStyles = (palette: Palette) =>
     reviewCountText: {
       fontSize: 12,
       color: palette.textSecondary,
-      fontWeight: '500',
+      fontWeight: "500",
     },
     reviewMetaTime: {
       fontSize: 12,
@@ -258,7 +273,7 @@ const createStyles = (palette: Palette) =>
     },
     detailLinkText: {
       fontSize: 12,
-      fontWeight: '600',
+      fontWeight: "600",
       color: palette.buttonText,
     },
     reviewStatusText: {
@@ -281,7 +296,7 @@ const createStyles = (palette: Palette) =>
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const palette = useMemo<Palette>(
-    () => (colorScheme === 'dark' ? darkPalette : lightPalette),
+    () => (colorScheme === "dark" ? darkPalette : lightPalette),
     [colorScheme]
   );
   const styles = useMemo(() => createStyles(palette), [palette]);
@@ -340,14 +355,18 @@ export default function HomeScreen() {
     }
   }, [hasAttemptedInitialSync, isQuestionLoading, loadQuestions]);
 
-  const questionReminders = useMemo(() => getAllReminders(), [questions, reviewStates, getAllReminders]);
+  const questionReminders = useMemo(
+    () => getAllReminders(),
+    [questions, reviewStates, getAllReminders]
+  );
 
   const sortedQuestionReminders = useMemo(() => {
     return questionReminders
       .slice()
       .sort(
         (a, b) =>
-          new Date(a.nextReviewDate).getTime() - new Date(b.nextReviewDate).getTime()
+          new Date(a.nextReviewDate).getTime() -
+          new Date(b.nextReviewDate).getTime()
       );
   }, [questionReminders]);
 
@@ -362,7 +381,9 @@ export default function HomeScreen() {
     const dueAtMidnight = new Date(dueDate);
     dueAtMidnight.setHours(0, 0, 0, 0);
     const msInDay = 1000 * 60 * 60 * 24;
-    const diffDays = Math.round((dueAtMidnight.getTime() - today.getTime()) / msInDay);
+    const diffDays = Math.round(
+      (dueAtMidnight.getTime() - today.getTime()) / msInDay
+    );
 
     if (diffDays < 0) {
       return { label: "Overdue", isCritical: true };
@@ -400,11 +421,13 @@ export default function HomeScreen() {
       tomorrow: [] as typeof questionReminders,
     };
 
-    sortedQuestionReminders.forEach(reminder => {
+    sortedQuestionReminders.forEach((reminder) => {
       const dueDate = new Date(reminder.nextReviewDate);
       const dueMidnight = new Date(dueDate);
       dueMidnight.setHours(0, 0, 0, 0);
-      const diffDays = Math.round((dueMidnight.getTime() - today.getTime()) / dayMs);
+      const diffDays = Math.round(
+        (dueMidnight.getTime() - today.getTime()) / dayMs
+      );
 
       if (diffDays < 0) {
         buckets.overdue.push(reminder);
@@ -418,8 +441,11 @@ export default function HomeScreen() {
     return buckets;
   }, [sortedQuestionReminders]);
 
-  const visibleReviews =
-    [...reminderBuckets.overdue, ...reminderBuckets.today, ...reminderBuckets.tomorrow].slice(0, 4);
+  const visibleReviews = [
+    ...reminderBuckets.overdue,
+    ...reminderBuckets.today,
+    ...reminderBuckets.tomorrow,
+  ].slice(0, 4);
 
   const handleViewAllPress = () => {
     router.push("/(tabs)/review");
@@ -431,6 +457,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.headerSection}></View>
         <View style={styles.header}>
           <View style={styles.headerTextContainer}>
             <Text style={styles.greeting}>Hi, {greetingName} 👋</Text>
@@ -469,7 +496,9 @@ export default function HomeScreen() {
           </View>
 
           {isQuestionLoading ? (
-            <Text style={styles.reviewStatusText}>Loading upcoming reviews…</Text>
+            <Text style={styles.reviewStatusText}>
+              Loading upcoming reviews…
+            </Text>
           ) : questionError ? (
             <Text style={styles.reviewErrorText}>{questionError}</Text>
           ) : visibleReviews.length ? (
@@ -477,8 +506,11 @@ export default function HomeScreen() {
               {visibleReviews.map((review) => {
                 const difficultyStyle =
                   difficultyStyles[review.difficulty] ?? difficultyStyles.Easy;
-                const tagsToShow =
-                  (review.tags || review.topicTags || []).slice(0, 2);
+                const tagsToShow = (
+                  review.tags ||
+                  review.topicTags ||
+                  []
+                ).slice(0, 2);
                 const dueStatus = getDueStatus(review.nextReviewDate);
                 const reviewCount = review.repetitions ?? 0;
                 const identifier = review.questionIndex || review.id || "-";
@@ -488,7 +520,7 @@ export default function HomeScreen() {
                     key={review.id}
                     style={styles.reviewCard}
                     activeOpacity={0.85}
-                    onPress={() => router.push('/(tabs)/review')}
+                    onPress={() => router.push("/(tabs)/review")}
                   >
                     <View style={styles.reviewTopRow}>
                       <Text style={styles.reviewProblemNumber}>
@@ -531,7 +563,11 @@ export default function HomeScreen() {
                           {dueStatus.label}
                         </Text>
                         <Text style={styles.reviewMetaTime}>
-                          Scheduled at {new Date(review.nextReviewDate).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                          Scheduled at{" "}
+                          {new Date(review.nextReviewDate).toLocaleTimeString(
+                            undefined,
+                            { hour: "2-digit", minute: "2-digit" }
+                          )}
                         </Text>
                       </View>
                       <View style={styles.reviewActions}>
@@ -555,7 +591,8 @@ export default function HomeScreen() {
             </View>
           ) : (
             <Text style={styles.emptyStateText}>
-              No overdue or upcoming questions. Capture a note to queue up new reminders.
+              No overdue or upcoming questions. Capture a note to queue up new
+              reminders.
             </Text>
           )}
         </View>

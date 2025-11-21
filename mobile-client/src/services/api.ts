@@ -1,9 +1,11 @@
-import { LeetCodeSolution, UserStats } from '@/types/solution';
-import { DsaQuestion } from '@/types/question';
-import { getSupabaseClient } from '@/config/supabase';
+import { LeetCodeSolution, UserStats } from "@/types/solution";
+import { DsaQuestion } from "@/types/question";
+import { getSupabaseClient } from "@/config/supabase";
 
 // Configuration
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  "https://w2ikvgnue9.execute-api.us-east-1.amazonaws.com";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -50,15 +52,15 @@ class ApiClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    authMode: 'default' | 'supabase' = 'default'
+    authMode: "default" | "supabase" = "default"
   ): Promise<ApiResponse<T>> {
     try {
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...((options.headers as Record<string, string>) || {}),
       };
 
-      if (authMode === 'supabase') {
+      if (authMode === "supabase") {
         try {
           const supabase = getSupabaseClient();
           const { data } = await supabase.auth.getSession();
@@ -67,7 +69,7 @@ class ApiClient {
             headers.Authorization = `Bearer ${supabaseToken}`;
           }
         } catch (error) {
-          console.warn('Failed to get Supabase session for DSA request', error);
+          console.warn("Failed to get Supabase session for DSA request", error);
         }
       } else if (this.token) {
         headers.Authorization = `Bearer ${this.token}`;
@@ -83,7 +85,7 @@ class ApiClient {
       if (!response.ok) {
         return {
           success: false,
-          error: data.error || 'An error occurred',
+          error: data.error || "An error occurred",
         };
       }
 
@@ -92,32 +94,34 @@ class ApiClient {
         data,
       };
     } catch (error) {
-      console.error('API request failed:', error);
+      console.error("API request failed:", error);
       return {
         success: false,
-        error: 'Network error. Please check your connection.',
+        error: "Network error. Please check your connection.",
       };
     }
   }
 
   // Authentication
   async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-    return this.request<AuthResponse>('/auth/login', {
-      method: 'POST',
+    return this.request<AuthResponse>("/auth/login", {
+      method: "POST",
       body: JSON.stringify(credentials),
     });
   }
 
-  async register(credentials: LoginRequest & { email: string }): Promise<ApiResponse<AuthResponse>> {
-    return this.request<AuthResponse>('/auth/register', {
-      method: 'POST',
+  async register(
+    credentials: LoginRequest & { email: string }
+  ): Promise<ApiResponse<AuthResponse>> {
+    return this.request<AuthResponse>("/auth/register", {
+      method: "POST",
       body: JSON.stringify(credentials),
     });
   }
 
   async logout(): Promise<ApiResponse<void>> {
-    const result = await this.request<void>('/auth/logout', {
-      method: 'POST',
+    const result = await this.request<void>("/auth/logout", {
+      method: "POST",
     });
     this.clearAuthToken();
     return result;
@@ -125,63 +129,75 @@ class ApiClient {
 
   // Solutions management
   async getSolutions(): Promise<ApiResponse<LeetCodeSolution[]>> {
-    return this.request<LeetCodeSolution[]>('/solutions');
+    return this.request<LeetCodeSolution[]>("/solutions");
   }
 
-  async createSolution(solution: Omit<LeetCodeSolution, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<LeetCodeSolution>> {
-    return this.request<LeetCodeSolution>('/solutions', {
-      method: 'POST',
+  async createSolution(
+    solution: Omit<LeetCodeSolution, "id" | "createdAt" | "updatedAt">
+  ): Promise<ApiResponse<LeetCodeSolution>> {
+    return this.request<LeetCodeSolution>("/solutions", {
+      method: "POST",
       body: JSON.stringify(solution),
     });
   }
 
-  async updateSolution(id: string, solution: Partial<LeetCodeSolution>): Promise<ApiResponse<LeetCodeSolution>> {
+  async updateSolution(
+    id: string,
+    solution: Partial<LeetCodeSolution>
+  ): Promise<ApiResponse<LeetCodeSolution>> {
     return this.request<LeetCodeSolution>(`/solutions/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(solution),
     });
   }
 
   async deleteSolution(id: string): Promise<ApiResponse<void>> {
     return this.request<void>(`/solutions/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
   // Sync functionality
-  async syncSolutions(syncData: SyncRequest): Promise<ApiResponse<SyncResponse>> {
-    return this.request<SyncResponse>('/sync', {
-      method: 'POST',
+  async syncSolutions(
+    syncData: SyncRequest
+  ): Promise<ApiResponse<SyncResponse>> {
+    return this.request<SyncResponse>("/sync", {
+      method: "POST",
       body: JSON.stringify(syncData),
     });
   }
 
   // User statistics
   async getUserStats(): Promise<ApiResponse<UserStats>> {
-    return this.request<UserStats>('/user/stats');
+    return this.request<UserStats>("/user/stats");
   }
 
   async getQuestions(): Promise<ApiResponse<DsaQuestion[]>> {
-    return this.request<DsaQuestion[]>('/api/dsa/questions', {}, 'supabase');
+    return this.request<DsaQuestion[]>("/api/dsa/questions", {}, "supabase");
   }
 
   async updateQuestionReview(
     questionIndex: string,
-    payload: { lastReviewedAt: string; lastReviewStatus?: 'easy' | 'good' | 'hard' }
+    payload: {
+      lastReviewedAt: string;
+      lastReviewStatus?: "easy" | "good" | "hard";
+    }
   ): Promise<ApiResponse<DsaQuestion>> {
     return this.request<DsaQuestion>(
       `/api/dsa/questions/${encodeURIComponent(questionIndex)}/review`,
       {
-        method: 'PATCH',
+        method: "PATCH",
         body: JSON.stringify(payload),
       },
-      'supabase'
+      "supabase"
     );
   }
 
   // Health check
-  async healthCheck(): Promise<ApiResponse<{ status: string; timestamp: string }>> {
-    return this.request<{ status: string; timestamp: string }>('/health');
+  async healthCheck(): Promise<
+    ApiResponse<{ status: string; timestamp: string }>
+  > {
+    return this.request<{ status: string; timestamp: string }>("/health");
   }
 }
 
@@ -198,7 +214,10 @@ export async function isServerAvailable(): Promise<boolean> {
   }
 }
 
-export async function authenticateUser(username: string, password: string): Promise<boolean> {
+export async function authenticateUser(
+  username: string,
+  password: string
+): Promise<boolean> {
   try {
     const response = await apiClient.login({ username, password });
     if (response.success && response.data) {
@@ -211,7 +230,9 @@ export async function authenticateUser(username: string, password: string): Prom
   }
 }
 
-export async function syncWithServer(localSolutions: LeetCodeSolution[]): Promise<{
+export async function syncWithServer(
+  localSolutions: LeetCodeSolution[]
+): Promise<{
   success: boolean;
   solutions?: LeetCodeSolution[];
   conflicts?: LeetCodeSolution[];
@@ -232,12 +253,12 @@ export async function syncWithServer(localSolutions: LeetCodeSolution[]): Promis
 
     return {
       success: false,
-      error: response.error || 'Sync failed',
+      error: response.error || "Sync failed",
     };
   } catch (error) {
     return {
       success: false,
-      error: 'Network error during sync',
+      error: "Network error during sync",
     };
   }
 }

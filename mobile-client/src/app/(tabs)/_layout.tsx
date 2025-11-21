@@ -9,7 +9,7 @@ function TabBarIcon(props: {
   name: React.ComponentProps<typeof Feather>["name"];
   color: string;
 }) {
-  return <Feather size={22} {...props} />;
+  return <Feather size={26} {...props} />;
 }
 
 export default function TabLayout() {
@@ -18,7 +18,7 @@ export default function TabLayout() {
 
   const activeColor = isDark ? "#FFFFFF" : "#111827";
   const inactiveColor = isDark ? "#9CA3AF" : "#9CA3AF";
-  const backgroundColor = isDark ? "#111827" : "#FFFFFF";
+  const backgroundColor = isDark ? "#0B1220" : "#FFFFFF";
   const borderColor = isDark ? "#1F2937" : "#E5E7EB";
 
   return (
@@ -29,16 +29,16 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor,
           borderTopColor: borderColor,
-          height: 56,
-          paddingBottom: 6,
-          paddingTop: 4,
+          height: 100,
+          paddingBottom: 12,
+          paddingTop: 6,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           marginTop: 4,
           fontWeight: "600",
         },
-        headerShown: useClientOnlyValue(false, true),
+        headerShown: true,
         headerStyle: { backgroundColor: "#111827", height: 20 },
       }}
     >

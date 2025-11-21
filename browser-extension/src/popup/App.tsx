@@ -14,6 +14,8 @@ interface PageProblemDetails {
   href: string;
   descriptionHtml?: string;
   descriptionText?: string;
+  language?: string;
+  solutionCode?: string;
 }
 
 function toPlainText(html: string): string {
@@ -39,7 +41,7 @@ async function findLeetCodeProblemDetailsInActivePage(
   try {
     const [result] = await chrome.scripting.executeScript({
       target: { tabId },
-      func: () => {
+      func: async () => {
         const containers = Array.from(
           document.querySelectorAll("div.text-title-large")
         ) as HTMLElement[];
@@ -92,6 +94,114 @@ async function findLeetCodeProblemDetailsInActivePage(
             }
           }
 
+          const detectLanguage = (): string | undefined => {
+            const selectors = [
+              '[data-cy="language-select-menu"] button span',
+              '[data-cy="lang-select"] span',
+              ".editor-lang-shortcut span",
+              ".ant-select-selection-item",
+            ];
+            for (const selector of selectors) {
+              const node = document.querySelector(selector);
+              const text = node?.textContent?.trim();
+              if (text) {
+                return text;
+              }
+            }
+            return undefined;
+          };
+
+          const readIndexedDbSolution = (
+            problemNum: string
+          ): Promise<{ code: string; language?: string } | null> => {
+            return new Promise((resolve) => {
+              const normalizedProblemNum = `${problemNum ?? ""}`.trim();
+              console.log("=====normalizedProblemNum", normalizedProblemNum);
+              if (!normalizedProblemNum || !(window as any).indexedDB) {
+                resolve(null);
+                return;
+              }
+
+              const request = (window as any).indexedDB.open(
+                "LeetCode-problems"
+              );
+              request.onerror = () => resolve(null);
+              request.onsuccess = () => {
+                const db = request.result;
+                let resolved = false;
+                const finish = (
+                  payload: { code: string; language?: string } | null
+                ) => {
+                  if (!resolved) {
+                    resolved = true;
+                    resolve(payload);
+                  }
+                };
+
+                try {
+                  const tx = db.transaction("problem_code", "readonly");
+                  const store = tx.objectStore("problem_code");
+                  const cursorReq = store.openCursor();
+                  cursorReq.onerror = () => finish(null);
+                  cursorReq.onsuccess = (event: any) => {
+                    const cursor = event.target.result;
+                    if (!cursor) {
+                      finish(null);
+                      return;
+                    }
+
+                    const key = String(cursor.key ?? "");
+                    const suffix = "-updated-time";
+                    if (
+                      key.endsWith(suffix) ||
+                      !key.startsWith(`${normalizedProblemNum}_`)
+                    ) {
+                      cursor.continue();
+                      return;
+                    }
+
+                    const keySegments = key.split("_");
+                    const problemSegment = keySegments[0];
+                    if (problemSegment !== normalizedProblemNum) {
+                      cursor.continue();
+                      return;
+                    }
+
+                    const inferredLanguage =
+                      keySegments.length === 3 ? keySegments[2] : undefined;
+                    let record = cursor.value;
+                    finish({ code: record, language: inferredLanguage });
+                  };
+
+                  tx.oncomplete = () => finish(null);
+                  tx.onerror = () => finish(null);
+                } catch (error) {
+                  console.warn(
+                    "[leetstack] IndexedDB inspection failed",
+                    error
+                  );
+                  finish(null);
+                }
+              };
+            });
+          };
+
+          let solutionCode: string | undefined;
+          let detectedLanguage = detectLanguage();
+
+          try {
+            const indexed = await readIndexedDbSolution(titleMatch[1]);
+            console.log("====result", indexed);
+            if (indexed?.code) {
+              solutionCode = indexed.code;
+              if (!detectedLanguage && indexed.language) {
+                detectedLanguage = indexed.language;
+              }
+            }
+          } catch (error) {
+            console.warn("[leetstack] IndexedDB lookup failed", error);
+          }
+
           let descriptionText: string | undefined;
           if (descriptionHtml) {
             const tempContainer = document.createElement("div");
@@ -99,12 +209,16 @@ async function findLeetCodeProblemDetailsInActivePage(
             descriptionText = tempContainer.textContent?.trim();
           }
 
+          console.log("=====solution code", solutionCode);
+
           return {
             problemNumber: titleMatch[1],
             problemTitle: titleMatch[2],
             href: link.href,
             descriptionHtml,
             descriptionText,
+            solutionCode,
+            language: detectedLanguage,
           };
         }
 
@@ -189,6 +303,7 @@ interface PopupFormState {
   code: string;
   idealSolutionCode: string;
   notes: string;
+  language?: string;
 }
 
 type PopupStorageMap = Record<string, PopupFormState>;
@@ -471,8 +586,6 @@ function AuthPrompt({
   );
 }
 
-const codeDefaultValue = `function twoSum(nums, target) {\n  const map = new Map();\n\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n\n    if (map.has(complement)) {\n      return [map.get(complement), i];\n    }\n\n    map.set(nums[i], i);\n  }\n}`;
-
 function MainContent({
   user,
   onSignOut,
@@ -484,9 +597,10 @@ function MainContent({
   const [problemLink, setProblemLink] = useState("");
   const [titleInput, setTitleInput] = useState("");
   const [descriptionInput, setDescriptionInput] = useState("");
-  const [codeInput, setCodeInput] = useState(codeDefaultValue);
+  const [codeInput, setCodeInput] = useState("");
   const [idealSolutionCodeInput, setIdealSolutionCodeInput] = useState("");
   const [notesInput, setNotesInput] = useState("");
+  const [languageLabel, setLanguageLabel] = useState("Unknown");
   const [currentUrl, setCurrentUrl] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
   const storageCacheRef = useRef<PopupStorageMap>({});
@@ -504,9 +618,10 @@ function MainContent({
     setProblemLink(state.url ?? "");
     setTitleInput(state.title ?? "");
     setDescriptionInput(state.description ?? "");
-    setCodeInput(state.code ?? codeDefaultValue);
+    setCodeInput(state.code ?? "");
     setIdealSolutionCodeInput(state.idealSolutionCode ?? "");
     setNotesInput(state.notes ?? "");
+    setLanguageLabel(state.language ?? "Unknown");
   }, []);
 
   useEffect(() => {
@@ -533,21 +648,22 @@ function MainContent({
         setCurrentUrl(storageKey);
         setProblemLink(storageKey);
         const storedState = storedMap[storageKey];
-        if (storedState) {
-          const snapshot: PopupFormState = {
-            url: storedState.url,
-            problemNumber: storedState.problemNumber,
-            title: storedState.title,
-            description: storedState.description,
-            code: storedState.code,
-            idealSolutionCode: storedState.idealSolutionCode ?? "",
-            notes: storedState.notes ?? "",
-          };
-          applyFormState(snapshot);
-          initialStateRef.current = { ...snapshot };
-          setIsInitialized(true);
-          return;
-        }
+        // if (storedState) {
+        //   const snapshot: PopupFormState = {
+        //     url: storedState.url,
+        //     problemNumber: storedState.problemNumber,
+        //     title: storedState.title,
+        //     description: storedState.description,
+        //     code: storedState.code,
+        //     idealSolutionCode: storedState.idealSolutionCode ?? "",
+        //     notes: storedState.notes ?? "",
+        //     language: storedState.language ?? "Unknown",
+        //   };
+        //   applyFormState(snapshot);
+        //   initialStateRef.current = { ...snapshot };
+        //   setIsInitialized(true);
+        //   return;
+        // }
       }
 
       if (tabId === undefined) {
@@ -579,9 +695,10 @@ function MainContent({
           problemNumber: pageDetails.problemNumber ?? "",
           title: pageDetails.problemTitle ?? "",
           description: description || "",
-          code: codeDefaultValue,
+          code: pageDetails.solutionCode?.trim() ?? "",
           idealSolutionCode: "",
           notes: "",
+          language: pageDetails.language ?? "Unknown",
         };
 
         applyFormState(initialState);
@@ -624,6 +741,7 @@ function MainContent({
       code: codeInput,
       idealSolutionCode: idealSolutionCodeInput,
       notes: notesInput,
+      language: languageLabel,
     };
 
     storageCacheRef.current = {
@@ -646,6 +764,7 @@ function MainContent({
     codeInput,
     idealSolutionCodeInput,
     notesInput,
+    languageLabel,
     isInitialized,
   ]);
 
@@ -661,12 +780,16 @@ function MainContent({
       problemNumber: "",
       title: "",
       description: "",
-      code: codeDefaultValue,
+      code: "",
       idealSolutionCode: "",
       notes: "",
+      language: languageLabel,
     };
 
-    const snapshot: PopupFormState = { ...baseline };
+    const snapshot: PopupFormState = {
+      ...baseline,
+      language: baseline.language ?? languageLabel ?? "Unknown",
+    };
     applyFormState(snapshot);
 
     if (currentUrl) {
@@ -681,7 +804,7 @@ function MainContent({
     setSaveState("idle");
     setSaveError(null);
     setLastSavedTitle(null);
-  }, [currentUrl]);
+  }, [applyFormState, currentUrl, languageLabel]);
 
   const handleSave = async () => {
     const trimmedTitle =
@@ -731,6 +854,7 @@ function MainContent({
           code: codeInput,
           idealSolutionCode: idealSolutionCodeInput,
           notes: notesInput,
+          language: languageLabel,
         };
         initialStateRef.current = { ...snapshot };
         storageCacheRef.current = {
@@ -874,7 +998,7 @@ function MainContent({
                 )}
               </div>
               <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-500 shadow-sm">
-                JavaScript
+                {languageLabel || "Unknown"}
               </span>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { useSolutions, useQuestions } from '@/hooks/useStores';
+import { useColorScheme } from '@/components/useColorScheme';
 
 const curatedLists = [
   {
@@ -57,7 +58,234 @@ const formatReminderDate = (iso: string) => {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
 
+const lightPalette = {
+  background: '#F5F6FA',
+  surface: '#FFFFFF',
+  textPrimary: '#111827',
+  textSecondary: '#6B7280',
+  textMuted: '#9CA3AF',
+  cardBorder: '#E5E7EB',
+  critical: '#B91C1C',
+  accent: '#7C3AED',
+  buttonBackground: '#E0E7FF',
+  buttonText: '#1D4ED8',
+};
+
+const darkPalette = {
+  background: '#0B1220',
+  surface: '#111827',
+  textPrimary: '#F3F4F6',
+  textSecondary: '#CBD5F5',
+  textMuted: '#94A3B8',
+  cardBorder: '#1F2937',
+  critical: '#F87171',
+  accent: '#A78BFA',
+  buttonBackground: '#1D4ED8',
+  buttonText: '#F8FAFC',
+};
+
+type Palette = typeof lightPalette;
+
+const createStyles = (palette: Palette) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: palette.background,
+    },
+    contentContainer: {
+      paddingBottom: 32,
+      paddingHorizontal: 20,
+      gap: 18,
+    },
+    headerSection: {
+      gap: 8,
+    },
+    heading: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: palette.textPrimary,
+    },
+    subheading: {
+      fontSize: 14,
+      color: palette.textSecondary,
+    },
+    sectionCard: {
+      backgroundColor: palette.surface,
+      borderRadius: 20,
+      padding: 20,
+      gap: 16,
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    sectionTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    sectionIcon: {
+      backgroundColor: palette.buttonBackground,
+      padding: 8,
+      borderRadius: 999,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: palette.textPrimary,
+    },
+    dueBadge: {
+      backgroundColor: palette.buttonBackground,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+    },
+    dueBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.buttonText,
+    },
+    sectionAction: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: palette.buttonText,
+    },
+    reminderLoader: {
+      marginTop: 12,
+    },
+    reminderError: {
+      color: palette.critical,
+      fontSize: 14,
+    },
+    reminderEmpty: {
+      color: palette.textSecondary,
+      fontSize: 14,
+    },
+    reminderList: {
+      gap: 12,
+    },
+    reminderCard: {
+      backgroundColor: palette.surface,
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+      borderRadius: 16,
+      padding: 16,
+      gap: 8,
+    },
+    reminderHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    reminderTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: palette.textPrimary,
+      flex: 1,
+    },
+    reminderDifficulty: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.accent,
+    },
+    reminderNote: {
+      color: palette.textSecondary,
+      fontSize: 13,
+    },
+    reminderFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    reminderMeta: {
+      fontSize: 12,
+      color: palette.textSecondary,
+    },
+    reminderTime: {
+      fontSize: 12,
+      color: palette.textMuted,
+    },
+    reminderActions: {
+      alignItems: 'flex-end',
+      gap: 6,
+    },
+    reminderStatus: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.buttonText,
+    },
+    reminderStatusDue: {
+      color: palette.critical,
+    },
+    detailLink: {
+      backgroundColor: palette.buttonBackground,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+    },
+    detailLinkText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.buttonText,
+    },
+    listStack: {
+      gap: 12,
+    },
+    listCard: {
+      backgroundColor: palette.surface,
+      borderRadius: 20,
+      padding: 20,
+      gap: 12,
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    cardEmoji: {
+      fontSize: 24,
+    },
+    progressBadge: {
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+    },
+    progressBadgeText: {
+      fontWeight: '700',
+    },
+    cardTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: palette.textPrimary,
+    },
+    cardSubtitle: {
+      fontSize: 14,
+      color: palette.textSecondary,
+    },
+    progressTrack: {
+      height: 6,
+      backgroundColor: palette.cardBorder,
+      borderRadius: 999,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: palette.buttonText,
+    },
+  });
+
 export default function ProblemListsScreen() {
+  const colorScheme = useColorScheme();
+  const palette = useMemo<Palette>(
+    () => (colorScheme === 'dark' ? darkPalette : lightPalette),
+    [colorScheme]
+  );
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const { solutions } = useSolutions();
   const personalCount = solutions.length;
   const {
@@ -126,7 +354,7 @@ export default function ProblemListsScreen() {
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
-              <Feather name="bookmark" size={18} color="#7C3AED" style={styles.sectionIcon} />
+              <Feather name="bookmark" size={18} color={palette.accent} style={styles.sectionIcon} />
               <Text style={styles.sectionTitle}>Saved List</Text>
               <View style={styles.dueBadge}>
                 <Text style={styles.dueBadgeText}>{dueReminderCount} due</Text>
@@ -197,7 +425,7 @@ export default function ProblemListsScreen() {
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
-              <Feather name="users" size={18} color="#4B5563" style={styles.sectionIcon} />
+              <Feather name="users" size={18} color={palette.textSecondary} style={styles.sectionIcon} />
               <Text style={styles.sectionTitle}>Popular Lists</Text>
             </View>
             <TouchableOpacity activeOpacity={0.7}>

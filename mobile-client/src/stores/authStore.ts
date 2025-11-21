@@ -7,10 +7,10 @@ import { getSupabaseClient, getSupabaseRedirectUrl } from "@/config/supabase";
 import { apiClient } from "@/services/api";
 
 const environment = process.env.EXPO_PUBLIC_ENVIRONMENT || "development";
-const mockAuthOverride = process.env.EXPO_PUBLIC_USE_MOCK_AUTH;
-const USE_MOCK_AUTH = mockAuthOverride
-  ? mockAuthOverride === "true"
-  : environment !== "production";
+const mockAuthOverride = false; //process.env.EXPO_PUBLIC_USE_MOCK_AUTH;
+const USE_MOCK_AUTH = false; //mockAuthOverride
+// ? mockAuthOverride === "true"
+// : environment !== "production";
 
 export interface User {
   id: string;
