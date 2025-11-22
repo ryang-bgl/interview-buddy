@@ -126,7 +126,8 @@ export async function findLeetCodeProblemDetailsInActivePage(
 
             const parent = container.parentElement;
             const grandParent = parent?.parentElement;
-            const primarySibling = grandParent?.nextElementSibling as HTMLElement | null;
+            const primarySibling =
+              grandParent?.nextElementSibling as HTMLElement | null;
             const fallbackSiblings: (Element | null | undefined)[] = [
               primarySibling,
               parent?.nextElementSibling,
@@ -158,7 +159,7 @@ export async function findLeetCodeProblemDetailsInActivePage(
               ".ant-select-selection-item",
             ];
             for (const selector of selectors) {
-              const node = document.querySelector(selector);
+              const node = document.querySelector("#editor button");
               const text = node?.textContent?.trim();
               if (text) {
                 return text;
@@ -168,7 +169,8 @@ export async function findLeetCodeProblemDetailsInActivePage(
           };
 
           const readIndexedDbSolution = (
-            problemNum: string
+            problemNum: string,
+            language: string
           ): Promise<{ code: string; language?: string } | null> => {
             return new Promise((resolve) => {
               const normalizedProblemNum = `${problemNum ?? ""}`.trim();
@@ -207,10 +209,23 @@ export async function findLeetCodeProblemDetailsInActivePage(
 
                     const key = String(cursor.key ?? "");
                     const suffix = "-updated-time";
+                    const languageMap = {
+                      typescript: "typescript",
+                      java: "java",
+                      "c++": "cpp",
+                      python: "python",
+                    };
+
+                    const languageKey = languageMap[language?.toLowerCase()];
                     if (
                       key.endsWith(suffix) ||
                       !key.startsWith(`${normalizedProblemNum}_`)
                     ) {
+                      cursor.continue();
+                      return;
+                    }
+
+                    if (languageKey && key.indexOf(languageKey) < 0) {
                       cursor.continue();
                       return;
                     }
@@ -222,6 +237,7 @@ export async function findLeetCodeProblemDetailsInActivePage(
                       return;
                     }
 
+                    console.log("======keySegments", keySegments);
                     const inferredLanguage =
                       keySegments.length === 3 ? keySegments[2] : undefined;
                     let record = cursor.value;
@@ -246,12 +262,12 @@ export async function findLeetCodeProblemDetailsInActivePage(
           let detectedLanguage = detectLanguage();
 
           try {
-            const indexed = await readIndexedDbSolution(titleMatch[1]);
+            const indexed = await readIndexedDbSolution(
+              titleMatch[1],
+              detectedLanguage
+            );
             if (indexed?.code) {
               solutionCode = indexed.code;
-              if (!detectedLanguage && indexed.language) {
-                detectedLanguage = indexed.language;
-              }
             }
           } catch (error) {
             console.warn("[leetstack] IndexedDB lookup failed", error);

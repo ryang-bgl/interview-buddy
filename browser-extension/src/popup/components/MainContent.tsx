@@ -45,7 +45,6 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     setDescriptionInput(state.description ?? "");
     setCodeInput(state.code ?? "");
     setNotesInput(state.notes ?? "");
-    setLanguageLabel(state.language ?? "Unknown");
     setDifficultyLabel(state.difficulty ?? "Unknown");
   }, []);
 
@@ -86,6 +85,8 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
           return;
         }
 
+        setLanguageLabel(pageDetails.language ?? "Unknown");
+
         const normalizedUrl = normalizeLeetCodeUrl(
           pageDetails.href || tabUrl || ""
         );
@@ -105,7 +106,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
           description: description || "",
           code: pageDetails.solutionCode?.trim() ?? "",
           notes: "",
-          language: pageDetails.language ?? "Unknown",
+          language: languageLabel ?? "Unable to detect",
           difficulty: pageDetails.difficulty ?? "Unknown",
         };
 
