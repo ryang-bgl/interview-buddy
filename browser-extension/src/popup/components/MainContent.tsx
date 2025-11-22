@@ -477,7 +477,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={handleCancel}
+              onClick={handleClose}
               disabled={isSaving}
               className="rounded-full border border-slate-200 px-6 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
