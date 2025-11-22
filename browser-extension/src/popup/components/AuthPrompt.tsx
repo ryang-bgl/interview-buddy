@@ -26,8 +26,8 @@ export default function AuthPrompt({ onAuthenticated }: AuthPromptProps) {
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResendCode, setIsResendCode] = useState(false);
   const pendingEmailRef = useRef<string | null>(null);
-  const hasNotifiedRef = useRef(false);
 
   const [principal, setPrincipal] = useState();
 
@@ -45,7 +45,14 @@ export default function AuthPrompt({ onAuthenticated }: AuthPromptProps) {
             setPrincipal(p);
           });
         } else {
-          setViewState("enterEmail");
+          readPendingAuthEmail().then((e) => {
+            if (e) {
+              setViewState("awaitingOtp");
+              setEmailInput(e);
+            } else {
+              setViewState("enterEmail");
+            }
+          });
         }
       });
     }
@@ -73,10 +80,9 @@ export default function AuthPrompt({ onAuthenticated }: AuthPromptProps) {
           shouldCreateUser: true,
         },
       });
-      await storePendingAuthEmail(email);
-      syncPendingEmail(email);
       setOtpInput("");
       setViewState("awaitingOtp");
+      storePendingAuthEmail(email);
     } catch (error) {
       console.warn("[leetstack] Failed to send OTP", error);
       const message =
@@ -88,10 +94,10 @@ export default function AuthPrompt({ onAuthenticated }: AuthPromptProps) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [emailInput, syncPendingEmail]);
+  }, [emailInput]);
 
   const handleVerifyOtp = useCallback(async () => {
-    const email = (pendingEmailRef.current ?? emailInput).trim();
+    const email = emailInput.trim();
     const token = otpInput.trim();
     if (!email) {
       setErrorMessage("Enter the email where you received the code");
@@ -128,14 +134,18 @@ export default function AuthPrompt({ onAuthenticated }: AuthPromptProps) {
     setOtpInput("");
     setErrorMessage(null);
     setViewState("enterEmail");
-  }, [syncPendingEmail]);
+  }, []);
 
   if (viewState === "checking") {
     return <LoadingScreen message="Logging in..." />;
   }
 
   const buttonLabel = isSubmitting ? "Sending code..." : "Send login code";
-  const finalizeLabel = isSubmitting ? "Verifying…" : "Verify code";
+  const finalizeLabel = isResendCode
+    ? "Verify code"
+    : isSubmitting
+    ? "Verifying…"
+    : "Verify code";
   const isAwaitingOtp = viewState === "awaitingOtp";
 
   return (
@@ -185,7 +195,7 @@ export default function AuthPrompt({ onAuthenticated }: AuthPromptProps) {
               <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-slate-600">
                 <p className="font-semibold text-slate-900">Check your email</p>
                 <p className="mt-1 text-sm text-slate-500">
-                  We've sent a 6-digit code to <strong>{pendingEmail}</strong>.
+                  We've sent an 8 digits code to <strong>{emailInput}</strong>.
                 </p>
               </div>
               <label className="block space-y-2">
@@ -214,11 +224,16 @@ export default function AuthPrompt({ onAuthenticated }: AuthPromptProps) {
               <div className="flex items-center justify-between text-xs">
                 <button
                   type="button"
-                  onClick={handleSendOtp}
+                  onClick={() => {
+                    setIsResendCode(true);
+                    handleSendOtp().finally(() => {
+                      setIsResendCode(false);
+                    });
+                  }}
                   disabled={isSubmitting}
                   className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
                 >
-                  Resend code
+                  {isResendCode ? "Resending..." : "Resend code"}
                 </button>
                 <button
                   type="button"
