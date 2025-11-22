@@ -1,7 +1,7 @@
 {
-  "name": "browser-extension",
+  "name": "LeetStack",
   "type": "module",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev": "VITE_APP_ENV=dev vite",

@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { saveUserDsaQuestion, type UserPrincipal } from "@/lib/api";
 import FieldLabel from "./FieldLabel";
 import {
@@ -218,12 +213,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     setSaveState("idle");
     setSaveError(null);
     setLastSavedTitle(null);
-  }, [
-    applyFormState,
-    currentUrl,
-    difficultyLabel,
-    languageLabel,
-  ]);
+  }, [applyFormState, currentUrl, difficultyLabel, languageLabel]);
 
   const handleSave = async () => {
     const trimmedTitle =
@@ -345,7 +335,9 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
       <div className="w-[540px] max-w-full rounded-3xl bg-white p-8 shadow-dialog">
         <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-4 text-sm">
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Signed in as</p>
+            <p className="text-xs uppercase tracking-wide text-slate-400">
+              Signed in as
+            </p>
             <p className="font-semibold text-slate-900">{userDisplayName}</p>
           </div>
           <button
@@ -478,7 +470,9 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
         </section>
 
         <footer className="mt-8 flex flex-wrap items-center justify-between gap-4">
-          <span className={`text-sm ${statusMessageClassName}`}>{statusMessage}</span>
+          <span className={`text-sm ${statusMessageClassName}`}>
+            {statusMessage}
+          </span>
           <div className="flex items-center gap-3">
             <button
               type="button"
