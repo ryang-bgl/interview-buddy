@@ -90,7 +90,7 @@ export default function MagicLoginScreen() {
         </TouchableOpacity>
       </View>
       <Text style={styles.sectionSubtitle}>
-        Paste the 8-digit code we just sent to {trimmedEmail}.
+        Paste the 8-digit code we just sent to
       </Text>
 
       <View style={styles.emailPill}>

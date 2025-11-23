@@ -57,6 +57,19 @@ EXPO_PUBLIC_API_URL=https://w2ikvgnue9.execute-api.us-east-1.amazonaws.com EXPO_
 
    > In development builds the app automatically signs in with mock credentials, letting you load the main tabs without completing Firebase login. Set `EXPO_PUBLIC_USE_MOCK_AUTH=false` in your `.env` if you need to exercise the real auth screens locally.
 
+## Useful command
+
+### Publish
+1. publish to expo
+```shell
+npm run publish
+```
+
+2. publish to Apple
+```shell
+npx eas build --platform ios --profile production
+```
+
 ## Project Structure
 
 ```

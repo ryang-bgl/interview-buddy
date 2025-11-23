@@ -84,7 +84,6 @@ export const useQuestionStore = create<QuestionState>()(
         set({ isLoading: true, error: null, hasAttemptedInitialSync: true });
 
         try {
-          console.log("======", "loading questions");
           const response = await apiClient.getQuestions();
           if (!response.success || !response.data) {
             throw new Error(response.error || "Failed to load questions");

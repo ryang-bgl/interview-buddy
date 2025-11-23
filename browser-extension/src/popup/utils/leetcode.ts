@@ -237,7 +237,6 @@ export async function findLeetCodeProblemDetailsInActivePage(
                       return;
                     }
 
-                    console.log("======keySegments", keySegments);
                     const inferredLanguage =
                       keySegments.length === 3 ? keySegments[2] : undefined;
                     let record = cursor.value;
