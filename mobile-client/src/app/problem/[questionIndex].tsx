@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { Text } from '@/components/Themed';
@@ -23,13 +23,55 @@ export default function ProblemDetailScreen() {
     }
   }, [hasAttemptedInitialSync, isLoading, loadQuestions]);
 
+  const sortedQuestions = useMemo(() => {
+    return questions
+      .slice()
+      .sort((a, b) => {
+        const numA = Number(a.questionIndex) || 0;
+        const numB = Number(b.questionIndex) || 0;
+        if (numA === numB) {
+          return (a.title || '').localeCompare(b.title || '');
+        }
+        return numA - numB;
+      });
+  }, [questions]);
+
   const question = useMemo(() => {
     if (!questionIndex) return null;
-    return (
-      questions.find(q => q.questionIndex === questionIndex) ||
-      questions.find(q => q.id === questionIndex)
+    return sortedQuestions.find(
+      q => q.questionIndex === questionIndex || q.id === questionIndex
+    ) ?? null;
+  }, [sortedQuestions, questionIndex]);
+
+  const currentIdentifier = question?.questionIndex || question?.id || null;
+
+  const currentIndex = useMemo(() => {
+    if (!currentIdentifier) return -1;
+    return sortedQuestions.findIndex(
+      q => (q.questionIndex || q.id) === currentIdentifier
     );
-  }, [questions, questionIndex]);
+  }, [sortedQuestions, currentIdentifier]);
+
+  const previousQuestion = currentIndex > 0 ? sortedQuestions[currentIndex - 1] : null;
+  const nextQuestion =
+    currentIndex !== -1 && currentIndex + 1 < sortedQuestions.length
+      ? sortedQuestions[currentIndex + 1]
+      : null;
+
+  const navigateToQuestion = useCallback(
+    (target?: { questionIndex?: string | null; id?: string | null }) => {
+      if (!target) return;
+      const targetIdentifier = target.questionIndex || target.id;
+      if (!targetIdentifier) {
+        return;
+      }
+      router.replace({
+        pathname: '/problem/[questionIndex]',
+        params: { questionIndex: targetIdentifier },
+      });
+    },
+    [router]
+  );
 
   if (isLoading && !hasAttemptedInitialSync) {
     return (
@@ -105,8 +147,39 @@ export default function ProblemDetailScreen() {
         <Text style={styles.codeBlock}>{question.idealSolutionCode || 'Not available for this question.'}</Text>
       </View>
 
+      <View style={styles.navigationRow}>
+        <TouchableOpacity
+          style={[styles.navButton, !previousQuestion && styles.navButtonDisabled]}
+          disabled={!previousQuestion}
+          onPress={() => navigateToQuestion(previousQuestion ?? undefined)}
+        >
+          <Text style={styles.navButtonText}>← Previous</Text>
+          {previousQuestion ? (
+            <Text style={styles.navMetaText} numberOfLines={1}>
+              {previousQuestion.title}
+            </Text>
+          ) : (
+            <Text style={styles.navMetaText}>No earlier problem</Text>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.navButton, !nextQuestion && styles.navButtonDisabled]}
+          disabled={!nextQuestion}
+          onPress={() => navigateToQuestion(nextQuestion ?? undefined)}
+        >
+          <Text style={styles.navButtonText}>Next →</Text>
+          {nextQuestion ? (
+            <Text style={styles.navMetaText} numberOfLines={1}>
+              {nextQuestion.title}
+            </Text>
+          ) : (
+            <Text style={styles.navMetaText}>No more problems</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>← Back</Text>
+        <Text style={styles.backButtonText}>← Back to list</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -183,5 +256,30 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  navigationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  navButton: {
+    flex: 1,
+    backgroundColor: '#1E293B',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+    gap: 6,
+  },
+  navButtonDisabled: {
+    opacity: 0.5,
+  },
+  navButtonText: {
+    color: '#F8FAFC',
+    fontWeight: '700',
+  },
+  navMetaText: {
+    color: '#94A3B8',
+    fontSize: 12,
   },
 });

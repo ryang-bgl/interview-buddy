@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -324,15 +324,43 @@ export default function ProblemListsScreen() {
     () => getDueQuestions().length,
     [questions, reviewStates]
   );
-  const topReminders = allReminders
-    .slice()
-    .sort(
-      (a, b) =>
-        new Date(a.nextReviewDate).getTime() -
-        new Date(b.nextReviewDate).getTime()
-    )
-    .slice(0, 3);
+  
+  const sortedReminders = useMemo(
+    () =>
+      allReminders
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(a.nextReviewDate).getTime() -
+            new Date(b.nextReviewDate).getTime()
+        ),
+    [allReminders]
+  );
 
+  const WINDOW_SIZE = 5;
+  const [windowStart, setWindowStart] = React.useState(0);
+  const maxStart = Math.max(0, sortedReminders.length - WINDOW_SIZE);
+  const clampedStart = Math.min(windowStart, maxStart);
+
+  const visibleReminders = sortedReminders.slice(
+    clampedStart,
+    clampedStart + WINDOW_SIZE
+  );
+
+  useEffect(() => {
+    if (windowStart !== clampedStart) {
+      setWindowStart(clampedStart);
+    }
+  }, [clampedStart, windowStart]);
+
+  const handleSlide = (direction: 'prev' | 'next') => {
+    setWindowStart((current) => {
+      if (direction === 'prev') {
+        return Math.max(0, current - WINDOW_SIZE);
+      }
+      return Math.min(sortedReminders.length - WINDOW_SIZE, current + WINDOW_SIZE);
+    });
+  };
   const renderListCard = (item: (typeof curatedLists)[number]) => {
     const ratio = item.total > 0 ? Math.min(item.completed / item.total, 1) : 0;
 
@@ -404,14 +432,44 @@ export default function ProblemListsScreen() {
             <ActivityIndicator color="#7C3AED" style={styles.reminderLoader} />
           ) : questionError ? (
             <Text style={styles.reminderError}>{questionError}</Text>
-          ) : topReminders.length === 0 ? (
+          ) : sortedReminders.length === 0 ? (
             <Text style={styles.reminderEmpty}>
               No saved questions yet. Add notes from the recorder to start
               building reminders.
             </Text>
           ) : (
             <View style={styles.reminderList}>
-              {topReminders.map((reminder) => {
+              <View style={styles.sliderControls}>
+                <TouchableOpacity
+                  style={[
+                    styles.sliderButton,
+                    clampedStart === 0 && styles.sliderButtonDisabled,
+                  ]}
+                  disabled={clampedStart === 0}
+                  onPress={() => handleSlide('prev')}
+                >
+                  <Feather name="chevron-left" size={16} color="#1D4ED8" />
+                </TouchableOpacity>
+                <Text style={styles.sliderLabel}>
+                  {sortedReminders.length === 0
+                    ? '0/0'
+                    : `${clampedStart + 1}-${Math.min(
+                        clampedStart + WINDOW_SIZE,
+                        sortedReminders.length
+                      )}/${sortedReminders.length}`}
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.sliderButton,
+                    clampedStart >= maxStart && styles.sliderButtonDisabled,
+                  ]}
+                  disabled={clampedStart >= maxStart}
+                  onPress={() => handleSlide('next')}
+                >
+                  <Feather name="chevron-right" size={16} color="#1D4ED8" />
+                </TouchableOpacity>
+              </View>
+              {visibleReminders.map((reminder) => {
                 const snippet =
                   reminder.note?.trim() ||
                   reminder.description?.slice(0, 100) ||
@@ -423,7 +481,12 @@ export default function ProblemListsScreen() {
                     key={reminder.id || reminder.questionIndex}
                     style={styles.reminderCard}
                     activeOpacity={0.85}
-                    onPress={() => router.push("/(tabs)/review")}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/problem/[questionIndex]",
+                        params: { questionIndex: identifier ?? "" },
+                      })
+                    }
                   >
                     <View style={styles.reminderHeader}>
                       <Text style={styles.reminderTitle}>{reminder.title}</Text>
@@ -460,7 +523,10 @@ export default function ProblemListsScreen() {
                           style={styles.detailLink}
                           onPress={(event) => {
                             event.stopPropagation();
-                            router.push(`/problem/${identifier}`);
+                            router.push({
+                              pathname: "/problem/[questionIndex]",
+                              params: { questionIndex: identifier ?? "" },
+                            });
                           }}
                         >
                           <Text style={styles.detailLinkText}>View Detail</Text>
