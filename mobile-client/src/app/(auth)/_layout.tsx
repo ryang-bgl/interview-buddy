@@ -1,17 +1,14 @@
-import { Stack } from 'expo-router';
+import { Stack } from "expo-router";
 
 export default function AuthLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#000' },
+        contentStyle: { backgroundColor: "#000" },
       }}
     >
-      <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
-      <Stack.Screen name="magic-login" />
-      <Stack.Screen name="verify" />
+      <Stack.Screen name="email-login" />
     </Stack>
   );
 }

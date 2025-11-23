@@ -111,8 +111,8 @@ export default function MagicLoginScreen() {
       />
 
       <Text style={styles.helperText}>
-        Codes expire in one hour. Can't find the email? Check spam or promotions
-        tabs.
+        Codes expire in 5 minutes. Can't find the email? Check spam or
+        promotions tabs.
       </Text>
 
       <TouchableOpacity
@@ -152,15 +152,8 @@ export default function MagicLoginScreen() {
             )}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.sectionTitle}>Work email</Text>
-              <Text style={styles.sectionSubtitle}>
-                We'll send an 8-digit code to this address.
-              </Text>
               <TextInput
-                style={[
-                  styles.input,
-                  step === "code" && styles.inputDisabled,
-                ]}
+                style={[styles.input, step === "code" && styles.inputDisabled]}
                 value={email}
                 onChangeText={setEmail}
                 onFocus={clearErrorOnFocus}
@@ -176,34 +169,21 @@ export default function MagicLoginScreen() {
             {step === "code" && renderCodeSection()}
 
             <TouchableOpacity
-              style={[styles.primaryButton, primaryActionDisabled && styles.primaryButtonDisabled]}
+              style={[
+                styles.primaryButton,
+                primaryActionDisabled && styles.primaryButtonDisabled,
+              ]}
               onPress={step === "email" ? handleSendCode : handleVerifyCode}
               disabled={primaryActionDisabled}
             >
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.primaryButtonText}>{primaryButtonLabel}</Text>
+                <Text style={styles.primaryButtonText}>
+                  {primaryButtonLabel}
+                </Text>
               )}
             </TouchableOpacity>
-          </View>
-
-          <View style={styles.footerLinks}>
-            <Text style={styles.footerText}>Have a password instead?</Text>
-            <Link href="/(auth)/login" asChild>
-              <TouchableOpacity>
-                <Text style={styles.footerLink}>Sign in with password</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-
-          <View style={styles.footerLinks}>
-            <Text style={styles.footerText}>Need an account?</Text>
-            <Link href="/(auth)/register" asChild>
-              <TouchableOpacity>
-                <Text style={styles.footerLink}>Create one</Text>
-              </TouchableOpacity>
-            </Link>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

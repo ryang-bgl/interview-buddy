@@ -1,11 +1,15 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { apiClient } from '@/services/api';
-import { DsaQuestion, QuestionReminder, QuestionReviewState } from '@/types/question';
-import { spacedRepetitionScheduler } from '@/utils/spacedRepetitionScheduler';
-import { ReviewDifficulty } from '@/config/spacedRepetition';
+import { apiClient } from "@/services/api";
+import {
+  DsaQuestion,
+  QuestionReminder,
+  QuestionReviewState,
+} from "@/types/question";
+import { spacedRepetitionScheduler } from "@/utils/spacedRepetitionScheduler";
+import { ReviewDifficulty } from "@/config/spacedRepetition";
 
 export interface QuestionState {
   questions: DsaQuestion[];
@@ -59,7 +63,8 @@ const mapToReminder = (
   ...(state ?? createInitialReviewState()),
 });
 
-const getQuestionKey = (question: DsaQuestion) => question.questionIndex || question.id;
+const getQuestionKey = (question: DsaQuestion) =>
+  question.questionIndex || question.id;
 
 export const useQuestionStore = create<QuestionState>()(
   persist(
@@ -79,9 +84,10 @@ export const useQuestionStore = create<QuestionState>()(
         set({ isLoading: true, error: null, hasAttemptedInitialSync: true });
 
         try {
+          console.log("======", "loading questions");
           const response = await apiClient.getQuestions();
           if (!response.success || !response.data) {
-            throw new Error(response.error || 'Failed to load questions');
+            throw new Error(response.error || "Failed to load questions");
           }
 
           const questions = response.data.map((question) => ({
@@ -105,10 +111,10 @@ export const useQuestionStore = create<QuestionState>()(
             lastSyncedAt: new Date().toISOString(),
           });
         } catch (error: any) {
-          console.error('Failed to load questions', error);
+          console.error("Failed to load questions", error);
           set({
             isLoading: false,
-            error: error?.message || 'Unable to load questions',
+            error: error?.message || "Unable to load questions",
           });
         }
       },
@@ -121,7 +127,8 @@ export const useQuestionStore = create<QuestionState>()(
         const reviewStates = { ...get().reviewStates };
         const currentQuestions = get().questions;
         const matchedQuestion = currentQuestions.find(
-          question => question.questionIndex === questionId || question.id === questionId
+          (question) =>
+            question.questionIndex === questionId || question.id === questionId
         );
         const stateKey = matchedQuestion?.questionIndex || questionId;
         const current = reviewStates[stateKey] ?? createInitialReviewState();
@@ -131,7 +138,10 @@ export const useQuestionStore = create<QuestionState>()(
         let updatedQuestions = currentQuestions;
         let questionIndexValue = stateKey;
         const targetIdx = matchedQuestion
-          ? currentQuestions.findIndex(question => question.questionIndex === matchedQuestion.questionIndex)
+          ? currentQuestions.findIndex(
+              (question) =>
+                question.questionIndex === matchedQuestion.questionIndex
+            )
           : -1;
         if (targetIdx >= 0) {
           const updatedQuestion = {
@@ -148,11 +158,12 @@ export const useQuestionStore = create<QuestionState>()(
 
         apiClient
           .updateQuestionReview(questionIndexValue, {
-            lastReviewedAt: nextState.lastReviewedAt ?? new Date().toISOString(),
+            lastReviewedAt:
+              nextState.lastReviewedAt ?? new Date().toISOString(),
             lastReviewStatus: difficulty,
           })
-          .catch(error => {
-            console.warn('Failed to sync question review timestamp', error);
+          .catch((error) => {
+            console.warn("Failed to sync question review timestamp", error);
           });
       },
 
@@ -160,16 +171,21 @@ export const useQuestionStore = create<QuestionState>()(
         const now = Date.now();
         return get()
           .getAllReminders()
-          .filter(reminder => new Date(reminder.nextReviewDate).getTime() <= now)
+          .filter(
+            (reminder) => new Date(reminder.nextReviewDate).getTime() <= now
+          )
           .sort(
             (a, b) =>
-              new Date(a.nextReviewDate).getTime() - new Date(b.nextReviewDate).getTime()
+              new Date(a.nextReviewDate).getTime() -
+              new Date(b.nextReviewDate).getTime()
           );
       },
 
       getAllReminders: () => {
         const { questions, reviewStates } = get();
-        return questions.map(question => mapToReminder(question, reviewStates[getQuestionKey(question)]));
+        return questions.map((question) =>
+          mapToReminder(question, reviewStates[getQuestionKey(question)])
+        );
       },
 
       clearError: () => {
@@ -177,9 +193,9 @@ export const useQuestionStore = create<QuestionState>()(
       },
     }),
     {
-      name: 'question-storage',
+      name: "question-storage",
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: state => ({
+      partialize: (state) => ({
         questions: state.questions,
         reviewStates: state.reviewStates,
         lastSyncedAt: state.lastSyncedAt,
