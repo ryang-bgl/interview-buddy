@@ -6,6 +6,7 @@ import {
   View,
   TouchableOpacity,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -13,6 +14,15 @@ import { router } from "expo-router";
 
 import { useSolutions, useQuestions } from "@/hooks/useStores";
 import { useColorScheme } from "@/components/useColorScheme";
+
+type DifficultyOption = "Easy" | "Medium" | "Hard" | "Unknown";
+
+const DIFFICULTY_FILTERS: DifficultyOption[] = [
+  "Easy",
+  "Medium",
+  "Hard",
+  "Unknown",
+];
 
 const curatedLists = [
   {
@@ -79,6 +89,7 @@ const lightPalette = {
   accent: "#7C3AED",
   buttonBackground: "#E0E7FF",
   buttonText: "#1D4ED8",
+  highlight: "#2563EB",
 };
 
 const darkPalette = {
@@ -92,6 +103,7 @@ const darkPalette = {
   accent: "#A78BFA",
   buttonBackground: "#1D4ED8",
   buttonText: "#F8FAFC",
+  highlight: "#A78BFA",
 };
 
 type Palette = typeof lightPalette;
@@ -163,6 +175,72 @@ const createStyles = (palette: Palette) =>
       fontWeight: "600",
       color: palette.buttonText,
     },
+    actionRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      flexWrap: "wrap",
+    },
+    actionChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+      backgroundColor: palette.surface,
+    },
+    actionChipText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: palette.textSecondary,
+    },
+    selectedFilterLabel: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: palette.highlight,
+    },
+    searchInput: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      backgroundColor: palette.surface,
+      color: palette.textPrimary,
+    },
+    filterDropdown: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+      backgroundColor: palette.surface,
+      padding: 12,
+      gap: 10,
+    },
+    filterOption: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    filterOptionText: {
+      color: palette.textPrimary,
+      fontWeight: "600",
+    },
+    checkbox: {
+      width: 18,
+      height: 18,
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    checkboxSelected: {
+      backgroundColor: palette.buttonText,
+      borderColor: palette.buttonText,
+    },
     reminderLoader: {
       marginTop: 12,
     },
@@ -176,6 +254,31 @@ const createStyles = (palette: Palette) =>
     },
     reminderList: {
       gap: 12,
+    },
+    sliderControls: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 12,
+      gap: 12,
+    },
+    sliderButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: palette.surface,
+    },
+    sliderButtonDisabled: {
+      opacity: 0.45,
+    },
+    sliderLabel: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: palette.buttonText,
     },
     reminderCard: {
       backgroundColor: palette.surface,
@@ -240,6 +343,32 @@ const createStyles = (palette: Palette) =>
       fontSize: 12,
       fontWeight: "600",
       color: palette.buttonText,
+    },
+    paginationRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      justifyContent: "center",
+    },
+    pageButton: {
+      minWidth: 36,
+      borderWidth: 1,
+      borderColor: palette.cardBorder,
+      borderRadius: 8,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      alignItems: "center",
+    },
+    pageButtonActive: {
+      backgroundColor: palette.buttonText,
+      borderColor: palette.buttonText,
+    },
+    pageButtonText: {
+      color: palette.buttonText,
+      fontWeight: "600",
+    },
+    pageButtonTextActive: {
+      color: palette.surface,
     },
     listStack: {
       gap: 12,
@@ -324,7 +453,14 @@ export default function ProblemListsScreen() {
     () => getDueQuestions().length,
     [questions, reviewStates]
   );
-  
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [filterMenuVisible, setFilterMenuVisible] = useState(false);
+  const [selectedFilters, setSelectedFilters] = useState<DifficultyOption[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 5;
+
   const sortedReminders = useMemo(
     () =>
       allReminders
@@ -337,30 +473,65 @@ export default function ProblemListsScreen() {
     [allReminders]
   );
 
-  const WINDOW_SIZE = 5;
-  const [windowStart, setWindowStart] = React.useState(0);
-  const maxStart = Math.max(0, sortedReminders.length - WINDOW_SIZE);
-  const clampedStart = Math.min(windowStart, maxStart);
+  const filteredReminders = useMemo(() => {
+    const lowerQuery = searchQuery.trim().toLowerCase();
 
-  const visibleReminders = sortedReminders.slice(
-    clampedStart,
-    clampedStart + WINDOW_SIZE
+    return sortedReminders.filter((reminder) => {
+      const difficultyValue = (reminder.difficulty ?? "Unknown") as DifficultyOption;
+      const matchesQuery = lowerQuery
+        ? (reminder.title || "").toLowerCase().includes(lowerQuery) ||
+          (reminder.questionIndex || "").toLowerCase().includes(lowerQuery)
+        : true;
+
+      const matchesFilter = selectedFilters.length
+        ? selectedFilters.includes(difficultyValue)
+        : true;
+
+      return matchesQuery && matchesFilter;
+    });
+  }, [sortedReminders, searchQuery, selectedFilters]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredReminders.length / PAGE_SIZE)
+  );
+  const clampedPage = Math.min(currentPage, totalPages);
+  const pageStart = (clampedPage - 1) * PAGE_SIZE;
+  const visibleReminders = filteredReminders.slice(
+    pageStart,
+    pageStart + PAGE_SIZE
   );
 
   useEffect(() => {
-    if (windowStart !== clampedStart) {
-      setWindowStart(clampedStart);
+    if (currentPage !== clampedPage) {
+      setCurrentPage(clampedPage);
     }
-  }, [clampedStart, windowStart]);
+  }, [clampedPage, currentPage]);
 
-  const handleSlide = (direction: 'prev' | 'next') => {
-    setWindowStart((current) => {
-      if (direction === 'prev') {
-        return Math.max(0, current - WINDOW_SIZE);
-      }
-      return Math.min(sortedReminders.length - WINDOW_SIZE, current + WINDOW_SIZE);
-    });
+  const handleToggleFilter = (option: DifficultyOption) => {
+    setSelectedFilters((prev) =>
+      prev.includes(option)
+        ? prev.filter((value) => value !== option)
+        : [...prev, option]
+    );
+    setCurrentPage(1);
   };
+
+  const handleSelectPage = (page: number) => {
+    if (page < 1 || page > totalPages) {
+      return;
+    }
+    setCurrentPage(page);
+  };
+
+  const pageButtons = useMemo(() => {
+    const buttons = [];
+    for (let i = 1; i <= totalPages; i++) {
+      buttons.push(i);
+    }
+    return buttons;
+  }, [totalPages]);
+
   const renderListCard = (item: (typeof curatedLists)[number]) => {
     const ratio = item.total > 0 ? Math.min(item.completed / item.total, 1) : 0;
 
@@ -428,6 +599,84 @@ export default function ProblemListsScreen() {
             </TouchableOpacity>
           </View>
 
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={styles.actionChip}
+              onPress={() => setIsSearchVisible((prev) => !prev)}
+            >
+              <Feather
+                name="search"
+                size={16}
+                color={
+                  isSearchVisible ? palette.buttonText : palette.textSecondary
+                }
+              />
+              <Text style={styles.actionChipText}>
+                {isSearchVisible ? "Hide search" : "Search"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionChip}
+              onPress={() => setFilterMenuVisible((prev) => !prev)}
+            >
+              <Feather
+                name="filter"
+                size={16}
+                color={
+                  filterMenuVisible ? palette.buttonText : palette.textSecondary
+                }
+              />
+              <Text style={styles.actionChipText}>
+                {filterMenuVisible ? "Hide filters" : "Filter"}
+              </Text>
+            </TouchableOpacity>
+            {selectedFilters.length > 0 && (
+              <Text style={styles.selectedFilterLabel}>
+                {selectedFilters.join(", ")}
+              </Text>
+            )}
+          </View>
+
+          {isSearchVisible && (
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by title or #"
+              placeholderTextColor={palette.textMuted}
+              value={searchQuery}
+              onChangeText={(text) => {
+                setSearchQuery(text);
+                setCurrentPage(1);
+              }}
+            />
+          )}
+
+          {filterMenuVisible && (
+            <View style={styles.filterDropdown}>
+              {DIFFICULTY_FILTERS.map((option) => {
+                const isSelected = selectedFilters.includes(option);
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    style={styles.filterOption}
+                    onPress={() => handleToggleFilter(option)}
+                  >
+                    <View
+                      style={[
+                        styles.checkbox,
+                        isSelected && styles.checkboxSelected,
+                      ]}
+                    >
+                      {isSelected ? (
+                        <Feather name="check" size={12} color="#FFFFFF" />
+                      ) : null}
+                    </View>
+                    <Text style={styles.filterOptionText}>{option}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
           {isQuestionLoading ? (
             <ActivityIndicator color="#7C3AED" style={styles.reminderLoader} />
           ) : questionError ? (
@@ -443,28 +692,28 @@ export default function ProblemListsScreen() {
                 <TouchableOpacity
                   style={[
                     styles.sliderButton,
-                    clampedStart === 0 && styles.sliderButtonDisabled,
+                    clampedPage === 1 && styles.sliderButtonDisabled,
                   ]}
-                  disabled={clampedStart === 0}
-                  onPress={() => handleSlide('prev')}
+                  disabled={clampedPage === 1}
+                  onPress={() => handleSelectPage(clampedPage - 1)}
                 >
                   <Feather name="chevron-left" size={16} color="#1D4ED8" />
                 </TouchableOpacity>
                 <Text style={styles.sliderLabel}>
-                  {sortedReminders.length === 0
-                    ? '0/0'
-                    : `${clampedStart + 1}-${Math.min(
-                        clampedStart + WINDOW_SIZE,
-                        sortedReminders.length
-                      )}/${sortedReminders.length}`}
+                  {filteredReminders.length === 0
+                    ? "0/0"
+                    : `${pageStart + 1}-${Math.min(
+                        pageStart + PAGE_SIZE,
+                        filteredReminders.length
+                      )}/${filteredReminders.length}`}
                 </Text>
                 <TouchableOpacity
                   style={[
                     styles.sliderButton,
-                    clampedStart >= maxStart && styles.sliderButtonDisabled,
+                    clampedPage === totalPages && styles.sliderButtonDisabled,
                   ]}
-                  disabled={clampedStart >= maxStart}
-                  onPress={() => handleSlide('next')}
+                  disabled={clampedPage === totalPages}
+                  onPress={() => handleSelectPage(clampedPage + 1)}
                 >
                   <Feather name="chevron-right" size={16} color="#1D4ED8" />
                 </TouchableOpacity>
@@ -476,6 +725,9 @@ export default function ProblemListsScreen() {
                   "No note yet";
                 const isDue = new Date(reminder.nextReviewDate) <= new Date();
                 const identifier = reminder.questionIndex || reminder.id;
+                const reminderDifficulty = (
+                  reminder.difficulty ?? "Unknown"
+                ) as DifficultyOption;
                 return (
                   <TouchableOpacity
                     key={reminder.id || reminder.questionIndex}
@@ -490,9 +742,9 @@ export default function ProblemListsScreen() {
                   >
                     <View style={styles.reminderHeader}>
                       <Text style={styles.reminderTitle}>{reminder.title}</Text>
-                      {reminder.difficulty !== "Unknown" && (
+                      {reminderDifficulty !== "Unknown" && (
                         <Text style={styles.reminderDifficulty}>
-                          {reminder.difficulty}
+                          {reminderDifficulty}
                         </Text>
                       )}
                     </View>
@@ -536,6 +788,29 @@ export default function ProblemListsScreen() {
                   </TouchableOpacity>
                 );
               })}
+              {totalPages > 1 && (
+                <View style={styles.paginationRow}>
+                  {pageButtons.map((page) => (
+                    <TouchableOpacity
+                      key={page}
+                      style={[
+                        styles.pageButton,
+                        page === clampedPage && styles.pageButtonActive,
+                      ]}
+                      onPress={() => handleSelectPage(page)}
+                    >
+                      <Text
+                        style={[
+                          styles.pageButtonText,
+                          page === clampedPage && styles.pageButtonTextActive,
+                        ]}
+                      >
+                        {page}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -557,242 +832,3 @@ export default function ProblemListsScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F5F6FA",
-  },
-  contentContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-    gap: 20,
-  },
-  headerSection: {
-    marginTop: 16,
-    gap: 8,
-  },
-  heading: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  subheading: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  buttonRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  secondaryButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 14,
-  },
-  secondaryButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  primaryButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 14,
-    backgroundColor: "#111827",
-    paddingVertical: 14,
-  },
-  primaryButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  sectionCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 20,
-    shadowColor: "#1F2937",
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  sectionTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  sectionIcon: {
-    marginRight: 4,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  sectionAction: {
-    fontSize: 14,
-    color: "#111827",
-    fontWeight: "600",
-  },
-  listStack: {
-    gap: 14,
-  },
-  listCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-    shadowColor: "#1F2937",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  cardEmoji: {
-    fontSize: 24,
-  },
-  progressBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  progressBadgeText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  dueBadge: {
-    backgroundColor: "#E0E7FF",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  dueBadgeText: {
-    color: "#4338CA",
-    fontWeight: "600",
-    fontSize: 12,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 14,
-  },
-  progressTrack: {
-    height: 8,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 999,
-    backgroundColor: "#111827",
-  },
-  reminderLoader: {
-    paddingVertical: 20,
-  },
-  reminderError: {
-    color: "#B91C1C",
-    fontSize: 14,
-  },
-  reminderEmpty: {
-    color: "#6B7280",
-    fontSize: 14,
-  },
-  reminderList: {
-    gap: 12,
-  },
-  reminderCard: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 16,
-    padding: 14,
-    gap: 8,
-  },
-  reminderHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  reminderTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
-    flex: 1,
-    marginRight: 12,
-  },
-  reminderDifficulty: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#7C3AED",
-  },
-  reminderNote: {
-    color: "#4B5563",
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  reminderFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  reminderMeta: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  reminderTime: {
-    fontSize: 12,
-    color: "#9CA3AF",
-  },
-  reminderActions: {
-    alignItems: "flex-end",
-    gap: 6,
-  },
-  reminderStatus: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#2563EB",
-  },
-  reminderStatusDue: {
-    color: "#B91C1C",
-  },
-  detailLink: {
-    backgroundColor: "#E0E7FF",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  detailLinkText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#1D4ED8",
-  },
-});
