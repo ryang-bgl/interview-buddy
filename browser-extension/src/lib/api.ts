@@ -124,3 +124,96 @@ export async function saveUserDsaQuestion(
 
   throw new Error(message);
 }
+
+export interface FlashCardPayload {
+  id?: string | null;
+  front: string;
+  back: string;
+  extra?: string | null;
+  tags?: string[] | null;
+}
+
+export interface CreateGeneralNoteJobRequest {
+  url: string;
+  payload: string;
+  topic?: string | null;
+  requirements?: string | null;
+}
+
+export interface CreateGeneralNoteJobResponse {
+  jobId: string;
+}
+
+export type GeneralNoteJobStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed";
+
+export interface GeneralNoteJobResult {
+  noteId: string | null;
+  topic: string | null;
+  summary: string | null;
+  cards: FlashCardPayload[];
+}
+
+export interface GeneralNoteJobStatusResponse {
+  jobId: string;
+  status: GeneralNoteJobStatus;
+  url: string;
+  topic: string | null;
+  requirements: string | null;
+  createdAt: string;
+  updatedAt: string;
+  errorMessage: string | null;
+  result?: GeneralNoteJobResult;
+}
+
+export async function createGeneralNoteJob(
+  payload: CreateGeneralNoteJobRequest
+): Promise<CreateGeneralNoteJobResponse> {
+  const response = await request("/api/ai/general-note/anki-stack", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  if (response.ok) {
+    return (await response.json()) as CreateGeneralNoteJobResponse;
+  }
+
+  let message = "Failed to queue review job";
+  try {
+    const body = await response.json();
+    if (body && typeof body.message === "string") {
+      message = body.message;
+    }
+  } catch (error) {
+    console.warn("[leetstack] Unable to parse job creation error", error);
+  }
+
+  throw new Error(message);
+}
+
+export async function getGeneralNoteJob(
+  jobId: string
+): Promise<GeneralNoteJobStatusResponse> {
+  const response = await request(`/api/ai/general-note/jobs/${jobId}`, {
+    method: "GET",
+  });
+
+  if (response.ok) {
+    return (await response.json()) as GeneralNoteJobStatusResponse;
+  }
+
+  let message = "Failed to load job status";
+  try {
+    const body = await response.json();
+    if (body && typeof body.message === "string") {
+      message = body.message;
+    }
+  } catch (error) {
+    console.warn("[leetstack] Unable to parse job status error", error);
+  }
+
+  throw new Error(message);
+}

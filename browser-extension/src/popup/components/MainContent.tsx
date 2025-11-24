@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { saveUserDsaQuestion, type UserPrincipal } from "@/lib/api";
 import FieldLabel from "./FieldLabel";
+import GeneralNotesTab from "./GeneralNotesTab";
 import {
   extractSlugFromUrl,
   findLeetCodeProblemDetailsInActivePage,
@@ -16,6 +17,13 @@ interface MainContentProps {
   user: UserPrincipal;
   onSignOut: () => void;
 }
+
+const MAIN_TABS = [
+  { id: "leetcode", label: "LeetCode Notebook" },
+  { id: "generalNotes", label: "AI Notes → Anki" },
+] as const;
+
+type MainTabId = (typeof MAIN_TABS)[number]["id"];
 
 export default function MainContent({ user, onSignOut }: MainContentProps) {
   const [problemNumber, setProblemNumber] = useState("");
@@ -35,6 +43,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
   >("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [lastSavedTitle, setLastSavedTitle] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<MainTabId>("leetcode");
   const isSaving = saveState === "saving";
   const userDisplayName = user.firstName || user.email || "LeetStack member";
 
@@ -394,105 +403,138 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
           </button>
         </header>
 
-        <section className="mt-6 space-y-5">
-          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-blue-600">
-                  <span>{headerProblemLabel}</span>
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${difficultyToneClass}`}
+        <div className="mt-6 space-y-6">
+          <div className="rounded-3xl bg-slate-50 p-1 text-sm font-semibold text-slate-500">
+            <div className="grid grid-cols-2 gap-1">
+              {MAIN_TABS.map((tab) => {
+                const isActive = tab.id === activeTab;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`rounded-2xl px-4 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 ${
+                      isActive
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-900"
+                    }`}
+                    aria-pressed={isActive}
                   >
-                    {difficultyDisplay}
-                  </span>
-                </div>
-                <div className="text-sm text-slate-700">{headerTitleText}</div>
-                {headerLink ? (
-                  <a
-                    href={headerLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="break-all text-sm text-slate-600 underline-offset-2 hover:underline"
-                  >
-                    {headerLink}
-                  </a>
-                ) : (
-                  <span className="text-sm text-slate-500">
-                    No problem link detected.
-                  </span>
-                )}
-              </div>
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-500 shadow-sm">
-                {languageLabel || "Unknown"}
-              </span>
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <FieldLabel label="Problem Title">
-            <input
-              type="text"
-              value={titleInput}
-              onChange={(event) => setTitleInput(event.target.value)}
-              placeholder="Problem title"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
-          </FieldLabel>
-          <FieldLabel label="Problem Description">
-            <textarea
-              rows={9}
-              value={descriptionInput}
-              onChange={(event) => setDescriptionInput(event.target.value)}
-              placeholder="Problem description"
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
-          </FieldLabel>
-          <FieldLabel label="Your Solution Code">
-            <textarea
-              rows={9}
-              value={codeInput}
-              onChange={(event) => setCodeInput(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              style={{
-                fontFamily:
-                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-              }}
-            />
-          </FieldLabel>
+          {activeTab === "leetcode" ? (
+            <>
+              <section className="space-y-5">
+                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-blue-600">
+                        <span>{headerProblemLabel}</span>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${difficultyToneClass}`}
+                        >
+                          {difficultyDisplay}
+                        </span>
+                      </div>
+                      <div className="text-sm text-slate-700">
+                        {headerTitleText}
+                      </div>
+                      {headerLink ? (
+                        <a
+                          href={headerLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="break-all text-sm text-slate-600 underline-offset-2 hover:underline"
+                        >
+                          {headerLink}
+                        </a>
+                      ) : (
+                        <span className="text-sm text-slate-500">
+                          No problem link detected.
+                        </span>
+                      )}
+                    </div>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-500 shadow-sm">
+                      {languageLabel || "Unknown"}
+                    </span>
+                  </div>
+                </div>
 
-          <FieldLabel label="Personal Notes (Optional)">
-            <textarea
-              rows={3}
-              value={notesInput}
-              onChange={(event) => setNotesInput(event.target.value)}
-              placeholder="e.g., Remember the hashmap trick, time complexity is O(n)..."
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
-          </FieldLabel>
-        </section>
+                <FieldLabel label="Problem Title">
+                  <input
+                    type="text"
+                    value={titleInput}
+                    onChange={(event) => setTitleInput(event.target.value)}
+                    placeholder="Problem title"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </FieldLabel>
+                <FieldLabel label="Problem Description">
+                  <textarea
+                    rows={9}
+                    value={descriptionInput}
+                    onChange={(event) => setDescriptionInput(event.target.value)}
+                    placeholder="Problem description"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </FieldLabel>
+                <FieldLabel label="Your Solution Code">
+                  <textarea
+                    rows={9}
+                    value={codeInput}
+                    onChange={(event) => setCodeInput(event.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    style={{
+                      fontFamily:
+                        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                    }}
+                  />
+                </FieldLabel>
 
-        <footer className="mt-8 flex flex-wrap items-center justify-between gap-4">
-          <span className={`text-sm ${statusMessageClassName}`}>
-            {statusMessage}
-          </span>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={isSaving}
-              className="rounded-full border border-slate-200 px-6 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSaving ? "Saving..." : "Save to LeetStack"}
-            </button>
-          </div>
-        </footer>
+                <FieldLabel label="Personal Notes (Optional)">
+                  <textarea
+                    rows={3}
+                    value={notesInput}
+                    onChange={(event) => setNotesInput(event.target.value)}
+                    placeholder="e.g., Remember the hashmap trick, time complexity is O(n)..."
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </FieldLabel>
+              </section>
+
+              <footer className="flex flex-wrap items-center justify-between gap-4">
+                <span className={`text-sm ${statusMessageClassName}`}>
+                  {statusMessage}
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                    className="rounded-full border border-slate-200 px-6 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {isSaving ? "Saving..." : "Save to LeetStack"}
+                  </button>
+                </div>
+              </footer>
+            </>
+          ) : (
+            <GeneralNotesTab />
+          )}
+        </div>
       </div>
     </div>
   );

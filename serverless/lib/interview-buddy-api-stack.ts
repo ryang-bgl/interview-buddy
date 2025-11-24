@@ -14,16 +14,23 @@ import {
   BillingMode,
   ProjectionType,
   Table,
+  StreamViewType,
 } from "aws-cdk-lib/aws-dynamodb";
-import { Runtime } from "aws-cdk-lib/aws-lambda";
+import { Runtime, StartingPosition } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import {
   HttpApi,
   HttpMethod,
   CorsHttpMethod,
   CorsPreflightOptions,
+  WebSocketApi,
+  WebSocketStage,
 } from "aws-cdk-lib/aws-apigatewayv2";
-import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
+import {
+  HttpLambdaIntegration,
+  WebSocketLambdaIntegration,
+} from "aws-cdk-lib/aws-apigatewayv2-integrations";
 
 export interface InterviewBuddyApiStackProps extends StackProps {
   stage: string;
@@ -51,6 +58,24 @@ export class InterviewBuddyApiStack extends Stack {
       default: "authenticated",
     });
 
+    const deepseekApiKey = new CfnParameter(this, "DeepseekApiKey", {
+      type: "String",
+      description: "API key for DeepSeek chat completions.",
+      noEcho: true,
+    });
+
+    const deepseekApiUrl = new CfnParameter(this, "DeepseekApiUrl", {
+      type: "String",
+      description: "DeepSeek chat completions endpoint.",
+      default: "https://api.deepseek.com/chat/completions",
+    });
+
+    const deepseekModel = new CfnParameter(this, "DeepseekModel", {
+      type: "String",
+      description: "Model identifier to request from DeepSeek.",
+      default: "deepseek-chat",
+    });
+
     const supabaseAuthUrl = `https://${supabaseProjectRef.valueAsString}.supabase.co/auth/v1`;
     const supabaseJwksUrl = `${supabaseAuthUrl}/.well-known/jwks.json`;
 
@@ -74,6 +99,22 @@ export class InterviewBuddyApiStack extends Stack {
       sortKey: { name: "questionIndex", type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const userNotesTable = new Table(this, "UserNotesTable", {
+      tableName: `interview-buddy-user-notes-${stageSuffix}`,
+      partitionKey: { name: "userId", type: AttributeType.STRING },
+      sortKey: { name: "noteId", type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const generalNoteJobsTable = new Table(this, "GeneralNoteJobsTable", {
+      tableName: `interview-buddy-general-note-jobs-${stageSuffix}`,
+      partitionKey: { name: "jobId", type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.DESTROY,
+      stream: StreamViewType.NEW_IMAGE,
     });
 
     const commonLambdaEnv = {
@@ -160,6 +201,81 @@ export class InterviewBuddyApiStack extends Stack {
       }
     );
 
+    const generalNoteJobProcessorFn = new NodejsFunction(
+      this,
+      "ProcessGeneralNoteJobFunction",
+      {
+        ...defaultLambdaProps,
+        timeout: Duration.minutes(10),
+        entry: path.join(
+          __dirname,
+          "..",
+          "src",
+          "functions",
+          "notes",
+          "processGeneralNoteJob.ts"
+        ),
+        handler: "handler",
+        environment: {
+          GENERAL_NOTE_JOBS_TABLE_NAME: generalNoteJobsTable.tableName,
+          USER_NOTES_TABLE_NAME: userNotesTable.tableName,
+          DEEPSEEK_API_KEY: deepseekApiKey.valueAsString,
+          DEEPSEEK_API_URL: deepseekApiUrl.valueAsString,
+          DEEPSEEK_MODEL: deepseekModel.valueAsString,
+        },
+      }
+    );
+    generalNoteJobProcessorFn.addEventSource(
+      new DynamoEventSource(generalNoteJobsTable, {
+        startingPosition: StartingPosition.TRIM_HORIZON,
+        retryAttempts: 2,
+        batchSize: 1,
+      })
+    );
+
+    const generalNoteJobRequestFn = new NodejsFunction(
+      this,
+      "RequestGeneralNoteJobFunction",
+      {
+        ...defaultLambdaProps,
+        entry: path.join(
+          __dirname,
+          "..",
+          "src",
+          "functions",
+          "notes",
+          "requestGeneralNoteJob.ts"
+        ),
+        handler: "handler",
+        environment: {
+          ...commonLambdaEnv,
+          GENERAL_NOTE_JOBS_TABLE_NAME: generalNoteJobsTable.tableName,
+          GENERAL_NOTE_MAX_CONTENT: "8000",
+        },
+      }
+    );
+
+    const getGeneralNoteJobFn = new NodejsFunction(
+      this,
+      "GetGeneralNoteJobFunction",
+      {
+        ...defaultLambdaProps,
+        entry: path.join(
+          __dirname,
+          "..",
+          "src",
+          "functions",
+          "notes",
+          "getGeneralNoteJob.ts"
+        ),
+        handler: "handler",
+        environment: {
+          ...commonLambdaEnv,
+          GENERAL_NOTE_JOBS_TABLE_NAME: generalNoteJobsTable.tableName,
+        },
+      }
+    );
+
     const authByApiKeyFn = new NodejsFunction(this, "AuthByApiKeyFunction", {
       ...defaultLambdaProps,
       entry: path.join(
@@ -219,6 +335,12 @@ export class InterviewBuddyApiStack extends Stack {
     usersTable.grantReadWriteData(authByApiKeyFn);
     usersTable.grantReadWriteData(currentPrincipalFn);
     usersTable.grantReadWriteData(getCurrentUserFn);
+    usersTable.grantReadWriteData(generalNoteJobRequestFn);
+    usersTable.grantReadWriteData(getGeneralNoteJobFn);
+    userNotesTable.grantReadWriteData(generalNoteJobProcessorFn);
+    generalNoteJobsTable.grantReadWriteData(generalNoteJobRequestFn);
+    generalNoteJobsTable.grantReadWriteData(generalNoteJobProcessorFn);
+    generalNoteJobsTable.grantReadData(getGeneralNoteJobFn);
 
     const cors: CorsPreflightOptions = {
       allowHeaders: ["Content-Type", "x-api-key", "authorization"],
@@ -286,10 +408,30 @@ export class InterviewBuddyApiStack extends Stack {
       ),
     });
 
-    [usersTable, userDsaTable].forEach((table) => {
-      Tags.of(table).add("Environment", stage);
-      Tags.of(table).add("Service", "interview-buddy");
+    httpApi.addRoutes({
+      path: "/api/ai/general-note/anki-stack",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration(
+        "RequestGeneralNoteAnkiStackIntegration",
+        generalNoteJobRequestFn
+      ),
     });
+
+    httpApi.addRoutes({
+      path: "/api/ai/general-note/jobs/{jobId}",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration(
+        "GetGeneralNoteJobIntegration",
+        getGeneralNoteJobFn
+      ),
+    });
+
+    [usersTable, userDsaTable, userNotesTable, generalNoteJobsTable].forEach(
+      (table) => {
+        Tags.of(table).add("Environment", stage);
+        Tags.of(table).add("Service", "interview-buddy");
+      }
+    );
 
     new CfnOutput(this, "ApiEndpoint", {
       value: httpApi.apiEndpoint,
