@@ -133,6 +133,10 @@ export interface FlashCardPayload {
   tags?: string[] | null;
 }
 
+export interface AddGeneralNoteCardRequest extends FlashCardPayload {
+  insertAfterCardId?: string | null;
+}
+
 export interface CreateGeneralNoteJobRequest {
   url: string;
   payload: string;
@@ -178,6 +182,12 @@ export interface GeneralNoteNoteResponse {
   createdAt: string;
   lastReviewedAt: string | null;
   lastReviewStatus: string | null;
+}
+
+export interface UpdateGeneralNoteCardsResponse {
+  noteId: string;
+  cards: FlashCardPayload[];
+  card?: FlashCardPayload;
 }
 
 export async function createGeneralNoteJob(
@@ -253,6 +263,60 @@ export async function getExistingGeneralNote(
     }
   } catch (error) {
     console.warn("[leetstack] Unable to parse note lookup error", error);
+  }
+
+  throw new Error(message);
+}
+
+export async function addGeneralNoteCard(
+  noteId: string,
+  payload: AddGeneralNoteCardRequest
+): Promise<UpdateGeneralNoteCardsResponse> {
+  const response = await request(`/api/ai/general-note/notes/${noteId}/cards`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  if (response.ok) {
+    return (await response.json()) as UpdateGeneralNoteCardsResponse;
+  }
+
+  let message = "Failed to add card";
+  try {
+    const body = await response.json();
+    if (body && typeof body.message === "string") {
+      message = body.message;
+    }
+  } catch (error) {
+    console.warn("[leetstack] Unable to parse add-card error", error);
+  }
+
+  throw new Error(message);
+}
+
+export async function deleteGeneralNoteCard(
+  noteId: string,
+  cardId: string
+): Promise<UpdateGeneralNoteCardsResponse> {
+  const response = await request(
+    `/api/ai/general-note/notes/${noteId}/cards/${cardId}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  if (response.ok) {
+    return (await response.json()) as UpdateGeneralNoteCardsResponse;
+  }
+
+  let message = "Failed to delete card";
+  try {
+    const body = await response.json();
+    if (body && typeof body.message === "string") {
+      message = body.message;
+    }
+  } catch (error) {
+    console.warn("[leetstack] Unable to parse delete-card error", error);
   }
 
   throw new Error(message);

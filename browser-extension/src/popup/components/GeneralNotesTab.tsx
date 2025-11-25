@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   createGeneralNoteJob,
   getExistingGeneralNote,
   getGeneralNoteJob,
+  addGeneralNoteCard,
+  deleteGeneralNoteCard,
   type GeneralNoteJobResult,
   type GeneralNoteJobStatusResponse,
 } from "@/lib/api";
@@ -25,13 +27,29 @@ export default function GeneralNotesTab() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [latestJobStatus, setLatestJobStatus] =
     useState<GeneralNoteJobStatusResponse | null>(null);
+  const [cardDraft, setCardDraft] = useState({
+    front: "",
+    back: "",
+    extra: "",
+  });
+  const [isSavingCard, setIsSavingCard] = useState(false);
+  const [deletingCardId, setDeletingCardId] = useState<string | null>(null);
+  const [activeInsertSlot, setActiveInsertSlot] = useState<string | null>(null);
+  const [activeInsertAfterId, setActiveInsertAfterId] = useState<string | null>(
+    null
+  );
+  const [isLoadingExisting, setIsLoadingExisting] = useState(true);
+
+  const START_SLOT_ID = "__start__";
 
   const isPolling = Boolean(activeJobId);
   const isGenerating =
     generationState === "generating" ||
     isPolling ||
     latestJobStatus?.status === "processing";
-  const hasCards = (stackResult?.cards?.length ?? 0) > 0;
+  const cardsCount = stackResult?.cards?.length ?? 0;
+  const hasCards = cardsCount > 0;
+  const canEditCards = Boolean(stackResult?.noteId);
 
   const statusText = (() => {
     if (isPolling || latestJobStatus?.status === "processing") {
@@ -87,14 +105,17 @@ export default function GeneralNotesTab() {
     let cancelled = false;
 
     const loadExistingNote = async () => {
+      setIsLoadingExisting(true);
       try {
         const tab = await getActiveTab();
         const tabUrl = tab?.url?.trim();
         if (!tabUrl) {
+          setIsLoadingExisting(false);
           return;
         }
         const existing = await getExistingGeneralNote(tabUrl);
         if (cancelled || !existing) {
+          setIsLoadingExisting(false);
           return;
         }
         setStackResult({
@@ -110,6 +131,8 @@ export default function GeneralNotesTab() {
         if (!cancelled) {
           console.warn("[leetstack] Failed to load existing note", error);
         }
+      } finally {
+        setIsLoadingExisting(false);
       }
     };
 
@@ -209,6 +232,11 @@ export default function GeneralNotesTab() {
     };
   }, [activeJobId]);
 
+  useEffect(() => {
+    setActiveInsertAfterId(null);
+    setCardDraft({ front: "", back: "", extra: "" });
+  }, [stackResult?.noteId]);
+
   const handleCopyStack = async () => {
     if (!ankiStackText) {
       return;
@@ -232,9 +260,225 @@ export default function GeneralNotesTab() {
     }
   };
 
+  const handleAddCard = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    if (!stackResult?.noteId) {
+      setErrorMessage("Generate or load cards before editing them");
+      setGenerationState("error");
+      return;
+    }
+
+    const front = cardDraft.front.trim();
+    const back = cardDraft.back.trim();
+    const extra = cardDraft.extra.trim();
+    if (!front || !back) {
+      setErrorMessage("Front and back are required");
+      setGenerationState("error");
+      return;
+    }
+
+    setIsSavingCard(true);
+    setErrorMessage(null);
+    try {
+      const insertAfterCardId =
+        activeInsertSlot === START_SLOT_ID
+          ? null
+          : activeInsertAfterId ?? undefined;
+      const response = await addGeneralNoteCard(stackResult.noteId, {
+        front,
+        back,
+        extra: extra ? extra : undefined,
+        insertAfterCardId,
+      });
+      setStackResult((prev) => {
+        if (!prev) {
+          return prev;
+        }
+        return {
+          ...prev,
+          noteId: prev.noteId ?? response.noteId,
+          cards: response.cards,
+        };
+      });
+      setCardDraft({ front: "", back: "", extra: "" });
+      setActiveInsertAfterId(null);
+      setActiveInsertSlot(null);
+      setGenerationState("success");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to add card";
+      setErrorMessage(message);
+      setGenerationState("error");
+    } finally {
+      setIsSavingCard(false);
+    }
+  };
+
+  const handleDeleteCard = async (cardId: string | undefined | null) => {
+    if (!cardId || !stackResult?.noteId) {
+      return;
+    }
+    setDeletingCardId(cardId);
+    setErrorMessage(null);
+    try {
+      const response = await deleteGeneralNoteCard(stackResult.noteId, cardId);
+      setStackResult((prev) => {
+        if (!prev) {
+          return prev;
+        }
+        return {
+          ...prev,
+          cards: response.cards,
+        };
+      });
+      setGenerationState("success");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete card";
+      setErrorMessage(message);
+      setGenerationState("error");
+    } finally {
+      setDeletingCardId(null);
+    }
+  };
+
+  const handleOpenInsertSlot = (
+    slotKey: string,
+    insertAfterCardId: string | null
+  ) => {
+    if (!canEditCards) {
+      return;
+    }
+    setActiveInsertSlot(slotKey);
+    setActiveInsertAfterId(insertAfterCardId);
+    setCardDraft({ front: "", back: "", extra: "" });
+    setErrorMessage(null);
+  };
+
+  const handleCancelInsert = () => {
+    setActiveInsertSlot(null);
+    setActiveInsertAfterId(null);
+    setCardDraft({ front: "", back: "", extra: "" });
+  };
+
+  const renderAddCardSlot = ({
+    slotKey,
+    insertAfterCardId,
+    disabled,
+  }: {
+    slotKey: string;
+    insertAfterCardId: string | null;
+    disabled?: boolean;
+  }) => {
+    if (!stackResult) {
+      return null;
+    }
+    const isActive = activeInsertSlot === slotKey;
+    if (!isActive || disabled) {
+      return (
+        <div key={`slot-${slotKey}`} className="py-2">
+          <button
+            type="button"
+            onClick={() => handleOpenInsertSlot(slotKey, insertAfterCardId)}
+            disabled={disabled || !canEditCards}
+            className="w-full rounded-2xl border border-dashed border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 disabled:cursor-not-allowed"
+          >
+            + Add card here
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <form
+        key={`slot-${slotKey}`}
+        onSubmit={handleAddCard}
+        className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4"
+      >
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Front
+          </label>
+          <textarea
+            rows={2}
+            value={cardDraft.front}
+            onChange={(event) =>
+              setCardDraft((prev) => ({
+                ...prev,
+                front: event.target.value,
+              }))
+            }
+            disabled={!canEditCards || isSavingCard}
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-purple-400 focus:outline-none"
+            placeholder="e.g., What trade-offs define the design?"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Back
+          </label>
+          <textarea
+            rows={3}
+            value={cardDraft.back}
+            onChange={(event) =>
+              setCardDraft((prev) => ({
+                ...prev,
+                back: event.target.value,
+              }))
+            }
+            disabled={!canEditCards || isSavingCard}
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-purple-400 focus:outline-none"
+            placeholder="Summarize the answer you want to remember"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Extra (optional)
+          </label>
+          <input
+            type="text"
+            value={cardDraft.extra}
+            onChange={(event) =>
+              setCardDraft((prev) => ({
+                ...prev,
+                extra: event.target.value,
+              }))
+            }
+            disabled={!canEditCards || isSavingCard}
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-purple-400 focus:outline-none"
+            placeholder="Memory aids, warnings, or links"
+          />
+        </div>
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={handleCancelInsert}
+            className="text-xs font-semibold uppercase tracking-wide text-slate-500 underline underline-offset-4"
+            disabled={isSavingCard}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!canEditCards || isSavingCard}
+            className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSavingCard ? "Saving..." : "Save card"}
+          </button>
+        </div>
+      </form>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      {!stackResult && (
+      {isLoadingExisting && (
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/60 px-4 py-3 text-sm text-slate-500">
+          <span className="inline-flex h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-purple-500" />
+          <span>Checking if you've already saved cards for this page…</span>
+        </div>
+      )}
+      {!stackResult && !isLoadingExisting && (
         <section className="space-y-4">
           <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4 text-sm text-purple-900">
             <p>
@@ -252,7 +496,7 @@ export default function GeneralNotesTab() {
             <button
               type="button"
               onClick={handleGenerate}
-              disabled={isGenerating}
+              disabled={isGenerating || isLoadingExisting}
               className="ml-auto inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-orange-400 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition hover:shadow-xl hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isGenerating ? "Generating..." : "AI generates review cards"}
@@ -305,35 +549,66 @@ export default function GeneralNotesTab() {
 
           {hasCards ? (
             <ul className="space-y-3">
-              {stackResult.cards.map((card, index) => (
-                <li
-                  key={`${card.id ?? card.front ?? "card"}-${index}`}
-                  className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
-                >
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Card {index + 1}
-                  </div>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">
-                    {card.front || "Prompt"}
-                  </p>
-                  <p className="mt-2 text-sm text-slate-700">
-                    {card.back || "Answer"}
-                  </p>
-                  {card.extra ? (
-                    <p className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-slate-500">
-                      {card.extra}
-                    </p>
-                  ) : null}
-                </li>
-              ))}
+              {stackResult.cards.map((card, index) => {
+                const cardId = card.id ?? `card-${index + 1}`;
+                const slotKey = card.id ?? `slot-${index}`;
+                return (
+                  <li key={`${cardId}-${index}`} className="space-y-2">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Card {index + 1}
+                          </div>
+                          <p className="mt-1 text-sm font-semibold text-slate-900">
+                            {card.front || "Prompt"}
+                          </p>
+                          <p className="mt-2 text-sm text-slate-700">
+                            {card.back || "Answer"}
+                          </p>
+                          {card.extra ? (
+                            <p className="mt-2 rounded-lg bg-white/80 px-3 py-2 text-xs text-slate-500">
+                              {card.extra}
+                            </p>
+                          ) : null}
+                        </div>
+                        {canEditCards ? (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCard(card.id)}
+                            disabled={!card.id || deletingCardId === card.id}
+                            className="text-xs font-semibold uppercase tracking-wide text-rose-600 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {deletingCardId === card.id
+                              ? "Removing..."
+                              : "Delete"}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                    {renderAddCardSlot({
+                      slotKey,
+                      insertAfterCardId: card.id ?? null,
+                      disabled: !card.id,
+                    })}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
-            <p className="text-sm text-slate-500">
-              AI responded but did not return any individual cards.
-            </p>
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+              <p>AI didn't return any cards for this page.</p>
+              <p className="mt-1">Add your own notes below to get started.</p>
+              <div className="mt-4">
+                {renderAddCardSlot({
+                  slotKey: START_SLOT_ID,
+                  insertAfterCardId: null,
+                })}
+              </div>
+            </div>
           )}
 
-          {ankiStackText ? (
+          {/* {ankiStackText ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Tab-delimited text for Anki import
@@ -342,7 +617,7 @@ export default function GeneralNotesTab() {
                 {ankiStackText}
               </pre>
             </div>
-          ) : null}
+          ) : null} */}
         </section>
       ) : null}
     </div>

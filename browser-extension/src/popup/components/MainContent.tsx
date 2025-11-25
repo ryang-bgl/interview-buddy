@@ -341,7 +341,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
   })();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+    <div className="flex min-h-screen justify-center bg-slate-100 px-2 py-2">
       <div className="w-[540px] max-w-full rounded-3xl bg-white p-8 shadow-dialog">
         <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-4 text-sm">
           <div>
@@ -399,10 +399,10 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`rounded-2xl px-4 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 ${
+                    className={`rounded-2xl px-4 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 ${
                       isActive
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500 hover:text-slate-900"
+                        ? "bg-white text-slate-900 shadow-md shadow-purple-100 ring-1 ring-purple-200"
+                        : "text-slate-500 hover:bg-white/70 hover:text-slate-900"
                     }`}
                     aria-pressed={isActive}
                   >

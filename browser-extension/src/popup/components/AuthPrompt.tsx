@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { UserPrincipal } from "@/lib/api";
 import LoadingScreen from "./LoadingScreen";
@@ -23,25 +23,16 @@ export default function AuthPrompt({ onAuthenticated }: AuthPromptProps) {
   const [viewState, setViewState] = useState<AuthViewState>("checking");
   const [emailInput, setEmailInput] = useState("");
   const [otpInput, setOtpInput] = useState("");
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResendCode, setIsResendCode] = useState(false);
-  const pendingEmailRef = useRef<string | null>(null);
-
-  const [principal, setPrincipal] = useState();
-
-  const syncPendingEmail = useCallback((value: string | null) => {
-    pendingEmailRef.current = value;
-    setPendingEmail(value);
-  }, []);
+  const [principal, setPrincipal] = useState<UserPrincipal | null>(null);
 
   useEffect(() => {
     if (viewState === "checking" || viewState === "authenticated") {
       buildPrincipalFromSupabase().then((p) => {
         if (p) {
           clearPendingAuthEmail().then(() => {
-            syncPendingEmail(null);
             setPrincipal(p);
           });
         } else {
@@ -129,7 +120,6 @@ export default function AuthPrompt({ onAuthenticated }: AuthPromptProps) {
 
   const handleResetPending = useCallback(async () => {
     await clearPendingAuthEmail();
-    syncPendingEmail(null);
     setEmailInput("");
     setOtpInput("");
     setErrorMessage(null);

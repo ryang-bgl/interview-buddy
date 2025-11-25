@@ -298,6 +298,48 @@ export class InterviewBuddyApiStack extends Stack {
       }
     );
 
+    const addGeneralNoteCardFn = new NodejsFunction(
+      this,
+      "AddGeneralNoteCardFunction",
+      {
+        ...defaultLambdaProps,
+        entry: path.join(
+          __dirname,
+          "..",
+          "src",
+          "functions",
+          "notes",
+          "addGeneralNoteCard.ts"
+        ),
+        handler: "handler",
+        environment: {
+          ...commonLambdaEnv,
+          USER_NOTES_TABLE_NAME: userNotesTable.tableName,
+        },
+      }
+    );
+
+    const deleteGeneralNoteCardFn = new NodejsFunction(
+      this,
+      "DeleteGeneralNoteCardFunction",
+      {
+        ...defaultLambdaProps,
+        entry: path.join(
+          __dirname,
+          "..",
+          "src",
+          "functions",
+          "notes",
+          "deleteGeneralNoteCard.ts"
+        ),
+        handler: "handler",
+        environment: {
+          ...commonLambdaEnv,
+          USER_NOTES_TABLE_NAME: userNotesTable.tableName,
+        },
+      }
+    );
+
     const authByApiKeyFn = new NodejsFunction(this, "AuthByApiKeyFunction", {
       ...defaultLambdaProps,
       entry: path.join(
@@ -360,8 +402,12 @@ export class InterviewBuddyApiStack extends Stack {
     usersTable.grantReadWriteData(generalNoteJobRequestFn);
     usersTable.grantReadWriteData(getGeneralNoteJobFn);
     usersTable.grantReadWriteData(getGeneralNoteByUrlFn);
+    usersTable.grantReadData(addGeneralNoteCardFn);
+    usersTable.grantReadData(deleteGeneralNoteCardFn);
     userNotesTable.grantReadWriteData(generalNoteJobProcessorFn);
     userNotesTable.grantReadData(getGeneralNoteByUrlFn);
+    userNotesTable.grantReadWriteData(addGeneralNoteCardFn);
+    userNotesTable.grantReadWriteData(deleteGeneralNoteCardFn);
     generalNoteJobsTable.grantReadWriteData(generalNoteJobRequestFn);
     generalNoteJobsTable.grantReadWriteData(generalNoteJobProcessorFn);
     generalNoteJobsTable.grantReadData(getGeneralNoteJobFn);
@@ -456,6 +502,24 @@ export class InterviewBuddyApiStack extends Stack {
       integration: new HttpLambdaIntegration(
         "GetGeneralNoteByUrlIntegration",
         getGeneralNoteByUrlFn
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: "/api/ai/general-note/notes/{noteId}/cards",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration(
+        "AddGeneralNoteCardIntegration",
+        addGeneralNoteCardFn
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: "/api/ai/general-note/notes/{noteId}/cards/{cardId}",
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration(
+        "DeleteGeneralNoteCardIntegration",
+        deleteGeneralNoteCardFn
       ),
     });
 

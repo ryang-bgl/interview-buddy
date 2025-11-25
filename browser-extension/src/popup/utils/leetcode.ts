@@ -159,7 +159,7 @@ export async function findLeetCodeProblemDetailsInActivePage(
               ".ant-select-selection-item",
             ];
             for (const selector of selectors) {
-              const node = document.querySelector("#editor button");
+              const node = document.querySelector<HTMLElement>(selector);
               const text = node?.textContent?.trim();
               if (text) {
                 return text;
@@ -170,7 +170,7 @@ export async function findLeetCodeProblemDetailsInActivePage(
 
           const readIndexedDbSolution = (
             problemNum: string,
-            language: string
+            language?: string
           ): Promise<{ code: string; language?: string } | null> => {
             return new Promise((resolve) => {
               const normalizedProblemNum = `${problemNum ?? ""}`.trim();
@@ -209,14 +209,18 @@ export async function findLeetCodeProblemDetailsInActivePage(
 
                     const key = String(cursor.key ?? "");
                     const suffix = "-updated-time";
-                    const languageMap = {
+                    const languageMap: Record<string, string> = {
                       typescript: "typescript",
                       java: "java",
                       "c++": "cpp",
                       python: "python",
                     };
 
-                    const languageKey = languageMap[language?.toLowerCase()];
+                    const normalizedLanguage = language?.toLowerCase();
+                    const languageKey =
+                      normalizedLanguage && normalizedLanguage in languageMap
+                        ? languageMap[normalizedLanguage]
+                        : undefined;
                     if (
                       key.endsWith(suffix) ||
                       !key.startsWith(`${normalizedProblemNum}_`)
