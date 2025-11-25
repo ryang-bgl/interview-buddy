@@ -73,6 +73,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
 
   const jobId = crypto.randomUUID();
   const now = new Date().toISOString();
+  const expiresAtSeconds = Math.floor(Date.now() / 1000) + 600;
 
   const jobItem = {
     jobId,
@@ -88,6 +89,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     },
     createdAt: now,
     updatedAt: now,
+    expiresAt: expiresAtSeconds,
   };
 
   try {

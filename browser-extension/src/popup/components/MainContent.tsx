@@ -19,8 +19,8 @@ interface MainContentProps {
 }
 
 const MAIN_TABS = [
-  { id: "leetcode", label: "LeetCode Notebook" },
-  { id: "generalNotes", label: "AI Notes → Anki" },
+  { id: "leetcode", label: "DSA Notebook" },
+  { id: "generalNotes", label: "Text -> Review Cards" },
 ] as const;
 
 type MainTabId = (typeof MAIN_TABS)[number]["id"];
@@ -360,20 +360,6 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
         </div>
         <header className="flex items-start justify-between gap-6">
           <div className="flex flex-1 items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500 text-white shadow-inner">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                className="h-6 w-6"
-                aria-hidden
-              >
-                <path
-                  fill="currentColor"
-                  d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2m6 1v5h5"
-                />
-                <path fill="currentColor" d="M8 14h8v2H8zm0 3h5v2H8z" />
-              </svg>
-            </div>
             <div className="flex flex-1 flex-col gap-1">
               <h1 className="text-xl font-semibold text-slate-900">
                 Save to LeetStack
@@ -478,7 +464,9 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
                   <textarea
                     rows={9}
                     value={descriptionInput}
-                    onChange={(event) => setDescriptionInput(event.target.value)}
+                    onChange={(event) =>
+                      setDescriptionInput(event.target.value)
+                    }
                     placeholder="Problem description"
                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />

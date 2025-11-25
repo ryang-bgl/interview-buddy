@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   createGeneralNoteJob,
+  getExistingGeneralNote,
   getGeneralNoteJob,
   type GeneralNoteJobResult,
   type GeneralNoteJobStatusResponse,
@@ -11,7 +12,9 @@ import { captureActivePageContent } from "../utils/page";
 type GenerationState = "idle" | "generating" | "success" | "error";
 type CopyState = "idle" | "copied";
 
-type StackResult = (GeneralNoteJobResult & { url: string }) | null;
+type StackResult =
+  | (GeneralNoteJobResult & { url: string; source: "generated" | "existing" })
+  | null;
 
 export default function GeneralNotesTab() {
   const [stackResult, setStackResult] = useState<StackResult>(null);
@@ -32,7 +35,7 @@ export default function GeneralNotesTab() {
 
   const statusText = (() => {
     if (isPolling || latestJobStatus?.status === "processing") {
-      return "AI is reading this page and drafting Anki cards...";
+      return "AI is reading this page and drafting review cards...";
     }
     if (generationState === "generating") {
       return "Queuing AI to study this page...";
@@ -41,6 +44,9 @@ export default function GeneralNotesTab() {
       return errorMessage;
     }
     if (hasCards) {
+      if (stackResult?.source === "existing") {
+        return "Showing your saved flashcards for this page.";
+      }
       return `AI generated ${
         stackResult?.cards.length ?? 0
       } card(s) for this page.`;
@@ -76,6 +82,43 @@ export default function GeneralNotesTab() {
       })
       .join("\n");
   }, [hasCards, stackResult]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadExistingNote = async () => {
+      try {
+        const tab = await getActiveTab();
+        const tabUrl = tab?.url?.trim();
+        if (!tabUrl) {
+          return;
+        }
+        const existing = await getExistingGeneralNote(tabUrl);
+        if (cancelled || !existing) {
+          return;
+        }
+        setStackResult({
+          noteId: existing.noteId,
+          topic: existing.topic,
+          summary: existing.summary,
+          cards: existing.cards,
+          url: existing.url,
+          source: "existing",
+        });
+        setGenerationState("success");
+      } catch (error) {
+        if (!cancelled) {
+          console.warn("[leetstack] Failed to load existing note", error);
+        }
+      }
+    };
+
+    void loadExistingNote();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleGenerate = async () => {
     setGenerationState("generating");
@@ -136,6 +179,7 @@ export default function GeneralNotesTab() {
           setStackResult({
             ...status.result,
             url: status.url,
+            source: "generated",
           });
           setGenerationState("success");
           setActiveJobId(null);
@@ -190,40 +234,47 @@ export default function GeneralNotesTab() {
 
   return (
     <div className="space-y-6">
-      <section className="space-y-4">
-        <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4 text-sm text-purple-900">
-          <p>
-            Capture the active tab's content—system design writeups, behavioural
-            prompts, anything—and let AI turn it into Anki-style review cards.
-          </p>
-          <p className="mt-2 text-xs text-purple-700">
-            Tip: load the page you want to study first, then tap the button
-            below.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className={`text-sm ${statusTone}`}>{statusText}</span>
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            className="rounded-full bg-purple-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {isGenerating ? "Generating..." : "AI generates review cards"}
-          </button>
-        </div>
-      </section>
-
+      {!stackResult && (
+        <section className="space-y-4">
+          <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4 text-sm text-purple-900">
+            <p>
+              Capture the active tab's content—system design writeups,
+              behavioural prompts, anything—and let AI turn it into Anki-style
+              review cards.
+            </p>
+            <p className="mt-2 text-xs text-purple-700">
+              Tip: load the page you want to study first, then tap the button
+              below.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className={`text-sm ${statusTone}`}>{statusText}</span>
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              className="ml-auto inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-orange-400 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition hover:shadow-xl hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isGenerating ? "Generating..." : "AI generates review cards"}
+            </button>
+          </div>
+        </section>
+      )}
       {stackResult ? (
         <section className="space-y-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-wide text-slate-400">
-                Flashcard preview
+                Flashcards Generated
               </p>
               <h2 className="text-lg font-semibold text-slate-900">
                 {stackResult.topic ?? "General note"}
               </h2>
+              <p className="text-xs text-slate-400">
+                {stackResult.source === "existing"
+                  ? "Loaded from your saved flashcards"
+                  : "Newly generated by AI"}
+              </p>
               {stackResult.url ? (
                 <a
                   href={stackResult.url}

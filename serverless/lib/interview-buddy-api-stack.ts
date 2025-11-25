@@ -115,6 +115,7 @@ export class InterviewBuddyApiStack extends Stack {
       billingMode: BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.DESTROY,
       stream: StreamViewType.NEW_IMAGE,
+      timeToLiveAttribute: "expiresAt",
     });
 
     const commonLambdaEnv = {
@@ -128,7 +129,7 @@ export class InterviewBuddyApiStack extends Stack {
     } as const;
 
     const defaultLambdaProps = {
-      runtime: Runtime.NODEJS_20_X,
+      runtime: Runtime.NODEJS_24_X,
       memorySize: 256,
       timeout: Duration.seconds(15),
       bundling: {
@@ -276,6 +277,27 @@ export class InterviewBuddyApiStack extends Stack {
       }
     );
 
+    const getGeneralNoteByUrlFn = new NodejsFunction(
+      this,
+      "GetGeneralNoteByUrlFunction",
+      {
+        ...defaultLambdaProps,
+        entry: path.join(
+          __dirname,
+          "..",
+          "src",
+          "functions",
+          "notes",
+          "getGeneralNoteByUrl.ts"
+        ),
+        handler: "handler",
+        environment: {
+          ...commonLambdaEnv,
+          USER_NOTES_TABLE_NAME: userNotesTable.tableName,
+        },
+      }
+    );
+
     const authByApiKeyFn = new NodejsFunction(this, "AuthByApiKeyFunction", {
       ...defaultLambdaProps,
       entry: path.join(
@@ -337,7 +359,9 @@ export class InterviewBuddyApiStack extends Stack {
     usersTable.grantReadWriteData(getCurrentUserFn);
     usersTable.grantReadWriteData(generalNoteJobRequestFn);
     usersTable.grantReadWriteData(getGeneralNoteJobFn);
+    usersTable.grantReadWriteData(getGeneralNoteByUrlFn);
     userNotesTable.grantReadWriteData(generalNoteJobProcessorFn);
+    userNotesTable.grantReadData(getGeneralNoteByUrlFn);
     generalNoteJobsTable.grantReadWriteData(generalNoteJobRequestFn);
     generalNoteJobsTable.grantReadWriteData(generalNoteJobProcessorFn);
     generalNoteJobsTable.grantReadData(getGeneralNoteJobFn);
@@ -423,6 +447,15 @@ export class InterviewBuddyApiStack extends Stack {
       integration: new HttpLambdaIntegration(
         "GetGeneralNoteJobIntegration",
         getGeneralNoteJobFn
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: "/api/ai/general-note/notes",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration(
+        "GetGeneralNoteByUrlIntegration",
+        getGeneralNoteByUrlFn
       ),
     });
 

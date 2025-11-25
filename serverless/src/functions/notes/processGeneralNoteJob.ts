@@ -14,6 +14,7 @@ const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
 const deepseekApiUrl =
   process.env.DEEPSEEK_API_URL ?? "https://api.deepseek.com/chat/completions";
 const deepseekModel = process.env.DEEPSEEK_MODEL ?? "deepseek-chat";
+const DEEPSEEK_MAX_TOKENS = 8000;
 
 if (!jobsTableName) {
   throw new Error("GENERAL_NOTE_JOBS_TABLE_NAME env var must be set");
@@ -79,7 +80,8 @@ async function processJob({ jobId }: ProcessorInput) {
       url: jobRecord.url,
       content: jobRecord.requestPayload.content,
       topic: jobRecord.requestPayload.topic ?? jobRecord.topic ?? null,
-      requirements: jobRecord.requestPayload.requirements ?? jobRecord.requirements ?? null,
+      requirements:
+        jobRecord.requestPayload.requirements ?? jobRecord.requirements ?? null,
     });
 
     const noteId = crypto.randomUUID();
@@ -200,6 +202,7 @@ async function generateAnkiStack(input: {
     "Do not be overly concise—cover every important insight from the provided material.",
     'Respond strictly in JSON using this structure: {"title": "Meaningful title", "tags": ["SystemDesign"], "cards": [{"front": "question", "back": "detailed answer", "extra"?: "tips"}]}.',
     'Each tag in the payload must be one of the following enum values: "SystemDesign", "Behaviour", "Algo", "Other".',
+    "Don't add ```json\n",
     "Here is the raw content, bounded by triple quotes:",
     '"""',
     input.content,
@@ -216,12 +219,11 @@ async function generateAnkiStack(input: {
     },
     body: JSON.stringify({
       model: deepseekModel,
-      temperature: 0.2,
-      max_tokens: 1200,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
+      max_tokens: DEEPSEEK_MAX_TOKENS,
     }),
   });
 
@@ -272,7 +274,8 @@ function parseStackPayload(
     throw error;
   }
 
-  const topic = optionalText(parsed?.title) ?? fallbackTopic ?? "Interview study stack";
+  const topic =
+    optionalText(parsed?.title) ?? fallbackTopic ?? "Interview study stack";
   const cardsInput: unknown[] = Array.isArray(parsed?.cards)
     ? parsed.cards
     : [];

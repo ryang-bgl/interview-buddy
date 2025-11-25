@@ -169,6 +169,17 @@ export interface GeneralNoteJobStatusResponse {
   result?: GeneralNoteJobResult;
 }
 
+export interface GeneralNoteNoteResponse {
+  noteId: string;
+  url: string;
+  topic: string | null;
+  summary: string | null;
+  cards: FlashCardPayload[];
+  createdAt: string;
+  lastReviewedAt: string | null;
+  lastReviewStatus: string | null;
+}
+
 export async function createGeneralNoteJob(
   payload: CreateGeneralNoteJobRequest
 ): Promise<CreateGeneralNoteJobResponse> {
@@ -213,6 +224,35 @@ export async function getGeneralNoteJob(
     }
   } catch (error) {
     console.warn("[leetstack] Unable to parse job status error", error);
+  }
+
+  throw new Error(message);
+}
+
+export async function getExistingGeneralNote(
+  url: string
+): Promise<GeneralNoteNoteResponse | null> {
+  const encodedUrl = encodeURIComponent(url);
+  const response = await request(`/api/ai/general-note/notes?url=${encodedUrl}`, {
+    method: "GET",
+  });
+
+  if (response.ok) {
+    return (await response.json()) as GeneralNoteNoteResponse;
+  }
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  let message = "Failed to load saved cards";
+  try {
+    const body = await response.json();
+    if (body && typeof body.message === "string") {
+      message = body.message;
+    }
+  } catch (error) {
+    console.warn("[leetstack] Unable to parse note lookup error", error);
   }
 
   throw new Error(message);
