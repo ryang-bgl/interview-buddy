@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "LeetStack",
-    "slug": "leet-stack",
+    "slug": "leetstack",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/assets/images/leetstack.png",
@@ -43,14 +43,15 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "b7c32c47-a101-460e-9b52-d5810ff1c9a5"
+        "projectId": "8974b9ed-0d8e-41c1-82d2-89fda0f6cddd"
       }
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/b7c32c47-a101-460e-9b52-d5810ff1c9a5"
-    }
+      "url": "https://u.expo.dev/8974b9ed-0d8e-41c1-82d2-89fda0f6cddd"
+    },
+    "owner": "ryang_sei"
   }
 }

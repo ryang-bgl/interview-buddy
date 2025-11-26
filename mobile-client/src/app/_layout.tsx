@@ -9,6 +9,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { useColorScheme } from "@/components/useColorScheme";
 import GlobalNotification from "@/components/GlobalNotification";
@@ -56,23 +57,25 @@ function RootLayoutNav() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Protected guard={isAuthenticated}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="problem" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="note-review/[noteId]"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen name="modal" options={{ presentation: "modal" }} />
-        </Stack.Protected>
-        <Stack.Protected guard={!isAuthenticated}>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        </Stack.Protected>
-      </Stack>
-      <GlobalNotification />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Protected guard={isAuthenticated}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="problem" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="note-review/[noteId]"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+          </Stack.Protected>
+          <Stack.Protected guard={!isAuthenticated}>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          </Stack.Protected>
+        </Stack>
+        <GlobalNotification />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
