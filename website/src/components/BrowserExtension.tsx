@@ -54,10 +54,12 @@ export function BrowserExtension() {
               <Chrome className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-xl font-semibold text-slate-900">
-                Browser Extension
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Section</p>
+              <p className="text-xl font-semibold text-slate-900">Browser Extension</p>
             </div>
+            <span className="rounded-full border border-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-600">
+              Coming soon
+            </span>
           </div>
         </div>
 

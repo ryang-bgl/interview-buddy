@@ -10,3 +10,4 @@ serverless/dist
 serverless/secret-config
 leetstack-landing/node_modules
 website/node_modules
+website/dist/

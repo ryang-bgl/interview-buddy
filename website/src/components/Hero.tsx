@@ -9,6 +9,7 @@ import {
   Code2,
   Users,
 } from "lucide-react";
+import { JoinWaitlist } from "./JoinWaitlist";
 
 export function Hero() {
   return (
@@ -64,16 +65,30 @@ export function Hero() {
             </span>
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20">
-            <button className="group px-8 py-5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 flex items-center gap-3 transform hover:scale-105">
-              <Chrome className="w-5 h-5" />
-              <span className="font-medium">Install Chrome Extension</span>
-              <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-            </button>
-            <button className="px-8 py-5 bg-white/10 backdrop-blur-lg text-white border border-white/20 rounded-xl hover:bg-white/20 transition-all duration-300 flex items-center gap-3 transform hover:scale-105">
-              <Smartphone className="w-5 h-5" />
-              <span className="font-medium">Download Mobile App</span>
-            </button>
+          <div className="mb-12 flex flex-col gap-6 sm:flex-row sm:justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <button className="group w-full min-w-[220px] px-8 py-5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105">
+                <Chrome className="w-5 h-5" />
+                <span className="font-medium">Install Chrome Extension</span>
+                <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+              </button>
+              <span className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+                Coming soon
+              </span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <button className="w-full min-w-[220px] px-8 py-5 bg-white/10 backdrop-blur-lg text-white border border-white/20 rounded-xl hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105">
+                <Smartphone className="w-5 h-5" />
+                <span className="font-medium">Download Mobile App</span>
+              </button>
+              <span className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+                Coming soon
+              </span>
+            </div>
+          </div>
+
+          <div className="mb-20">
+            <JoinWaitlist />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 max-w-5xl mx-auto mb-16">
