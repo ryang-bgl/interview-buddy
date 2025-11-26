@@ -76,12 +76,10 @@ export interface CreateUserDsaQuestionRequest {
   title: string;
   titleSlug: string;
   difficulty: string;
-  isPaidOnly: boolean;
   description: string;
   solution?: string | null;
   idealSolutionCode?: string | null;
   note?: string | null;
-  exampleTestcases?: string | null;
 }
 
 export interface UserDsaQuestionResponse {
@@ -92,12 +90,10 @@ export interface UserDsaQuestionResponse {
   title: string;
   titleSlug: string;
   difficulty: string;
-  isPaidOnly: boolean;
   description: string;
   solution: string | null;
   idealSolutionCode: string | null;
   note: string | null;
-  exampleTestcases: string | null;
 }
 
 export async function saveUserDsaQuestion(

@@ -25,7 +25,7 @@ export function Hero() {
         <div className="text-center">
           <div className="flex items-center justify-center gap-4 mb-8">
             <img
-              src="/leetstack.png"
+              src="/assets-shared/leetstack.jpg"
               alt="LeetStack logo"
               className="h-14 w-14 rounded-2xl shadow-xl"
               loading="lazy"

@@ -6,16 +6,15 @@ export default defineManifest({
   name: pkg.name,
   version: pkg.version,
   icons: {
-    48: "public/leetstack.png",
+    48: "public/assets/leetstack.png",
   },
   action: {
     default_icon: {
-      48: "public/leetstack.png",
+      48: "public/assets/leetstack.png",
     },
     default_popup: "src/popup/index.html",
   },
   permissions: [
-    "sidePanel",
     "cookies",
     "contentSettings",
     "scripting",
@@ -35,7 +34,4 @@ export default defineManifest({
       matches: ["https://*/*"],
     },
   ],
-  side_panel: {
-    default_path: "src/sidepanel/index.html",
-  },
 });

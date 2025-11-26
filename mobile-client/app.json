@@ -4,7 +4,7 @@
     "slug": "leetstack",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/images/leetstack.png",
+    "icon": "./src/assets-shared/leetstack.jpg",
     "scheme": "leetstack",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -22,7 +22,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/images/leetstack.png",
+        "foregroundImage": "./src/assets-shared/leetstack.jpg",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -32,7 +32,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./src/assets/images/leetstack.png"
+      "favicon": "./src/assets-shared/leetstack.jpg"
     },
     "plugins": [
       "expo-router"

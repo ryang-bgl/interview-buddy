@@ -254,11 +254,9 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
         title: trimmedTitle,
         titleSlug,
         difficulty: difficultyValue,
-        isPaidOnly: false,
         description,
         solution,
         note,
-        exampleTestcases: null,
       });
 
       setSaveState("success");

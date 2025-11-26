@@ -19,8 +19,6 @@ export interface UserDsaQuestionRecord {
   solution?: string;
   idealSolutionCode?: string;
   note?: string;
-  exampleTestcases?: string;
-  paidOnly: boolean;
   createdAt: string;
   updatedAt: string;
   lastReviewedAt?: string;
