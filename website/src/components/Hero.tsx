@@ -1,55 +1,164 @@
-import { Chrome, Smartphone } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import {
+  Chrome,
+  Smartphone,
+  Zap,
+  Sparkles,
+  TrendingUp,
+  Cloud,
+  BookOpen,
+  Code2,
+  Users,
+} from "lucide-react";
 
 export function Hero() {
   return (
-    <div className="relative bg-gradient-to-br from-blue-50 via-white to-purple-50 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full">
-              <Chrome className="w-4 h-4" />
-              <span>Chrome Extension + Mobile App</span>
-            </div>
-            
-            <div className="space-y-4">
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl text-gray-900">
-                Master LeetCode
-                <span className="block text-blue-600">One Solution at a Time</span>
-              </h1>
-              
-              <p className="text-xl text-gray-600 max-w-xl">
-                Save your LeetCode solutions instantly with our Chrome extension, 
-                then review them on-the-go with our mobile app. Perfect for acing 
-                your next coding interview.
-              </p>
-            </div>
-            
-            <div className="flex flex-wrap gap-4">
-              <button className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition-colors">
-                <Chrome className="w-5 h-5" />
-                Add to Chrome
-              </button>
-              <button className="inline-flex items-center gap-2 bg-gray-900 text-white px-8 py-4 rounded-lg hover:bg-gray-800 transition-colors">
-                <Smartphone className="w-5 h-5" />
-                Download App
-              </button>
+    <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 relative z-10">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <img
+              src="/leetstack.png"
+              alt="LeetStack logo"
+              className="h-14 w-14 rounded-2xl shadow-xl"
+              loading="lazy"
+            />
+            <div className="inline-flex items-center gap-3 px-5 py-2 bg-white/10 backdrop-blur-lg border border-white/20 rounded-full">
+              <Sparkles className="w-4 h-4 text-yellow-300" />
+              <span className="text-white font-semibold">
+                LeetStack – AI powered note taking. One Click. Cloud Sync.
+                Mobile Review.
+              </span>
             </div>
           </div>
-          
-          <div className="relative">
-            <div className="aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl">
-              <ImageWithFallback 
-                src="https://images.unsplash.com/photo-1604781109199-ced99b89b0f6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2RpbmclMjBsYXB0b3AlMjBkZXNrfGVufDF8fHx8MTc2NDExNzgzOHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral" 
-                alt="Coding workspace"
-                className="w-full h-full object-cover"
-              />
+
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl max-w-5xl mx-auto text-white mb-6 leading-tight">
+            AI-Powered Tech Interview Note Taking
+            <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
+              Capture Once. Review Everywhere.
+            </span>
+          </h1>
+
+          <p className="max-w-3xl mx-auto text-xl text-gray-300 mb-12 leading-relaxed">
+            one-click to save your notes for{" "}
+            <span className="text-purple-300 font-semibold">DSA</span>, turn{" "}
+            <span className="text-pink-300 font-semibold">System Design</span>,
+            or{" "}
+            <span className="text-indigo-300 font-semibold">
+              Behavioral questions
+            </span>{" "}
+            into spaced-repetition cards{" "}
+            <span className="text-yellow-200 font-semibold">
+              by our AI flashcard generator
+            </span>
+            .<br className="hidden sm:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-slate-50 to-amber-200 font-semibold">
+              AI handles the summarizing and card writing so you focus on
+              practicing.
+            </span>
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20">
+            <button className="group px-8 py-5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 flex items-center gap-3 transform hover:scale-105">
+              <Chrome className="w-5 h-5" />
+              <span className="font-medium">Install Chrome Extension</span>
+              <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+            </button>
+            <button className="px-8 py-5 bg-white/10 backdrop-blur-lg text-white border border-white/20 rounded-xl hover:bg-white/20 transition-all duration-300 flex items-center gap-3 transform hover:scale-105">
+              <Smartphone className="w-5 h-5" />
+              <span className="font-medium">Download Mobile App</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 max-w-5xl mx-auto mb-16">
+            <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-lg p-8 rounded-2xl border border-green-500/20 hover:border-green-500/40 transition-all hover:shadow-xl hover:shadow-green-500/20 hover:-translate-y-1">
+              <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <Zap className="w-7 h-7 text-white" />
+              </div>
+              <div className="text-xl text-white mb-2">One-Click Save</div>
+              <p className="text-gray-400">
+                Capture DSA, System Design & Behavioral notes instantly
+              </p>
             </div>
-            <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-purple-200 rounded-full blur-3xl opacity-60"></div>
-            <div className="absolute -top-6 -right-6 w-40 h-40 bg-blue-200 rounded-full blur-3xl opacity-60"></div>
+
+            <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-lg p-8 rounded-2xl border border-purple-500/20 hover:border-purple-500/40 transition-all hover:shadow-xl hover:shadow-purple-500/20 hover:-translate-y-1">
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <Cloud className="w-7 h-7 text-white" />
+              </div>
+              <div className="text-xl text-white mb-2">Cloud Sync</div>
+              <p className="text-gray-400">
+                Access your notes anywhere, on any device
+              </p>
+            </div>
+
+            <div className="group bg-gradient-to-br from-indigo-500/10 to-blue-500/10 backdrop-blur-lg p-8 rounded-2xl border border-indigo-500/20 hover:border-indigo-500/40 transition-all hover:shadow-xl hover:shadow-indigo-500/20 hover:-translate-y-1">
+              <div className="w-14 h-14 bg-gradient-to-br from-indigo-400 to-blue-500 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <Smartphone className="w-7 h-7 text-white" />
+              </div>
+              <div className="text-xl text-white mb-2">Review On The Go</div>
+              <p className="text-gray-400">
+                Practice anywhere with spaced repetition
+              </p>
+            </div>
+
+            <div className="group bg-gradient-to-br from-yellow-500/10 to-amber-500/10 backdrop-blur-lg p-8 rounded-2xl border border-yellow-500/20 hover:border-yellow-500/40 transition-all hover:shadow-xl hover:shadow-yellow-500/20 hover:-translate-y-1">
+              <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <BookOpen className="w-7 h-7 text-white" />
+              </div>
+              <div className="text-xl text-white mb-2">AI Flashcards</div>
+              <p className="text-gray-400">
+                Auto-convert highlighted notes into ready-to-review flashcards.
+              </p>
+            </div>
+          </div>
+
+          {/* Question types badges */}
+          <div className="flex flex-wrap gap-4 justify-center max-w-3xl mx-auto">
+            <div className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 backdrop-blur-lg border border-blue-400/30 rounded-full">
+              <Code2 className="w-5 h-5 text-blue-300" />
+              <span className="text-white font-medium">
+                Data Structures & Algorithms
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-orange-500/20 to-red-500/20 backdrop-blur-lg border border-orange-400/30 rounded-full">
+              <TrendingUp className="w-5 h-5 text-orange-300" />
+              <span className="text-white font-medium">System Design</span>
+            </div>
+            <div className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 backdrop-blur-lg border border-yellow-400/30 rounded-full">
+              <BookOpen className="w-5 h-5 text-yellow-300" />
+              <span className="text-white font-medium">
+                AI Notes ➜ Flashcards
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-pink-500/20 to-rose-500/20 backdrop-blur-lg border border-pink-400/30 rounded-full">
+              <Users className="w-5 h-5 text-pink-300" />
+              <span className="text-white font-medium">
+                Behavioral Questions
+              </span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Bottom wave */}
+      <div className="absolute bottom-0 left-0 right-0">
+        <svg
+          viewBox="0 0 1440 120"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L1360,120C1280,120,1120,120,960,120C800,120,640,120,480,120C320,120,160,120,80,120L0,120Z"
+            fill="white"
+          />
+        </svg>
+      </div>
+    </section>
   );
 }

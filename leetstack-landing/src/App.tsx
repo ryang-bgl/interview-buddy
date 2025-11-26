@@ -1,6 +1,6 @@
 import { Hero } from './components/Hero';
-import { Features } from './components/Features';
-import { TechDetails } from './components/TechDetails';
+import { BrowserExtension } from './components/BrowserExtension';
+import { MobileApp } from './components/MobileApp';
 import { HowItWorks } from './components/HowItWorks';
 import { CTA } from './components/CTA';
 import { Footer } from './components/Footer';
@@ -9,8 +9,8 @@ export default function App() {
   return (
     <div className="min-h-screen bg-white">
       <Hero />
-      <Features />
-      <TechDetails />
+      <BrowserExtension />
+      <MobileApp />
       <HowItWorks />
       <CTA />
       <Footer />

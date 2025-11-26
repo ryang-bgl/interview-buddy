@@ -1,71 +1,70 @@
-import { Download, Save, Repeat, Trophy } from 'lucide-react';
+import { Chrome, Cloud, Smartphone, RefreshCw, ArrowRight, Brain, Zap, Target } from 'lucide-react';
 
 export function HowItWorks() {
-  const steps = [
-    {
-      icon: Download,
-      title: 'Install & Authenticate',
-      description: 'Add the Chrome extension and paste your Interview Buddy API key to get started',
-      color: 'bg-blue-100 text-blue-600',
-    },
-    {
-      icon: Save,
-      title: 'Capture Solutions',
-      description: 'Click save on any LeetCode problem—preview the capture with all metadata before submission',
-      color: 'bg-green-100 text-green-600',
-    },
-    {
-      icon: Repeat,
-      title: 'Review with FSR',
-      description: 'Use the mobile app\'s spaced repetition engine to review at optimal intervals',
-      color: 'bg-purple-100 text-purple-600',
-    },
-    {
-      icon: Trophy,
-      title: 'Track Progress',
-      description: 'Monitor your streaks, daily goals, and improvement across all your saved solutions',
-      color: 'bg-orange-100 text-orange-600',
-    },
-  ];
-
   return (
-    <div className="py-20 sm:py-32 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-4xl sm:text-5xl text-gray-900 mb-4">
-            How It Works
-          </h2>
-          <p className="text-xl text-gray-600">
-            Get started with LeetStack in four simple steps
-          </p>
-        </div>
-        
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {steps.map((step, index) => (
-            <div key={index} className="relative">
-              <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow h-full">
-                <div className="space-y-4">
-                  <div className={`inline-flex items-center justify-center w-14 h-14 rounded-xl ${step.color}`}>
-                    <step.icon className="w-7 h-7" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="inline-flex items-center justify-center w-8 h-8 bg-gray-900 text-white rounded-full">
-                      {index + 1}
-                    </div>
-                    <h3 className="text-xl text-gray-900">{step.title}</h3>
-                    <p className="text-gray-600">{step.description}</p>
-                  </div>
-                </div>
-              </div>
-              
-              {index < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gray-200 -translate-y-1/2"></div>
-              )}
+    <section className="py-24 bg-white relative overflow-hidden">
+      {/* Background pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%239333ea' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`
+        }}></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-5xl mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl p-12 shadow-2xl shadow-indigo-500/30 relative overflow-hidden">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10">
+            <div className="text-center mb-10">
+              <h2 className="text-4xl md:text-5xl text-white mb-4">The Science Behind LeetStack</h2>
+              <p className="text-xl text-indigo-100 max-w-3xl mx-auto leading-relaxed">
+                Research shows that spaced repetition is one of the most effective learning techniques. By reviewing at optimal intervals, you move knowledge from short-term to long-term memory—transforming cramming into mastery.
+              </p>
             </div>
-          ))}
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+              {[
+                { 
+                  icon: Brain, 
+                  emoji: '🧠', 
+                  title: 'Better Retention', 
+                  desc: 'Remember solutions months later without re-solving',
+                  stat: '10x'
+                },
+                { 
+                  icon: Zap, 
+                  emoji: '⚡', 
+                  title: 'Efficient Learning', 
+                  desc: 'Focus time on what you\'re actually forgetting',
+                  stat: '5x Faster'
+                },
+                { 
+                  icon: Target, 
+                  emoji: '🎯', 
+                  title: 'Interview Ready', 
+                  desc: 'Build lasting problem-solving muscle memory',
+                  stat: '95% Success'
+                }
+              ].map((benefit, index) => (
+                <div key={index} className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 text-center hover:bg-white/20 transition-all hover:-translate-y-1 hover:scale-105">
+                  <div className="text-5xl mb-4">{benefit.emoji}</div>
+                  <div className="text-3xl font-bold text-white mb-2">{benefit.stat}</div>
+                  <div className="text-xl text-white mb-3">{benefit.title}</div>
+                  <p className="text-indigo-100">{benefit.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 text-center">
+              <p className="text-lg text-white leading-relaxed">
+                <span className="font-semibold">Powered by SuperMemo SM-2 algorithm:</span> Our FSR (Flexible Spaced Repetition) engine automatically calculates the perfect time to review each question based on your performance, ensuring maximum efficiency and retention.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

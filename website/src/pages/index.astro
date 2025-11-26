@@ -1,0 +1,46 @@
+---
+import "../styles/global.css";
+import { Hero } from "../components/Hero";
+import { BrowserExtension } from "../components/BrowserExtension";
+import { MobileApp } from "../components/MobileApp";
+import { HowItWorks } from "../components/HowItWorks";
+import { CTA } from "../components/CTA";
+import { Footer } from "../components/Footer";
+---
+
+<html lang="en">
+  <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-MNTLETS7T4"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-MNTLETS7T4');
+</script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LeetStack · Master LeetCode with Chrome Extension + Mobile Review</title>
+    <meta
+      name="description"
+      content="Save LeetCode solutions with the LeetStack Chrome extension and master them on the mobile app with spaced repetition."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/png" href="/leetstack.png" />
+    
+  </head>
+  <body>
+    <Hero />
+    <BrowserExtension />
+    <MobileApp />
+    <HowItWorks />
+    <CTA />
+    <Footer />
+  </body>
+</html>

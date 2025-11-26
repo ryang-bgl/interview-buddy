@@ -8,3 +8,5 @@ serverless/cdk.out
 serverless/dist
 .idea
 serverless/secret-config
+leetstack-landing/node_modules
+website/node_modules

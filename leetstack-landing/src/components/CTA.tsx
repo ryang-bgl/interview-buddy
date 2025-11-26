@@ -1,47 +1,53 @@
-import { Chrome, Smartphone, ArrowRight } from 'lucide-react';
+import { Chrome, Smartphone, ArrowRight, Sparkles, Trophy } from 'lucide-react';
 
 export function CTA() {
   return (
-    <div className="py-20 sm:py-32 bg-gradient-to-br from-blue-600 to-purple-600">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div className="space-y-8">
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl text-white">
-            Ready to Level Up Your Interview Prep?
-          </h2>
-          
-          <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-            Join thousands of developers who are mastering LeetCode with LeetStack
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-lg hover:bg-gray-100 transition-colors">
-              <Chrome className="w-5 h-5" />
-              <span>Add to Chrome - It's Free</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
-            <button className="inline-flex items-center gap-2 bg-gray-900 text-white px-8 py-4 rounded-lg hover:bg-gray-800 transition-colors">
-              <Smartphone className="w-5 h-5" />
-              <span>Download Mobile App</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
+    <section className="py-24 bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-1/4 left-1/2 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-lg border border-white/20 rounded-full mb-8">
+            <Trophy className="w-4 h-4 text-yellow-300" />
+            <span className="text-white">Join Thousands of Successful Developers</span>
           </div>
           
-          <div className="flex flex-wrap justify-center gap-8 text-white pt-8">
-            <div className="text-center">
-              <div className="text-4xl mb-1">10k+</div>
-              <div className="text-blue-100">Active Users</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl mb-1">500k+</div>
-              <div className="text-blue-100">Solutions Saved</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl mb-1">4.8★</div>
-              <div className="text-blue-100">Chrome Store Rating</div>
-            </div>
+          <h2 className="text-5xl md:text-6xl text-white mb-6 leading-tight">
+            Ready to Ace Your<br />
+            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
+              Next Tech Interview?
+            </span>
+          </h2>
+          <p className="text-xl text-indigo-200 mb-12 max-w-3xl mx-auto leading-relaxed">
+            Start saving your interview prep notes today. One click to capture, cloud sync to access anywhere, and mobile review to master everything.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
+            <button className="group px-10 py-6 bg-white text-purple-600 rounded-2xl hover:bg-gray-50 transition-all flex items-center gap-3 shadow-2xl shadow-white/20 hover:shadow-white/30 hover:scale-105 transform">
+              <Chrome className="w-6 h-6" />
+              <div className="text-left">
+                <div className="text-sm text-gray-500">Available on</div>
+                <div className="text-lg font-semibold">Chrome Web Store</div>
+              </div>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+            
+            <button className="group px-10 py-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center gap-3 shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transform">
+              <Smartphone className="w-6 h-6" />
+              <div className="text-left">
+                <div className="text-sm text-purple-200">Download for</div>
+                <div className="text-lg font-semibold">iOS & Android</div>
+              </div>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
