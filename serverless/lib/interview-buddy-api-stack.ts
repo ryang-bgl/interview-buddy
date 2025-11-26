@@ -298,6 +298,27 @@ export class InterviewBuddyApiStack extends Stack {
       }
     );
 
+    const listGeneralNotesFn = new NodejsFunction(
+      this,
+      "ListGeneralNotesFunction",
+      {
+        ...defaultLambdaProps,
+        entry: path.join(
+          __dirname,
+          "..",
+          "src",
+          "functions",
+          "notes",
+          "listGeneralNotes.ts"
+        ),
+        handler: "handler",
+        environment: {
+          ...commonLambdaEnv,
+          USER_NOTES_TABLE_NAME: userNotesTable.tableName,
+        },
+      }
+    );
+
     const addGeneralNoteCardFn = new NodejsFunction(
       this,
       "AddGeneralNoteCardFunction",
@@ -402,10 +423,12 @@ export class InterviewBuddyApiStack extends Stack {
     usersTable.grantReadWriteData(generalNoteJobRequestFn);
     usersTable.grantReadWriteData(getGeneralNoteJobFn);
     usersTable.grantReadWriteData(getGeneralNoteByUrlFn);
+    usersTable.grantReadWriteData(listGeneralNotesFn);
     usersTable.grantReadData(addGeneralNoteCardFn);
     usersTable.grantReadData(deleteGeneralNoteCardFn);
     userNotesTable.grantReadWriteData(generalNoteJobProcessorFn);
     userNotesTable.grantReadData(getGeneralNoteByUrlFn);
+    userNotesTable.grantReadData(listGeneralNotesFn);
     userNotesTable.grantReadWriteData(addGeneralNoteCardFn);
     userNotesTable.grantReadWriteData(deleteGeneralNoteCardFn);
     generalNoteJobsTable.grantReadWriteData(generalNoteJobRequestFn);
@@ -497,11 +520,20 @@ export class InterviewBuddyApiStack extends Stack {
     });
 
     httpApi.addRoutes({
-      path: "/api/ai/general-note/notes",
+      path: "/api/general-note/note",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration(
         "GetGeneralNoteByUrlIntegration",
         getGeneralNoteByUrlFn
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: "/api/general-note/notes",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration(
+        "ListGeneralNotesIntegration",
+        listGeneralNotesFn
       ),
     });
 

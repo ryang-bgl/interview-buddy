@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+# Add new routes as they launch so crawlers can prioritize fresh content.

@@ -6,7 +6,6 @@ import {
   UnauthorizedError,
 } from "../../shared/supabaseAuth";
 import {
-  badRequest,
   internalError,
   jsonResponse,
   unauthorized,
@@ -17,6 +16,18 @@ const userNotesTableName = process.env.USER_NOTES_TABLE_NAME;
 
 if (!userNotesTableName) {
   throw new Error("USER_NOTES_TABLE_NAME env var must be set");
+}
+
+interface NoteSummary {
+  noteId: string;
+  url: string;
+  topic: string | null;
+  summary: string | null;
+  createdAt: string;
+  lastReviewedAt: string | null;
+  lastReviewStatus: string | null;
+  cardCount: number;
+  tags: string[];
 }
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
@@ -37,16 +48,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     return internalError();
   }
 
-  const rawUrl = event.queryStringParameters?.url;
-  if (!rawUrl) {
-    return badRequest("url query parameter is required");
-  }
-
-  const normalizedUrl = normalizeUrl(rawUrl);
-  if (!normalizedUrl) {
-    return badRequest("url must be a valid HTTP or HTTPS URL");
-  }
-
   try {
     const query = new QueryCommand({
       TableName: userNotesTableName,
@@ -59,47 +60,40 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     });
     const result = await docClient.send(query);
     const items = (result.Items as UserNoteRecord[] | undefined) ?? [];
-    const match = items.find((note) => note.sourceUrl === normalizedUrl);
 
-    if (!match) {
-      return jsonResponse(404, { message: "Note not found" });
-    }
+    const summaries: NoteSummary[] = items
+      .map((note) => mapToSummary(note))
+      .sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
 
-    return jsonResponse(200, mapNote(match));
+    return jsonResponse(200, { notes: summaries });
   } catch (error) {
-    console.error("Failed to load existing general note", error);
+    console.error("Failed to list general notes", error);
     return internalError();
   }
 };
 
-function mapNote(note: UserNoteRecord) {
+function mapToSummary(note: UserNoteRecord): NoteSummary {
+  const tags = new Set<string>();
+  (note.cards ?? []).forEach((card) => {
+    card?.tags?.forEach((tag) => {
+      const trimmed = tag.trim();
+      if (trimmed) {
+        tags.add(trimmed);
+      }
+    });
+  });
+
   return {
     noteId: note.noteId,
     url: note.sourceUrl,
     topic: note.topic ?? null,
     summary: note.summary ?? null,
-    cards: note.cards ?? [],
     createdAt: note.createdAt,
     lastReviewedAt: note.lastReviewedAt ?? null,
     lastReviewStatus: note.lastReviewStatus ?? null,
+    cardCount: note.cards?.length ?? 0,
+    tags: Array.from(tags),
   };
-}
-
-function normalizeUrl(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-  try {
-    const parsed = new URL(trimmed);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return null;
-    }
-    return parsed.toString();
-  } catch {
-    return null;
-  }
 }

@@ -68,11 +68,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="stats"
+        name="flashcards"
         options={{
-          title: "Stats",
+          title: "Flashcards",
           tabBarIcon: ({ color }) => (
-            <TabBarIcon name="bar-chart-2" color={color} />
+            <TabBarIcon name="layers" color={color} />
           ),
         }}
       />

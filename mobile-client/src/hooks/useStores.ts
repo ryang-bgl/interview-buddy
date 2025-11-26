@@ -1,4 +1,4 @@
-import { useAuthStore, useSolutionStore, useAppStore, useQuestionStore } from '@/stores';
+import { useAuthStore, useSolutionStore, useAppStore, useQuestionStore, useFlashcardStore } from '@/stores';
 
 // Combined store hook for components that need multiple stores
 export const useStores = () => {
@@ -145,6 +145,42 @@ export const useAppState = () => {
     showNotification,
     hideNotification,
     markFirstLaunchComplete,
+  };
+};
+
+export const useFlashcards = () => {
+  const {
+    notes,
+    summaries,
+    reviewNoteIds,
+    reviewStates,
+    isLoading,
+    error,
+    lastUpdatedAt,
+    loadNotes,
+    refreshNotes,
+    reviewCard,
+    getAllReminders,
+    getDueCards,
+    clearError,
+    toggleReviewNote,
+  } = useFlashcardStore();
+
+  return {
+    notes,
+    summaries,
+    reviewNoteIds,
+    reviewStates,
+    isLoading,
+    error,
+    lastUpdatedAt,
+    loadNotes,
+    refreshNotes,
+    reviewCard,
+    getAllReminders,
+    getDueCards,
+    clearError,
+    toggleReviewNote,
   };
 };
 

@@ -46,6 +46,10 @@ export function Hero() {
             </span>
           </h1>
 
+          <div className="mb-12">
+            <JoinWaitlist />
+          </div>
+
           <p className="max-w-3xl mx-auto text-xl text-gray-300 mb-12 leading-relaxed">
             one-click to save your notes for{" "}
             <span className="text-purple-300 font-semibold">DSA</span>, turn{" "}
@@ -86,11 +90,6 @@ export function Hero() {
               </span>
             </div>
           </div>
-
-          <div className="mb-20">
-            <JoinWaitlist />
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 max-w-5xl mx-auto mb-16">
             <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-lg p-8 rounded-2xl border border-green-500/20 hover:border-green-500/40 transition-all hover:shadow-xl hover:shadow-green-500/20 hover:-translate-y-1">
               <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">

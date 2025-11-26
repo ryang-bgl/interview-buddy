@@ -243,7 +243,7 @@ export async function getExistingGeneralNote(
   url: string
 ): Promise<GeneralNoteNoteResponse | null> {
   const encodedUrl = encodeURIComponent(url);
-  const response = await request(`/api/ai/general-note/notes?url=${encodedUrl}`, {
+  const response = await request(`/api/general-note/note?url=${encodedUrl}`, {
     method: "GET",
   });
 

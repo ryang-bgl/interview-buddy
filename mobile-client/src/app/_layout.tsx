@@ -61,6 +61,10 @@ function RootLayoutNav() {
         <Stack.Protected guard={isAuthenticated}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="problem" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="note-review/[noteId]"
+            options={{ headerShown: false }}
+          />
           <Stack.Screen name="modal" options={{ presentation: "modal" }} />
         </Stack.Protected>
         <Stack.Protected guard={!isAuthenticated}>

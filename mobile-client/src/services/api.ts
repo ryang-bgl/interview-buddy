@@ -1,5 +1,9 @@
 import { LeetCodeSolution, UserStats } from "@/types/solution";
 import { DsaQuestion } from "@/types/question";
+import {
+  FlashcardNoteRecord,
+  FlashcardNoteSummaryResponse,
+} from "@/types/flashcard";
 import { getSupabaseClient } from "@/config/supabase";
 
 // Configuration
@@ -174,6 +178,25 @@ class ApiClient {
 
   async getQuestions(): Promise<ApiResponse<DsaQuestion[]>> {
     return this.request<DsaQuestion[]>("/api/dsa/questions", {}, "supabase");
+  }
+
+  async listGeneralNotes(): Promise<ApiResponse<FlashcardNoteSummaryResponse>> {
+    return this.request<FlashcardNoteSummaryResponse>(
+      "/api/general-note/notes",
+      {},
+      "supabase"
+    );
+  }
+
+  async getGeneralNoteByUrl(
+    url: string
+  ): Promise<ApiResponse<FlashcardNoteRecord>> {
+    const search = `?url=${encodeURIComponent(url)}`;
+    return this.request<FlashcardNoteRecord>(
+      `/api/general-note/note${search}`,
+      {},
+      "supabase"
+    );
   }
 
   async updateQuestionReview(

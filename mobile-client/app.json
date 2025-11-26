@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "leetcode-reviewer",
-    "slug": "leetcode-reviewer",
+    "name": "LeetStack",
+    "slug": "leet-stack",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/assets/images/leetstack.png",
-    "scheme": "leetcodereviewer",
+    "scheme": "leetstack",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
