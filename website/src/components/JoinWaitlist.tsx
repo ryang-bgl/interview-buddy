@@ -33,8 +33,8 @@ export function JoinWaitlist() {
 
   return (
     <div className="w-full" id="waitlist">
-      <div className="mx-auto flex max-w-4xl flex-col gap-4 rounded-3xl border border-white/20 bg-white/10 px-6 py-6 text-left text-white shadow-2xl shadow-purple-900/20 backdrop-blur">
-        <div className="flex flex-col items-start gap-3">
+      <div className="mx-auto flex max-w-4xl flex-col gap-4 rounded-3xl border border-white/20 bg-white/10 px-6 py-6 text-white shadow-2xl shadow-purple-900/20 backdrop-blur">
+        <div className="flex flex-col items-center gap-3 text-center">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-purple-200">
               Chrome Extension + Mobile beta
