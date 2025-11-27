@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { saveUserDsaQuestion, type UserPrincipal } from "@/lib/api";
+import {
+  saveUserDsaQuestion,
+  generateAiSolution,
+  type UserPrincipal,
+} from "@/lib/api";
 import FieldLabel from "./FieldLabel";
 import GeneralNotesTab from "./GeneralNotesTab";
 import {
@@ -31,6 +35,9 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
   const [titleInput, setTitleInput] = useState("");
   const [descriptionInput, setDescriptionInput] = useState("");
   const [codeInput, setCodeInput] = useState("");
+  const [idealSolutionInput, setIdealSolutionInput] = useState("");
+  const [isGeneratingIdealSolution, setIsGeneratingIdealSolution] =
+    useState(false);
   const [notesInput, setNotesInput] = useState("");
   const [languageLabel, setLanguageLabel] = useState("Unknown");
   const [difficultyLabel, setDifficultyLabel] = useState("Unknown");
@@ -53,6 +60,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     setTitleInput(state.title ?? "");
     setDescriptionInput(state.description ?? "");
     setCodeInput(state.code ?? "");
+    setIdealSolutionInput(state.idealSolution ?? "");
     setNotesInput(state.notes ?? "");
     setDifficultyLabel(state.difficulty ?? "Unknown");
   }, []);
@@ -94,6 +102,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
           return;
         }
 
+        console.log("=====pageDetails", pageDetails);
         setLanguageLabel(pageDetails.language ?? "Unknown");
 
         const normalizedUrl = normalizeLeetCodeUrl(
@@ -114,8 +123,9 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
           title: pageDetails.problemTitle ?? "",
           description: description || "",
           code: pageDetails.solutionCode?.trim() ?? "",
+          idealSolution: "",
           notes: "",
-          language: languageLabel ?? "Unable to detect",
+          language: pageDetails.language,
           difficulty: pageDetails.difficulty ?? "Unknown",
         };
 
@@ -157,6 +167,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
       title: titleInput,
       description: descriptionInput,
       code: codeInput,
+      idealSolution: idealSolutionInput,
       notes: notesInput,
       language: languageLabel,
       difficulty: difficultyLabel,
@@ -180,6 +191,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     titleInput,
     descriptionInput,
     codeInput,
+    idealSolutionInput,
     notesInput,
     languageLabel,
     difficultyLabel,
@@ -192,6 +204,30 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     }
   }, []);
 
+  const handleGenerateIdealSolution = useCallback(async () => {
+    if (isGeneratingIdealSolution) {
+      return;
+    }
+    setIsGeneratingIdealSolution(true);
+    setSaveError(null);
+    try {
+      const payload = {
+        questionIndex: `${problemNumber}`,
+        language: languageLabel || undefined,
+      };
+      const response = await generateAiSolution(payload);
+      setIdealSolutionInput(response.answer);
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to generate AI solution";
+      setSaveError(message);
+    } finally {
+      setIsGeneratingIdealSolution(false);
+    }
+  }, [isGeneratingIdealSolution, languageLabel]);
+
   const handleCancel = useCallback(() => {
     const baseline = initialStateRef.current ?? {
       url: currentUrl,
@@ -199,6 +235,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
       title: "",
       description: "",
       code: "",
+      idealSolution: "",
       notes: "",
       language: languageLabel,
       difficulty: difficultyLabel,
@@ -225,7 +262,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     setLastSavedTitle(null);
   }, [applyFormState, currentUrl, difficultyLabel, languageLabel]);
 
-  const handleSave = async () => {
+  const computeQuestionIndex = useCallback(() => {
     const trimmedTitle =
       titleInput.trim() ||
       (problemNumber
@@ -238,9 +275,25 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
       : `problem-${Date.now()}`;
     const titleSlug = derivedSlug || fallbackSlug;
     const normalizedProblemNumber = problemNumber.trim();
-    const questionIndex = normalizedProblemNumber || titleSlug;
+    return normalizedProblemNumber || titleSlug;
+  }, [problemLink, problemNumber, titleInput]);
+
+  const handleSave = async () => {
+    const trimmedTitle =
+      titleInput.trim() ||
+      (problemNumber
+        ? `LeetCode Problem ${problemNumber}`
+        : "Untitled Problem");
+    const slugFromUrl = extractSlugFromUrl(problemLink);
+    const derivedSlug = slugFromUrl || slugify(trimmedTitle);
+    const fallbackSlug = problemNumber
+      ? `problem-${problemNumber}`
+      : `problem-${Date.now()}`;
+    const titleSlug = derivedSlug || fallbackSlug;
+    const questionIndex = computeQuestionIndex();
     const description = descriptionInput.trim() || "No description provided.";
     const solution = codeInput.trim() || null;
+    const idealSolution = idealSolutionInput.trim() || null;
     const note = notesInput.trim() || null;
     const difficultyValue = difficultyLabel?.trim() || "Unknown";
 
@@ -256,6 +309,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
         difficulty: difficultyValue,
         description,
         solution,
+        idealSolutionCode: idealSolution,
         note,
       });
 
@@ -268,6 +322,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
           title: titleInput,
           description: descriptionInput,
           code: codeInput,
+          idealSolution: idealSolutionInput,
           notes: notesInput,
           language: languageLabel,
           difficulty: difficultyValue,
@@ -469,7 +524,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                 </FieldLabel>
-                <FieldLabel label="Your Solution Code">
+                <FieldLabel label={`Your Solution Code (})`}>
                   <textarea
                     rows={9}
                     value={codeInput}
@@ -480,6 +535,38 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
                         'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
                     }}
                   />
+                </FieldLabel>
+                <FieldLabel label="Ideal Solution (Optional)">
+                  <div className="space-y-3">
+                    <textarea
+                      rows={7}
+                      value={idealSolutionInput}
+                      onChange={(event) =>
+                        setIdealSolutionInput(event.target.value)
+                      }
+                      placeholder="Add an ideal or editorial-grade solution for quick reference"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                      style={{
+                        fontFamily:
+                          'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                      }}
+                    />
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+                      <span>
+                        Store the polished solution you want to memorize.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleGenerateIdealSolution}
+                        disabled={isGeneratingIdealSolution}
+                        className="rounded-full bg-purple-600 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {isGeneratingIdealSolution
+                          ? "Generating..."
+                          : "Generate with AI"}
+                      </button>
+                    </div>
+                  </div>
                 </FieldLabel>
 
                 <FieldLabel label="Personal Notes (Optional)">

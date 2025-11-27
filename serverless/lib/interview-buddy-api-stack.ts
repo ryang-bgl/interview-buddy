@@ -118,6 +118,14 @@ export class InterviewBuddyApiStack extends Stack {
       timeToLiveAttribute: "expiresAt",
     });
 
+    const aiSolutionTable = new Table(this, "AiSolutionTable", {
+      tableName: `interview-buddy-ai-solutions-${stageSuffix}`,
+      partitionKey: { name: "questionIndex", type: AttributeType.STRING },
+      sortKey: { name: "language", type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
     const commonLambdaEnv = {
       STAGE: stage,
       USERS_TABLE_NAME: usersTable.tableName,
@@ -198,6 +206,32 @@ export class InterviewBuddyApiStack extends Stack {
         environment: {
           ...commonLambdaEnv,
           USER_DSA_TABLE_NAME: userDsaTable.tableName,
+        },
+      }
+    );
+
+    const generateAiSolutionFn = new NodejsFunction(
+      this,
+      "GenerateAiSolutionFunction",
+      {
+        ...defaultLambdaProps,
+        timeout: Duration.seconds(30),
+        entry: path.join(
+          __dirname,
+          "..",
+          "src",
+          "functions",
+          "dsa",
+          "generateAiSolution.ts"
+        ),
+        handler: "handler",
+        environment: {
+          ...commonLambdaEnv,
+          USER_DSA_TABLE_NAME: userDsaTable.tableName,
+          AI_SOLUTION_TABLE_NAME: aiSolutionTable.tableName,
+          DEEPSEEK_API_KEY: deepseekApiKey.valueAsString,
+          DEEPSEEK_API_URL: deepseekApiUrl.valueAsString,
+          DEEPSEEK_MODEL: deepseekModel.valueAsString,
         },
       }
     );
@@ -426,6 +460,7 @@ export class InterviewBuddyApiStack extends Stack {
     usersTable.grantReadWriteData(listGeneralNotesFn);
     usersTable.grantReadData(addGeneralNoteCardFn);
     usersTable.grantReadData(deleteGeneralNoteCardFn);
+    usersTable.grantReadData(generateAiSolutionFn);
     userNotesTable.grantReadWriteData(generalNoteJobProcessorFn);
     userNotesTable.grantReadData(getGeneralNoteByUrlFn);
     userNotesTable.grantReadData(listGeneralNotesFn);
@@ -434,6 +469,8 @@ export class InterviewBuddyApiStack extends Stack {
     generalNoteJobsTable.grantReadWriteData(generalNoteJobRequestFn);
     generalNoteJobsTable.grantReadWriteData(generalNoteJobProcessorFn);
     generalNoteJobsTable.grantReadData(getGeneralNoteJobFn);
+    userDsaTable.grantReadData(generateAiSolutionFn);
+    aiSolutionTable.grantReadWriteData(generateAiSolutionFn);
 
     const cors: CorsPreflightOptions = {
       allowHeaders: ["Content-Type", "x-api-key", "authorization"],
@@ -552,6 +589,15 @@ export class InterviewBuddyApiStack extends Stack {
       integration: new HttpLambdaIntegration(
         "DeleteGeneralNoteCardIntegration",
         deleteGeneralNoteCardFn
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: "/api/dsa/ai-solution",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration(
+        "GenerateAiSolutionIntegration",
+        generateAiSolutionFn
       ),
     });
 

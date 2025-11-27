@@ -96,6 +96,44 @@ export interface UserDsaQuestionResponse {
   note: string | null;
 }
 
+export interface GenerateAiSolutionRequest {
+  questionIndex: string;
+  model?: string;
+  language?: string;
+}
+
+export interface GenerateAiSolutionResponse {
+  questionIndex: string;
+  model: string;
+  answer: string;
+  cached: boolean;
+}
+
+export async function generateAiSolution(
+  payload: GenerateAiSolutionRequest
+): Promise<GenerateAiSolutionResponse> {
+  const response = await request(`/api/dsa/ai-solution`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  if (response.ok) {
+    return (await response.json()) as GenerateAiSolutionResponse;
+  }
+
+  let message = "Failed to generate AI solution";
+  try {
+    const body = await response.json();
+    if (body && typeof body.message === "string") {
+      message = body.message;
+    }
+  } catch (error) {
+    console.warn("[leetstack] Unable to parse AI solution error", error);
+  }
+
+  throw new Error(message);
+}
+
 export async function saveUserDsaQuestion(
   payload: CreateUserDsaQuestionRequest
 ): Promise<UserDsaQuestionResponse> {

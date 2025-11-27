@@ -8,6 +8,16 @@ export interface UserRecord {
   lastUpdatedDate?: string;
 }
 
+export interface AiSolutionRecord {
+  id: string;
+  questionIndex: string;
+  model: string;
+  language: string;
+  answer: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserDsaQuestionRecord {
   userId: string;
   questionIndex: string;
@@ -22,7 +32,7 @@ export interface UserDsaQuestionRecord {
   createdAt: string;
   updatedAt: string;
   lastReviewedAt?: string;
-  lastReviewStatus?: 'easy' | 'good' | 'hard';
+  lastReviewStatus?: "easy" | "good" | "hard";
 }
 
 export interface UserNoteCardRecord {
@@ -49,10 +59,14 @@ export interface UserNoteRecord {
   createdAt: string;
   updatedAt: string;
   lastReviewedAt?: string | null;
-  lastReviewStatus?: 'easy' | 'good' | 'hard' | null;
+  lastReviewStatus?: "easy" | "good" | "hard" | null;
 }
 
-export type UserNoteJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type UserNoteJobStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed";
 
 export interface UserNoteJobRecord {
   jobId: string;

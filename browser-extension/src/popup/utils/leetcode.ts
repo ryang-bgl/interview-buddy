@@ -152,18 +152,10 @@ export async function findLeetCodeProblemDetailsInActivePage(
           };
 
           const detectLanguage = (): string | undefined => {
-            const selectors = [
-              '[data-cy="language-select-menu"] button span',
-              '[data-cy="lang-select"] span',
-              ".editor-lang-shortcut span",
-              ".ant-select-selection-item",
-            ];
-            for (const selector of selectors) {
-              const node = document.querySelector<HTMLElement>(selector);
-              const text = node?.textContent?.trim();
-              if (text) {
-                return text;
-              }
+            const node = document.querySelector<HTMLElement>("#editor button");
+            const text = node?.textContent?.trim();
+            if (text) {
+              return text;
             }
             return undefined;
           };
@@ -264,6 +256,7 @@ export async function findLeetCodeProblemDetailsInActivePage(
           let solutionCode: string | undefined;
           let detectedLanguage = detectLanguage();
 
+          console.log("======", detectedLanguage);
           try {
             const indexed = await readIndexedDbSolution(
               titleMatch[1],
@@ -282,6 +275,8 @@ export async function findLeetCodeProblemDetailsInActivePage(
             tempContainer.innerHTML = descriptionHtml;
             descriptionText = tempContainer.textContent?.trim();
           }
+
+          console.log("======detectedLanguage", detectedLanguage);
 
           return {
             problemNumber: titleMatch[1],

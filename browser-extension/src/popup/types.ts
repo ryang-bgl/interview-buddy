@@ -15,6 +15,7 @@ export interface PopupFormState {
   title: string;
   description: string;
   code: string;
+  idealSolution?: string;
   notes: string;
   language?: string;
   difficulty?: string;
