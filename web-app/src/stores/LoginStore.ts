@@ -6,12 +6,10 @@ import {
   readPendingAuthEmail,
   storePendingAuthEmail,
 } from '@/utils/authStorage'
-import type { RootStore } from './RootStore'
 
 type AuthViewState = 'checking' | 'enterEmail' | 'awaitingOtp' | 'authenticated'
 
 export class LoginStore {
-  private root: RootStore
   email = ''
   otp = ''
   viewState: AuthViewState = 'checking'
@@ -19,9 +17,8 @@ export class LoginStore {
   isSubmitting = false
   user: User | null = null
 
-  constructor(root: RootStore) {
-    this.root = root
-    makeAutoObservable(this, { root: false }, { autoBind: true })
+  constructor() {
+    makeAutoObservable(this, {}, { autoBind: true })
     void this.initialize()
   }
 
