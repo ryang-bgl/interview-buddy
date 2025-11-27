@@ -263,6 +263,10 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
   }, [applyFormState, currentUrl, difficultyLabel, languageLabel]);
 
   const computeQuestionIndex = useCallback(() => {
+    const normalizedProblemNumber = problemNumber.trim();
+    if (normalizedProblemNumber) {
+      return normalizedProblemNumber;
+    }
     const trimmedTitle =
       titleInput.trim() ||
       (problemNumber
@@ -273,9 +277,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     const fallbackSlug = problemNumber
       ? `problem-${problemNumber}`
       : `problem-${Date.now()}`;
-    const titleSlug = derivedSlug || fallbackSlug;
-    const normalizedProblemNumber = problemNumber.trim();
-    return normalizedProblemNumber || titleSlug;
+    return derivedSlug || fallbackSlug;
   }, [problemLink, problemNumber, titleInput]);
 
   const handleSave = async () => {
@@ -559,7 +561,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
                         type="button"
                         onClick={handleGenerateIdealSolution}
                         disabled={isGeneratingIdealSolution}
-                        className="rounded-full bg-purple-600 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
+                        className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-orange-400 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition hover:shadow-xl hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
                       >
                         {isGeneratingIdealSolution
                           ? "Generating..."
