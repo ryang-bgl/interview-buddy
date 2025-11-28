@@ -24,6 +24,9 @@ const DashboardView = observer(() => {
   const upNextProblems = notebookStore.filteredProblems.slice(0, 3);
   const noteHighlights = notebookStore.notes.slice(0, 2);
   const dueCards = notebookStore.filteredReviewCards.slice(0, 4);
+  const dueProblemCount = notebookStore.dueProblemCount;
+  const dueNoteCount = notebookStore.dueNoteCount;
+  const totalDue = dueProblemCount + dueNoteCount;
   const perDifficultyEntries = Object.entries(stats.perDifficulty);
   const loadingProblems =
     notebookStore.isLoadingProblems && !notebookStore.hasLoadedProblems;
@@ -101,10 +104,10 @@ const DashboardView = observer(() => {
                 <LoadingIndicator />
               ) : (
                 <>
-                  <CardTitle className="text-3xl">{stats.dueCards}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Jump into Review to keep the streak alive
-                  </p>
+                    <CardTitle className="text-3xl">{totalDue}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {dueProblemCount} problems · {dueNoteCount} notes ready for review
+                    </p>
                 </>
               )}
             </CardHeader>
@@ -187,7 +190,7 @@ const DashboardView = observer(() => {
                   <div>
                     <p className="text-sm font-medium">Suggested block</p>
                     <p className="text-xs text-muted-foreground">
-                      {dueCards.length} cards waiting · 25 min focus
+                      {totalDue} cards waiting · 25 min focus
                     </p>
                   </div>
                 </div>

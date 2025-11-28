@@ -47,7 +47,7 @@ const ProtectedShell = observer(() => {
     <div className="grid min-h-screen bg-slate-950 text-white lg:grid-cols-[260px_1fr]">
       <aside className="hidden flex-col border-r border-white/5 bg-slate-950/80 px-6 py-8 lg:flex">
         <div className="space-y-1">
-          <p className="text-xl font-semibold">LeetStack</p>
+          <p className="text-xl font-semibold">LeetStack (beta)</p>
         </div>
         <nav className="mt-8 space-y-2">
           {navItems.map((item) => (
@@ -84,8 +84,12 @@ const ProtectedShell = observer(() => {
               <Menu className="h-4 w-4" />
             </button>
             <div>
-              <p className="text-sm text-muted-foreground">Notebook workspace</p>
-              <h1 className="text-lg font-semibold">Ship smarter practice sessions</h1>
+              <p className="text-sm text-muted-foreground">
+                Notebook workspace
+              </p>
+              <h1 className="text-lg font-semibold">
+                Ship smarter practice sessions
+              </h1>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -107,15 +111,17 @@ const ProtectedShell = observer(() => {
         <div className="lg:hidden">
           <div
             className={cn(
-              'fixed inset-0 z-30 bg-slate-950/60 transition-opacity duration-200',
-              mobileNavOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+              "fixed inset-0 z-30 bg-slate-950/60 transition-opacity duration-200",
+              mobileNavOpen
+                ? "pointer-events-auto opacity-100"
+                : "pointer-events-none opacity-0"
             )}
             onClick={closeMobileNav}
           />
           <div
             className={cn(
-              'fixed inset-y-0 left-0 z-40 w-72 max-w-[80%] border-r border-slate-200 bg-white p-6 shadow-2xl transition-transform duration-200',
-              mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
+              "fixed inset-y-0 left-0 z-40 w-72 max-w-[80%] border-r border-slate-200 bg-white p-6 shadow-2xl transition-transform duration-200",
+              mobileNavOpen ? "translate-x-0" : "-translate-x-full"
             )}
           >
             <nav className="flex flex-col gap-2">
@@ -126,8 +132,10 @@ const ProtectedShell = observer(() => {
                   onClick={closeMobileNav}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium',
-                      isActive ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-700'
+                      "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium",
+                      isActive
+                        ? "border-slate-900 bg-slate-900 text-white"
+                        : "border-slate-200 text-slate-700"
                     )
                   }
                 >
@@ -155,7 +163,10 @@ function App() {
         <Route path="/dashboard" element={<DashboardView />} />
         <Route path="/problems" element={<ProblemsView />} />
         <Route path="/problems/:problemId" element={<ProblemDetailView />} />
-        <Route path="/review/problems/:problemId" element={<ProblemReviewView />} />
+        <Route
+          path="/review/problems/:problemId"
+          element={<ProblemReviewView />}
+        />
         <Route path="/notes" element={<NotesView />} />
         <Route path="/notes/:noteId" element={<NoteDetailView />} />
         <Route path="/review" element={<ReviewView />} />

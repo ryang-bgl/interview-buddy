@@ -9,6 +9,12 @@ import {
   type FlashcardNoteSummary,
   updateQuestionReview,
 } from '@/lib/api'
+import {
+  createInitialReviewState,
+  spacedRepetitionScheduler,
+  type ReviewState,
+} from '@/lib/spacedRepetition'
+import { loadReviewStates, persistReviewStates } from '@/utils/reviewStateStorage'
 
 export type ReviewSource = 'all' | 'problems' | 'notes'
 
@@ -31,7 +37,6 @@ interface NotebookNote extends FlashcardNoteRecord {
   cardCount: number
 }
 
-const defaultDueIso = () => new Date().toISOString()
 const ensureCardId = (noteId: string, card: FlashcardCardRecord, index: number) => ({
   ...card,
   id: card.id ?? `${noteId}-${index}`,
@@ -60,6 +65,7 @@ export class NotebookStore {
   reviewTagFilters = new Set<string>()
 
   private reviewCards = new Map<string, ReviewCard>()
+  private reviewStates = loadReviewStates()
 
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true })
@@ -157,12 +163,14 @@ export class NotebookStore {
 
   private rebuildReviewCards() {
     const previous = new Map(this.reviewCards)
+    const validIds = new Set<string>()
     this.reviewCards.clear()
 
     this.problems.forEach((problem) => {
       const id = `problem-${problem.id}`
       const existing = previous.get(id)
       const baseTags = problem.tags ?? []
+      const state = this.ensureReviewState(id)
       this.reviewCards.set(id, {
         id,
         prompt: `${problem.title} · explain the optimal approach`,
@@ -170,18 +178,20 @@ export class NotebookStore {
         extra: problem.note ?? problem.description,
         tags: baseTags,
         streak: existing?.streak ?? 0,
-        due: existing?.due ?? problem.lastReviewedAt ?? defaultDueIso(),
+        due: state.nextReviewDate,
         sourceType: 'problem',
         sourceId: problem.id,
         sourceTitle: problem.title,
         questionIndex: problem.questionIndex ?? problem.id,
       })
+      validIds.add(id)
     })
 
     this.notes.forEach((note) => {
       note.cards.forEach((card, index) => {
         const id = `note-${note.noteId}-${card.id ?? index}`
         const existing = previous.get(id)
+        const state = this.ensureReviewState(id)
         this.reviewCards.set(id, {
           id,
           prompt: card.front,
@@ -189,13 +199,21 @@ export class NotebookStore {
           extra: card.extra,
           tags: card.tags ?? [],
           streak: existing?.streak ?? 0,
-          due: existing?.due ?? note.lastReviewedAt ?? defaultDueIso(),
+          due: state.nextReviewDate,
           sourceType: 'note',
           sourceId: note.noteId,
           sourceTitle: note.topic ?? note.summary ?? note.url,
         })
+        validIds.add(id)
       })
     })
+
+    for (const key of Array.from(this.reviewStates.keys())) {
+      if (!validIds.has(key)) {
+        this.reviewStates.delete(key)
+      }
+    }
+    this.persistReviewStates()
   }
 
   get problemTags() {
@@ -315,6 +333,22 @@ export class NotebookStore {
     return this.problems.find((problem) => problem.id === id || problem.questionIndex === id) ?? null
   }
 
+  get dueProblemCount() {
+    const now = Date.now()
+    return this.reviewCardList.filter(
+      (card) => card.sourceType === 'problem' && new Date(card.due).getTime() <= now,
+    ).length
+  }
+
+  get dueNoteCount() {
+    const now = Date.now()
+    const dueNotes = this.reviewCardList.filter(
+      (card) => card.sourceType === 'note' && new Date(card.due).getTime() <= now,
+    )
+    const ids = new Set(dueNotes.map((card) => card.sourceId))
+    return ids.size
+  }
+
   updateProblemNotes(id: string, value: string) {
     const problem = this.getProblemById(id)
     if (problem) {
@@ -372,20 +406,30 @@ export class NotebookStore {
   gradeReviewCard(cardId: string, grade: 'hard' | 'good' | 'easy') {
     const card = this.reviewCards.get(cardId)
     if (!card) return
-    const now = new Date()
-    const increments: Record<'hard' | 'good' | 'easy', number> = {
-      hard: 45,
-      good: 4 * 60,
-      easy: 12 * 60,
+    const state = this.ensureReviewState(cardId)
+    const snapshot = {
+      easeFactor: state.easeFactor,
+      interval: state.interval,
+      repetitions: state.repetitions,
     }
-    const newDue = new Date(now.getTime() + increments[grade] * 60 * 1000)
+    const result = spacedRepetitionScheduler.schedule(snapshot, grade)
+    const updatedState: ReviewState = {
+      easeFactor: result.easeFactor,
+      interval: result.interval,
+      repetitions: result.repetitions,
+      nextReviewDate: result.nextReviewDate.toISOString(),
+      lastReviewedAt: result.lastReviewedAt.toISOString(),
+    }
+    this.reviewStates.set(cardId, updatedState)
+    this.persistReviewStates()
+
     const newStreak = grade === 'hard' ? 0 : card.streak + 1
-    const updated = { ...card, streak: newStreak, due: newDue.toISOString() }
+    const updated = { ...card, streak: newStreak, due: updatedState.nextReviewDate }
     this.reviewCards.set(cardId, updated)
 
     if (card.sourceType === 'problem' && card.questionIndex) {
       updateQuestionReview(card.questionIndex, {
-        lastReviewedAt: now.toISOString(),
+        lastReviewedAt: updatedState.lastReviewedAt ?? result.lastReviewedAt.toISOString(),
         lastReviewStatus: grade,
       }).catch((error) => console.warn('[leetstack] Failed to sync review', error))
     }
@@ -435,5 +479,20 @@ export class NotebookStore {
       noteCount: this.notes.length,
       dueCards,
     }
+  }
+
+  private ensureReviewState(cardId: string): ReviewState {
+    const existing = this.reviewStates.get(cardId)
+    if (existing) {
+      return existing
+    }
+    const initial = createInitialReviewState()
+    this.reviewStates.set(cardId, initial)
+    this.persistReviewStates()
+    return initial
+  }
+
+  private persistReviewStates() {
+    persistReviewStates(this.reviewStates)
   }
 }
