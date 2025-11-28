@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { LoadingIndicator } from '@/components/ui/loading-indicator'
 
 const difficulties: Array<'All' | 'Easy' | 'Medium' | 'Hard'> = ['All', 'Easy', 'Medium', 'Hard']
 
@@ -74,8 +75,8 @@ const ProblemsView = observer(() => {
 
       <div className="grid gap-4">
         {initialLoading ? (
-          <div className="rounded-2xl border border-border/60 bg-muted/40 p-6 text-sm text-muted-foreground">
-            Loading problems…
+          <div className="rounded-2xl border border-border/60 bg-muted/40 p-6">
+            <LoadingIndicator label="Syncing DSA problems…" />
           </div>
         ) : null}
         {filteredProblems.map((problem) => (
@@ -110,7 +111,7 @@ const ProblemsView = observer(() => {
                   <Link to={`/problems/${problem.id}`}>Open problem</Link>
                 </Button>
                 <Button asChild variant="ghost" size="sm">
-                  <Link to={`/review`}>Add to review queue</Link>
+                  <Link to={`/review/problems/${problem.id}`}>Start review</Link>
                 </Button>
               </div>
             </CardContent>

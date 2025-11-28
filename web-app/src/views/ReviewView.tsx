@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { LoadingIndicator } from '@/components/ui/loading-indicator'
 
 const ReviewView = observer(() => {
   const { notebookStore } = useStores()
@@ -72,7 +73,9 @@ const ReviewView = observer(() => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {card ? (
+          {loading ? (
+            <LoadingIndicator label="Preparing cards…" />
+          ) : card ? (
             <div className="space-y-4">
               <div className="space-y-2">
                 <p className="text-sm uppercase tracking-wide text-muted-foreground">Prompt</p>
@@ -128,9 +131,7 @@ const ReviewView = observer(() => {
           <CardDescription>Top 5 cards after current filters.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {loading ? (
-            <p className="text-sm text-muted-foreground">Preparing queue…</p>
-          ) : null}
+          {loading ? <LoadingIndicator label="Building queue…" /> : null}
           {queue.map((item) => (
             <div key={item.id} className="rounded-2xl border border-muted-foreground/10 bg-muted/40 p-4">
               <p className="font-medium text-foreground line-clamp-1">{item.prompt}</p>

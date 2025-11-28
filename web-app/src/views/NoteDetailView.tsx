@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { LoadingIndicator } from '@/components/ui/loading-indicator'
 
 const parseTags = (value: string) =>
   value
@@ -31,8 +32,8 @@ const NoteDetailView = observer(() => {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-border/70 bg-muted/30 p-6 text-sm text-muted-foreground">
-        Loading note…
+      <div className="rounded-2xl border border-border/70 bg-muted/30 p-6">
+        <LoadingIndicator label="Loading note…" />
       </div>
     )
   }

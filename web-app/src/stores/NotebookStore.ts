@@ -343,6 +343,16 @@ export class NotebookStore {
     return this.notes.find((note) => note.noteId === id) ?? null
   }
 
+  getProblemReviewCard(problemId: string) {
+    const problem = this.getProblemById(problemId)
+    if (!problem) return null
+    return this.reviewCards.get(`problem-${problem.id}`) ?? null
+  }
+
+  getReviewCardById(cardId: string) {
+    return this.reviewCards.get(cardId) ?? null
+  }
+
   updateNoteSummary(id: string, value: string) {
     const note = this.getNoteById(id)
     if (note) {

@@ -12,14 +12,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 const DashboardView = observer(() => {
-  const { loginStore, notebookStore } = useStores();
+  const { notebookStore } = useStores();
   useEffect(() => {
     notebookStore.ensureProblemsLoaded();
     notebookStore.ensureNotesLoaded();
   }, [notebookStore]);
-  const email = loginStore.user?.email ?? loginStore.email;
   const stats = notebookStore.getStats();
   const upNextProblems = notebookStore.filteredProblems.slice(0, 3);
   const noteHighlights = notebookStore.notes.slice(0, 2);
@@ -29,7 +29,6 @@ const DashboardView = observer(() => {
     notebookStore.isLoadingProblems && !notebookStore.hasLoadedProblems;
   const loadingNotes =
     notebookStore.isLoadingNotes && !notebookStore.hasLoadedNotes;
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white">
       <div className="mx-auto max-w-6xl space-y-8 px-4 py-10 sm:px-6 lg:px-12">
@@ -62,12 +61,18 @@ const DashboardView = observer(() => {
               <CardDescription className="text-xs uppercase tracking-wide text-muted-foreground">
                 Problems captured
               </CardDescription>
-              <CardTitle className="text-3xl">{stats.totalProblems}</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {perDifficultyEntries
-                  .map(([label, value]) => `${label}: ${value}`)
-                  .join(" · ")}
-              </p>
+              {loadingProblems ? (
+                <LoadingIndicator />
+              ) : (
+                <>
+                  <CardTitle className="text-3xl">{stats.totalProblems}</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {perDifficultyEntries
+                      .map(([label, value]) => `${label}: ${value}`)
+                      .join(" · ")}
+                  </p>
+                </>
+              )}
             </CardHeader>
           </Card>
           <Card className="border-dashed">
@@ -75,10 +80,16 @@ const DashboardView = observer(() => {
               <CardDescription className="text-xs uppercase tracking-wide text-muted-foreground">
                 Notes synced
               </CardDescription>
-              <CardTitle className="text-3xl">{stats.noteCount}</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                From Chrome extension + manual entries
-              </p>
+              {loadingNotes ? (
+                <LoadingIndicator />
+              ) : (
+                <>
+                  <CardTitle className="text-3xl">{stats.noteCount}</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    From Chrome extension + manual entries
+                  </p>
+                </>
+              )}
             </CardHeader>
           </Card>
           <Card className="border-dashed">
@@ -86,10 +97,16 @@ const DashboardView = observer(() => {
               <CardDescription className="text-xs uppercase tracking-wide text-muted-foreground">
                 Cards due now
               </CardDescription>
-              <CardTitle className="text-3xl">{stats.dueCards}</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Jump into Review to keep the streak alive
-              </p>
+              {loadingProblems && loadingNotes ? (
+                <LoadingIndicator />
+              ) : (
+                <>
+                  <CardTitle className="text-3xl">{stats.dueCards}</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Jump into Review to keep the streak alive
+                  </p>
+                </>
+              )}
             </CardHeader>
           </Card>
         </section>
@@ -110,8 +127,8 @@ const DashboardView = observer(() => {
             </CardHeader>
             <CardContent className="space-y-4">
               {loadingProblems ? (
-                <div className="animate-pulse rounded-2xl border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground">
-                  Loading recent problems…
+                <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+                  <LoadingIndicator label="Loading recent problems…" />
                 </div>
               ) : null}
               {upNextProblems.map((problem) => (
@@ -208,8 +225,8 @@ const DashboardView = observer(() => {
             </CardHeader>
             <CardContent className="space-y-4">
               {loadingNotes ? (
-                <div className="animate-pulse rounded-2xl border border-border/70 bg-muted/40 p-4 text-sm text-muted-foreground">
-                  Fetching Chrome captures…
+                <div className="rounded-2xl border border-border/70 bg-muted/40 p-4">
+                  <LoadingIndicator label="Fetching Chrome captures…" />
                 </div>
               ) : null}
               {noteHighlights.map((note) => (

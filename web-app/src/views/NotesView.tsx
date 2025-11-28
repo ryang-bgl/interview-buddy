@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { LoadingIndicator } from '@/components/ui/loading-indicator'
 
 const NotesView = observer(() => {
   const { notebookStore } = useStores()
@@ -60,8 +61,8 @@ const NotesView = observer(() => {
 
       <div className="grid gap-4">
         {loading ? (
-          <div className="rounded-2xl border border-border/70 bg-muted/40 p-6 text-sm text-muted-foreground">
-            Loading notes…
+          <div className="rounded-2xl border border-border/70 bg-muted/40 p-6">
+            <LoadingIndicator label="Loading notes…" />
           </div>
         ) : null}
         {filteredNotes.map((note) => (

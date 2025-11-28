@@ -12,6 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { LoadingIndicator } from '@/components/ui/loading-indicator'
 
 const ProblemDetailView = observer(() => {
   const { problemId } = useParams<{ problemId: string }>()
@@ -24,8 +25,8 @@ const ProblemDetailView = observer(() => {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-border/70 bg-muted/30 p-6 text-sm text-muted-foreground">
-        Loading problem…
+      <div className="rounded-2xl border border-border/70 bg-muted/30 p-6">
+        <LoadingIndicator label="Loading problem…" />
       </div>
     )
   }
