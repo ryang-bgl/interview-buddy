@@ -30,12 +30,12 @@ const ProblemsView = observer(() => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-[#28324a] dark:bg-[#1b253d]">
-        <div>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Your Problems
           </p>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
             DSA Problems
           </h1>
         </div>
@@ -44,7 +44,7 @@ const ProblemsView = observer(() => {
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
               placeholder="Search problems..."
-              className="rounded-2xl border-slate-200 bg-slate-50 pl-11 text-slate-700 placeholder:text-slate-400 dark:border-slate-700 dark:bg-[#111a2c] dark:text-white"
+              className="rounded-2xl border-slate-200 bg-white/80 pl-11 text-slate-700 shadow-sm backdrop-blur placeholder:text-slate-400 dark:border-slate-700 dark:bg-[#111a2c] dark:text-white"
               value={notebookStore.searchQuery}
               onChange={(event) =>
                 notebookStore.setSearchQuery(event.target.value)
@@ -52,7 +52,7 @@ const ProblemsView = observer(() => {
             />
           </div>
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-[#111a2c] dark:text-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 text-sm text-slate-600 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-[#111a2c] dark:text-slate-200">
               <select
                 value={notebookStore.difficultyFilter}
                 onChange={(event) =>
