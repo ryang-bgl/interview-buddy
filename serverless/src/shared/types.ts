@@ -70,6 +70,16 @@ export interface UserNoteRecord {
   nextReviewDate?: string | null;
 }
 
+export interface UserFeedbackRecord {
+  userId: string;
+  feedbackId: string;
+  message: string;
+  pageUrl?: string | null;
+  category?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type UserNoteJobStatus =
   | "pending"
   | "processing"

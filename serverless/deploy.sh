@@ -2,7 +2,7 @@
 set -euo pipefail
 
 STAGE=${1:-dev}
-PARAM_FILE="./secret-config/${STAGE}.env"
+PARAM_FILE="../configs/${STAGE}.env"
 [[ -f "$PARAM_FILE" ]] || { echo "Missing $PARAM_FILE"; exit 1; }
 
 PARAMS=()

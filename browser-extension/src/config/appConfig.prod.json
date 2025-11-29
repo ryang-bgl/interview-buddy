@@ -1,8 +1,8 @@
 {
-  "serverOrigin": "https://w2ikvgnue9.execute-api.us-east-1.amazonaws.com",
+  "serverOrigin": "https://api.leetstack.app",
   "supabase": {
-    "url": "https://YOUR_PROD_PROJECT.supabase.co",
-    "anonKey": "YOUR_PROD_SUPABASE_ANON_KEY",
-    "redirectTo": "https://YOUR_CHROME_EXTENSION_ID.chromiumapp.org/auth"
+    "url": "https://zykivurebnasnqurscoo.supabase.co",
+    "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5a2l2dXJlYm5hc25xdXJzY29vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MDU2OTcsImV4cCI6MjA3OTk4MTY5N30.O-cI4Lt2fhE6lhIG8BvwoCUbUwaeZWC7vC81ER0MrDU",
+    "redirectTo": "https://leetstack.app"
   }
 }

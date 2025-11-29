@@ -10,6 +10,7 @@ import NotesView from "@/features/notes/NotesView";
 import NoteDetailView from "@/features/notes/NoteDetailView";
 import ReviewView from "@/features/review/ReviewView";
 import SettingsView from "@/features/settings/SettingsView";
+import { FeedbackWidget } from "@/features/feedback/FeedbackWidget";
 import { useStores } from "@/stores/StoreProvider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -77,7 +78,7 @@ const ProtectedShell = observer(() => {
       >
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500">
-            Master DSA
+            Nail dream offer
           </p>
           <p className="text-xl font-semibold text-slate-900 dark:text-white">
             LeetStack (beta)
@@ -199,6 +200,7 @@ const ProtectedShell = observer(() => {
           <Outlet />
         </main>
       </div>
+      <FeedbackWidget />
     </div>
   );
 });

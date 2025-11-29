@@ -7,6 +7,8 @@ import {
   CfnOutput,
   CfnParameter,
   Tags,
+  Fn,
+  CfnCondition,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import {
@@ -26,11 +28,16 @@ import {
   CorsPreflightOptions,
   WebSocketApi,
   WebSocketStage,
+  DomainName,
+  ApiMapping,
+  CfnDomainName,
+  CfnApiMapping,
 } from "aws-cdk-lib/aws-apigatewayv2";
 import {
   HttpLambdaIntegration,
   WebSocketLambdaIntegration,
 } from "aws-cdk-lib/aws-apigatewayv2-integrations";
+import { Certificate } from "aws-cdk-lib/aws-certificatemanager";
 
 export interface InterviewBuddyApiStackProps extends StackProps {
   stage: string;
@@ -74,6 +81,19 @@ export class InterviewBuddyApiStack extends Stack {
       type: "String",
       description: "Model identifier to request from DeepSeek.",
       default: "deepseek-chat",
+    });
+
+    const apiCustomDomainArn = new CfnParameter(this, "HttpApiCertificateArn", {
+      type: "String",
+      description:
+        "(Optional) ACM certificate ARN for the HTTP API custom domain (us-east-1)",
+      default: process.env.HTTP_API_CERTIFICATE_ARN ?? "",
+    });
+
+    const apiHost = new CfnParameter(this, "ApiHost", {
+      type: "String",
+      description: "(Optional) Custom domain host name bound to the HTTP API",
+      default: process.env.HTTP_API_HOST ?? "",
     });
 
     const supabaseAuthUrl = `https://${supabaseProjectRef.valueAsString}.supabase.co/auth/v1`;
@@ -122,6 +142,14 @@ export class InterviewBuddyApiStack extends Stack {
       tableName: `interview-buddy-ai-solutions-${stageSuffix}`,
       partitionKey: { name: "questionIndex", type: AttributeType.STRING },
       sortKey: { name: "language", type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const userFeedbackTable = new Table(this, "UserFeedbackTable", {
+      tableName: `interview-buddy-user-feedback-${stageSuffix}`,
+      partitionKey: { name: "userId", type: AttributeType.STRING },
+      sortKey: { name: "feedbackId", type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.DESTROY,
     });
@@ -209,6 +237,23 @@ export class InterviewBuddyApiStack extends Stack {
         },
       }
     );
+
+    const createFeedbackFn = new NodejsFunction(this, "CreateFeedbackFunction", {
+      ...defaultLambdaProps,
+      entry: path.join(
+        __dirname,
+        "..",
+        "src",
+        "functions",
+        "feedback",
+        "createFeedback.ts"
+      ),
+      handler: "handler",
+      environment: {
+        ...commonLambdaEnv,
+        USER_FEEDBACK_TABLE_NAME: userFeedbackTable.tableName,
+      },
+    });
 
     const generateAiSolutionFn = new NodejsFunction(
       this,
@@ -488,6 +533,7 @@ export class InterviewBuddyApiStack extends Stack {
     userNotesTable.grantReadWriteData(addGeneralNoteCardFn);
     userNotesTable.grantReadWriteData(deleteGeneralNoteCardFn);
     userNotesTable.grantReadWriteData(updateNoteReviewFn);
+    userFeedbackTable.grantReadWriteData(createFeedbackFn);
     generalNoteJobsTable.grantReadWriteData(generalNoteJobRequestFn);
     generalNoteJobsTable.grantReadWriteData(generalNoteJobProcessorFn);
     generalNoteJobsTable.grantReadData(getGeneralNoteJobFn);
@@ -534,6 +580,15 @@ export class InterviewBuddyApiStack extends Stack {
     });
 
     httpApi.addRoutes({
+      path: "/api/feedback",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration(
+        "CreateFeedbackIntegration",
+        createFeedbackFn
+      ),
+    });
+
+    httpApi.addRoutes({
       path: "/api/auth-by-api-key",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration(
@@ -559,6 +614,42 @@ export class InterviewBuddyApiStack extends Stack {
         getCurrentUserFn
       ),
     });
+
+    const useCustomDomain = new CfnCondition(this, "UseHttpApiCustomDomain", {
+      expression: Fn.conditionAnd(
+        Fn.conditionNot(Fn.conditionEquals(apiHost.valueAsString, "")),
+        Fn.conditionNot(
+          Fn.conditionEquals(apiCustomDomainArn.valueAsString, "")
+        )
+      ),
+    });
+
+    const certificate = Certificate.fromCertificateArn(
+      this,
+      "HttpApiCustomDomainCert",
+      apiCustomDomainArn.valueAsString
+    );
+    const customDomain = new DomainName(this, "HttpApiCustomDomain", {
+      domainName: apiHost.valueAsString,
+      certificate,
+    });
+    (customDomain.node.defaultChild as CfnDomainName).cfnOptions.condition =
+      useCustomDomain;
+
+    const mapping = new ApiMapping(this, "HttpApiCustomDomainMapping", {
+      api: httpApi,
+      domainName: customDomain,
+      stage: httpApi.defaultStage!,
+    });
+    (mapping.node.defaultChild as CfnApiMapping).cfnOptions.condition =
+      useCustomDomain;
+
+    const domainOutput = new CfnOutput(this, "HttpApiCustomDomainTarget", {
+      description:
+        "Add a DNS record pointing the configured API_HOST to this target (value includes hosted-zone id)",
+      value: `${customDomain.regionalDomainName} (zone: ${customDomain.regionalHostedZoneId})`,
+    });
+    domainOutput.condition = useCustomDomain;
 
     httpApi.addRoutes({
       path: "/api/ai/general-note/anki-stack",

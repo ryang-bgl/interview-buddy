@@ -125,6 +125,12 @@ export interface FlashcardNoteRecord {
   nextReviewDate?: string | null;
 }
 
+export interface SubmitFeedbackPayload {
+  message: string;
+  category?: "bug" | "idea" | "other";
+  pageUrl?: string | null;
+}
+
 export async function getCurrentUser() {
   return request<UserPrincipal>("/api/users/me");
 }
@@ -180,4 +186,11 @@ export async function listGeneralNotes() {
 export async function getGeneralNoteByUrl(url: string) {
   const encoded = encodeURIComponent(url);
   return request<FlashcardNoteRecord>(`/api/general-note/note?url=${encoded}`);
+}
+
+export async function submitFeedback(payload: SubmitFeedbackPayload) {
+  return request<{ feedbackId: string }>("/api/feedback", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
