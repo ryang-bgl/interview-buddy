@@ -61,21 +61,27 @@ const ProtectedShell = observer(() => {
   return (
     <div
       className={cn(
-        'grid min-h-screen text-slate-900 dark:text-slate-100 lg:grid-cols-[260px_1fr]',
-        theme === 'dark'
-          ? 'bg-[#0f172a]'
-          : 'bg-gradient-to-br from-[#f8f9fe] to-[#eef2ff]'
+        "grid min-h-screen text-slate-900 dark:text-slate-100 lg:grid-cols-[260px_1fr]",
+        theme === "dark"
+          ? "bg-[#0f172a]"
+          : "bg-gradient-to-br from-[#f8f9fe] to-[#eef2ff]"
       )}
     >
       <aside
         className={cn(
-          'hidden flex-col border-r px-6 py-8 lg:flex',
-          theme === 'dark' ? 'border-[#1f2a40] bg-[#1c2640]' : 'border-slate-200 bg-white'
+          "hidden flex-col border-r px-6 py-8 lg:flex",
+          theme === "dark"
+            ? "border-[#1f2a40] bg-[#1c2640]"
+            : "border-slate-200 bg-white"
         )}
       >
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500">LeetStack</p>
-          <p className="text-xl font-semibold text-slate-900 dark:text-white">Master DSA</p>
+          <p className="text-xs uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500">
+            Master DSA
+          </p>
+          <p className="text-xl font-semibold text-slate-900 dark:text-white">
+            LeetStack (beta)
+          </p>
         </div>
         <nav className="mt-8 space-y-2">
           {navItems.map((item) => (
@@ -97,12 +103,20 @@ const ProtectedShell = observer(() => {
           ))}
         </nav>
         <div className="mt-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300">
-          <p className="font-semibold text-slate-900 dark:text-white">Signed in</p>
+          <p className="font-semibold text-slate-900 dark:text-white">
+            Signed in
+          </p>
           <p className="truncate">{userLabel}</p>
         </div>
       </aside>
 
-      <div className={cn(theme === 'dark' ? 'flex flex-col bg-[#111a2c]/90' : 'flex flex-col bg-transparent')}>
+      <div
+        className={cn(
+          theme === "dark"
+            ? "flex flex-col bg-[#111a2c]/90"
+            : "flex flex-col bg-transparent"
+        )}
+      >
         <header className="flex items-center justify-between border-b border-slate-200 bg-white/90 px-4 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/90 sm:px-6">
           <button
             type="button"
@@ -128,9 +142,17 @@ const ProtectedShell = observer(() => {
               aria-label="Toggle theme"
               onClick={toggleTheme}
             >
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => loginStore.signOut()}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loginStore.signOut()}
+            >
               Sign out
             </Button>
           </div>

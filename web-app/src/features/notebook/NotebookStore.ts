@@ -250,19 +250,21 @@ export class NotebookStore {
   }
 
   get filteredProblems() {
-    return this.problems.filter((problem) => {
-      const matchesDifficulty =
-        this.difficultyFilter === 'All' || problem.difficulty === this.difficultyFilter
-      const matchesTags =
-        this.tagFilters.size === 0 ||
-        Array.from(this.tagFilters).every((tag) => (problem.tags ?? []).includes(tag))
-      const query = this.searchQuery.trim().toLowerCase()
-      const matchesQuery =
-        !query ||
-        problem.title.toLowerCase().includes(query) ||
-        problem.questionIndex.toLowerCase().includes(query)
-      return matchesDifficulty && matchesTags && matchesQuery
-    })
+    return this.problems
+      .filter((problem) => {
+        const matchesDifficulty =
+          this.difficultyFilter === 'All' || problem.difficulty === this.difficultyFilter
+        const matchesTags =
+          this.tagFilters.size === 0 ||
+          Array.from(this.tagFilters).every((tag) => (problem.tags ?? []).includes(tag))
+        const query = this.searchQuery.trim().toLowerCase()
+        const matchesQuery =
+          !query ||
+          problem.title.toLowerCase().includes(query) ||
+          problem.questionIndex.toLowerCase().includes(query)
+        return matchesDifficulty && matchesTags && matchesQuery
+      })
+      .sort((a, b) => this.getProblemDueTimestamp(a.id) - this.getProblemDueTimestamp(b.id))
   }
 
   get filteredNotes() {
@@ -376,7 +378,10 @@ export class NotebookStore {
 
   getAverageMastery() {
     const states = this.problems.map((problem) =>
-      this.ensureReviewState(`problem-${problem.id}`),
+      this.ensureReviewState(
+        `problem-${problem.id}`,
+        this.getProblemFallbackSnapshot(problem.id),
+      ),
     )
     if (!states.length) return 0
     const total = states.reduce((sum, state) => sum + (state.repetitions ?? 0), 0)
@@ -443,18 +448,27 @@ export class NotebookStore {
   }
 
   getProblemMastery(problemId: string) {
-    const state = this.ensureReviewState(`problem-${problemId}`)
+    const state = this.ensureReviewState(
+      `problem-${problemId}`,
+      this.getProblemFallbackSnapshot(problemId),
+    )
     const reps = state.repetitions ?? 0
     return Math.min(100, Math.round(((reps + 1) / 6) * 100))
   }
 
   getProblemNextReviewDate(problemId: string) {
-    const state = this.ensureReviewState(`problem-${problemId}`)
+    const state = this.ensureReviewState(
+      `problem-${problemId}`,
+      this.getProblemFallbackSnapshot(problemId),
+    )
     return state.nextReviewDate
   }
 
   getProblemReviewCount(problemId: string) {
-    const state = this.ensureReviewState(`problem-${problemId}`)
+    const state = this.ensureReviewState(
+      `problem-${problemId}`,
+      this.getProblemFallbackSnapshot(problemId),
+    )
     return state.repetitions ?? 0
   }
 
@@ -608,6 +622,29 @@ export class NotebookStore {
     }
 
     return normalized
+  }
+
+  private getProblemDueTimestamp(problemId: string) {
+    const nextReview = this.getProblemNextReviewDate(problemId)
+    if (!nextReview) {
+      return Number.MAX_SAFE_INTEGER
+    }
+    const timestamp = new Date(nextReview).getTime()
+    return Number.isNaN(timestamp) ? Number.MAX_SAFE_INTEGER : timestamp
+  }
+
+  private getProblemFallbackSnapshot(problemId: string): RemoteReviewSnapshot | undefined {
+    const problem = this.getProblemById(problemId)
+    if (!problem) {
+      return undefined
+    }
+    return {
+      nextReviewDate: problem.nextReviewDate ?? problem.lastReviewedAt ?? null,
+      lastReviewedAt: problem.lastReviewedAt ?? null,
+      reviewIntervalSeconds: problem.reviewIntervalSeconds ?? null,
+      reviewEaseFactor: problem.reviewEaseFactor ?? null,
+      reviewRepetitions: problem.reviewRepetitions ?? null,
+    }
   }
 
   private persistReviewStates() {
