@@ -32,9 +32,6 @@ const ProblemsView = observer(() => {
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Your Problems
-          </p>
           <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
             DSA Problems
           </h1>
