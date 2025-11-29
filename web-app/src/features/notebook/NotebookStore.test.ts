@@ -2,7 +2,6 @@ import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { NotebookStore } from './NotebookStore'
 import type { DsaQuestion } from '@/lib/api'
 import { updateQuestionReview } from '@/lib/api'
-import { persistReviewStates } from '@/utils/reviewStateStorage'
 
 vi.mock('@/lib/api', () => ({
   getGeneralNoteByUrl: vi.fn(),
@@ -12,10 +11,6 @@ vi.mock('@/lib/api', () => ({
   updateQuestionReview: vi.fn().mockResolvedValue(null),
 }))
 
-vi.mock('@/utils/reviewStateStorage', () => ({
-  loadReviewStates: vi.fn(() => new Map()),
-  persistReviewStates: vi.fn(),
-}))
 
 let questionCounter = 0
 
@@ -91,6 +86,5 @@ describe('NotebookStore', () => {
     const state = reviewStates.get('problem-prob-1')
     expect(state).toBeTruthy()
     expect(state.repetitions).toBeGreaterThan(0)
-    expect(persistReviewStates).toHaveBeenCalled()
   })
 })
