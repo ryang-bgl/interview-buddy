@@ -27,16 +27,26 @@ export interface QuestionState {
   clearError: () => void;
 }
 
-const createInitialReviewState = (): QuestionReviewState => {
+const createInitialReviewState = (initialDue?: string | Date | null): QuestionReviewState => {
   const initialInterval = spacedRepetitionScheduler.getInitialIntervalSeconds();
-  const nextReviewDate = new Date();
-  nextReviewDate.setSeconds(nextReviewDate.getSeconds() + initialInterval);
+  let nextReviewDate = new Date();
+  if (initialDue) {
+    const parsed = typeof initialDue === "string" ? new Date(initialDue) : new Date(initialDue);
+    if (!Number.isNaN(parsed.getTime())) {
+      nextReviewDate = parsed;
+    } else {
+      nextReviewDate.setSeconds(nextReviewDate.getSeconds() + initialInterval);
+    }
+  } else {
+    nextReviewDate.setSeconds(nextReviewDate.getSeconds() + initialInterval);
+  }
 
   return {
     easeFactor: 2.5,
     interval: initialInterval,
     repetitions: 0,
     nextReviewDate: nextReviewDate.toISOString(),
+    lastReviewedAt: null,
   };
 };
 
@@ -52,6 +62,19 @@ const calculateNextState = (
     repetitions: result.repetitions,
     lastReviewedAt: result.lastReviewedAt.toISOString(),
     nextReviewDate: result.nextReviewDate.toISOString(),
+  };
+};
+
+const buildReviewStateFromQuestion = (question: DsaQuestion): QuestionReviewState => {
+  const base = createInitialReviewState(
+    question.nextReviewDate ?? question.lastReviewedAt ?? null
+  );
+  return {
+    easeFactor: question.reviewEaseFactor ?? base.easeFactor,
+    interval: question.reviewIntervalSeconds ?? base.interval,
+    repetitions: question.reviewRepetitions ?? base.repetitions,
+    nextReviewDate: question.nextReviewDate ?? base.nextReviewDate,
+    lastReviewedAt: question.lastReviewedAt ?? base.lastReviewedAt,
   };
 };
 
@@ -95,10 +118,15 @@ export const useQuestionStore = create<QuestionState>()(
           }));
 
           const reviewStates = { ...get().reviewStates };
+          const validKeys = new Set<string>();
           questions.forEach((question) => {
             const key = getQuestionKey(question);
-            if (!reviewStates[key]) {
-              reviewStates[key] = createInitialReviewState();
+            validKeys.add(key);
+            reviewStates[key] = buildReviewStateFromQuestion(question);
+          });
+          Object.keys(reviewStates).forEach((key) => {
+            if (!validKeys.has(key)) {
+              delete reviewStates[key];
             }
           });
 
@@ -147,6 +175,10 @@ export const useQuestionStore = create<QuestionState>()(
             ...currentQuestions[targetIdx],
             lastReviewedAt: nextState.lastReviewedAt,
             lastReviewStatus: difficulty,
+            reviewIntervalSeconds: nextState.interval,
+            reviewEaseFactor: nextState.easeFactor,
+            reviewRepetitions: nextState.repetitions,
+            nextReviewDate: nextState.nextReviewDate,
           };
           updatedQuestions = [...currentQuestions];
           updatedQuestions[targetIdx] = updatedQuestion;
@@ -160,6 +192,10 @@ export const useQuestionStore = create<QuestionState>()(
             lastReviewedAt:
               nextState.lastReviewedAt ?? new Date().toISOString(),
             lastReviewStatus: difficulty,
+            nextReviewDate: nextState.nextReviewDate,
+            reviewIntervalSeconds: nextState.interval,
+            reviewEaseFactor: nextState.easeFactor,
+            reviewRepetitions: nextState.repetitions,
           })
           .catch((error) => {
             console.warn("Failed to sync question review timestamp", error);

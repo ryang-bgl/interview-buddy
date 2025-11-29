@@ -49,7 +49,6 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     "idle" | "saving" | "success" | "error"
   >("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [lastSavedTitle, setLastSavedTitle] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<MainTabId>("leetcode");
   const isSaving = saveState === "saving";
   const userDisplayName = user.firstName || user.email || "LeetStack member";
@@ -259,7 +258,6 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     initialStateRef.current = snapshot;
     setSaveState("idle");
     setSaveError(null);
-    setLastSavedTitle(null);
   }, [applyFormState, currentUrl, difficultyLabel, languageLabel]);
 
   const computeQuestionIndex = useCallback(() => {
@@ -295,16 +293,17 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     const questionIndex = computeQuestionIndex();
     const description = descriptionInput.trim() || "No description provided.";
     const solution = codeInput.trim() || null;
-    const idealSolution = idealSolutionInput.trim() || null;
-    const note = notesInput.trim() || null;
+    const idealSolutionRaw = idealSolutionInput.trim();
+    const idealSolution = idealSolutionRaw.length > 1 ? idealSolutionRaw : null;
+    const noteRaw = notesInput.trim();
+    const note = noteRaw.length > 1 ? noteRaw : null;
     const difficultyValue = difficultyLabel?.trim() || "Unknown";
 
     setSaveState("saving");
     setSaveError(null);
-    setLastSavedTitle(null);
 
     try {
-      const response = await saveUserDsaQuestion({
+      await saveUserDsaQuestion({
         questionIndex,
         title: trimmedTitle,
         titleSlug,
@@ -316,7 +315,6 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
       });
 
       setSaveState("success");
-      setLastSavedTitle(response.title);
       if (currentUrl) {
         const snapshot: PopupFormState = {
           url: currentUrl,
@@ -338,7 +336,6 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
       }
       window.setTimeout(() => {
         setSaveState("idle");
-        setLastSavedTitle(null);
       }, 4000);
     } catch (error) {
       const message =
@@ -362,7 +359,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     if (normalized === "easy") {
       return "bg-emerald-100 text-emerald-600";
     }
-    if (normalized === "medium") {
+    if (normalized === "good") {
       return "bg-amber-100 text-amber-600";
     }
     if (normalized === "hard") {
@@ -375,7 +372,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
       return "Saving problem...";
     }
     if (saveState === "success") {
-      return lastSavedTitle ? `Saved "${lastSavedTitle}"` : "Problem saved";
+      return "Successfully saved.";
     }
     if (saveState === "error" && saveError) {
       return saveError;

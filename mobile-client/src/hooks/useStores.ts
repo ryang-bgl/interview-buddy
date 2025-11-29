@@ -1,4 +1,10 @@
-import { useAuthStore, useSolutionStore, useAppStore, useQuestionStore, useFlashcardStore } from '@/stores';
+import {
+  useAuthStore,
+  useSolutionStore,
+  useAppStore,
+  useQuestionStore,
+  useFlashcardStore,
+} from "@/stores";
 
 // Combined store hook for components that need multiple stores
 export const useStores = () => {
@@ -32,7 +38,7 @@ export const useAuth = () => {
     emailForSignIn,
     clearError,
     setEmailForSignIn,
-    initialize
+    initialize,
   } = useAuthStore();
 
   return {
@@ -193,7 +199,7 @@ export const useSyncStatus = () => {
     syncStatus,
     isOnline,
     lastSyncTime,
-    canSync: isOnline && syncStatus !== 'syncing',
+    canSync: isOnline && syncStatus !== "syncing",
     sync: syncSolutions,
   };
 };
@@ -205,13 +211,13 @@ export const useReview = () => {
 
   const dueForReview = getDueForReview();
   const totalSolutions = solutions.length;
-  const reviewedToday = solutions.filter(s => {
+  const reviewedToday = solutions.filter((s) => {
     if (!s.lastReviewedAt) return false;
     const today = new Date().toDateString();
     return new Date(s.lastReviewedAt).toDateString() === today;
   }).length;
 
-  const completeReview = (id: string, difficulty: 'easy' | 'medium' | 'hard') => {
+  const completeReview = (id: string, difficulty: "easy" | "good" | "hard") => {
     reviewSolution(id, difficulty);
     updateStreak();
   };

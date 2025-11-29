@@ -4,15 +4,19 @@ export interface DsaQuestion {
   questionIndex: string;
   title: string;
   titleSlug: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: "Easy" | "Good" | "Hard";
   description: string;
   solution: string | null;
   idealSolutionCode: string | null;
   note: string | null;
   tags?: string[];
   topicTags?: string[];
-  lastReviewedAt?: string;
-  lastReviewStatus?: 'easy' | 'good' | 'hard';
+  lastReviewedAt?: string | null;
+  lastReviewStatus?: "easy" | "good" | "hard" | null;
+  reviewIntervalSeconds?: number | null;
+  reviewEaseFactor?: number | null;
+  reviewRepetitions?: number | null;
+  nextReviewDate?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -22,7 +26,7 @@ export interface QuestionReviewState {
   interval: number; // spacing duration in seconds
   repetitions: number;
   nextReviewDate: string;
-  lastReviewedAt?: string;
+  lastReviewedAt?: string | null;
 }
 
 export type QuestionReminder = DsaQuestion & QuestionReviewState;

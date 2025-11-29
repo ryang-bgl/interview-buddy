@@ -36,17 +36,22 @@ export const handler: APIGatewayProxyHandlerV2 = async event => {
   }
 
   const payload = parsePayload(event.body, event.isBase64Encoded);
-  if (!payload?.lastReviewedAt) {
-    return badRequest('A valid lastReviewedAt value is required');
+  if (!payload?.lastReviewedAt || !payload?.nextReviewDate) {
+    return badRequest('lastReviewedAt and nextReviewDate are required');
   }
 
   const command = new UpdateCommand({
     TableName: userDsaTableName,
     Key: { userId, questionIndex },
-    UpdateExpression: 'SET lastReviewedAt = :lastReviewedAt, lastReviewStatus = :lastReviewStatus, updatedAt = :updatedAt',
+    UpdateExpression:
+      'SET lastReviewedAt = :lastReviewedAt, lastReviewStatus = :lastReviewStatus, reviewIntervalSeconds = :reviewIntervalSeconds, reviewEaseFactor = :reviewEaseFactor, reviewRepetitions = :reviewRepetitions, nextReviewDate = :nextReviewDate, updatedAt = :updatedAt',
     ExpressionAttributeValues: {
       ':lastReviewedAt': payload.lastReviewedAt,
       ':lastReviewStatus': payload.lastReviewStatus ?? null,
+      ':reviewIntervalSeconds': payload.reviewIntervalSeconds ?? null,
+      ':reviewEaseFactor': payload.reviewEaseFactor ?? null,
+      ':reviewRepetitions': payload.reviewRepetitions ?? null,
+      ':nextReviewDate': payload.nextReviewDate,
       ':updatedAt': new Date().toISOString(),
     },
     ConditionExpression: 'attribute_exists(questionIndex)',
@@ -68,29 +73,55 @@ export const handler: APIGatewayProxyHandlerV2 = async event => {
   }
 };
 
-function parsePayload(body: string | undefined, isBase64?: boolean) {
+interface ReviewPayload {
+  lastReviewedAt: string
+  nextReviewDate: string
+  lastReviewStatus?: string
+  reviewIntervalSeconds?: number | null
+  reviewEaseFactor?: number | null
+  reviewRepetitions?: number | null
+}
+
+function parsePayload(body: string | undefined, isBase64?: boolean): ReviewPayload | null {
   if (!body) {
     return null;
   }
   const decoded = isBase64 ? Buffer.from(body, 'base64').toString('utf-8') : body;
   try {
     const payload = JSON.parse(decoded);
-    const value = payload.lastReviewedAt ?? payload.reviewedAt;
-    if (!value) {
+    const lastReviewedValue = payload.lastReviewedAt ?? payload.reviewedAt;
+    const nextReviewValue = payload.nextReviewDate ?? payload.dueAt;
+    if (!lastReviewedValue || !nextReviewValue) {
       return null;
     }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
+    const lastReviewed = new Date(lastReviewedValue);
+    const nextReview = new Date(nextReviewValue);
+    if (Number.isNaN(lastReviewed.getTime()) || Number.isNaN(nextReview.getTime())) {
       return null;
     }
     const status = typeof payload.lastReviewStatus === 'string' ? payload.lastReviewStatus : undefined;
     return {
-      lastReviewedAt: date.toISOString(),
+      lastReviewedAt: lastReviewed.toISOString(),
+      nextReviewDate: nextReview.toISOString(),
       lastReviewStatus: status,
+      reviewIntervalSeconds: parseNumeric(payload.reviewIntervalSeconds),
+      reviewEaseFactor: parseNumeric(payload.reviewEaseFactor),
+      reviewRepetitions: parseNumeric(payload.reviewRepetitions),
     };
   } catch {
     return null;
   }
+}
+
+function parseNumeric(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
 }
 
 function mapQuestion(record: UserDsaQuestionRecord) {
@@ -109,6 +140,10 @@ function mapQuestion(record: UserDsaQuestionRecord) {
     note: record.note ?? null,
     lastReviewedAt: record.lastReviewedAt ?? null,
     lastReviewStatus: record.lastReviewStatus ?? null,
+    reviewIntervalSeconds: record.reviewIntervalSeconds ?? null,
+    reviewEaseFactor: record.reviewEaseFactor ?? null,
+    reviewRepetitions: record.reviewRepetitions ?? null,
+    nextReviewDate: record.nextReviewDate ?? null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };

@@ -118,6 +118,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     updatedAt: now,
     lastReviewedAt: null,
     lastReviewStatus: null,
+    reviewIntervalSeconds: null,
+    reviewEaseFactor: null,
+    reviewRepetitions: null,
+    nextReviewDate: null,
   };
 
   const putCommand = new PutCommand({
@@ -141,6 +145,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     createdAt: now,
     lastReviewedAt: null,
     lastReviewStatus: null,
+    reviewIntervalSeconds: null,
+    reviewEaseFactor: null,
+    reviewRepetitions: null,
+    nextReviewDate: null,
   });
 };
 

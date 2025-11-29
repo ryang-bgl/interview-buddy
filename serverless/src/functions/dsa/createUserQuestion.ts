@@ -70,6 +70,20 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     crypto.randomUUID();
   const createdAt = existingQuestion?.createdAt ?? now;
 
+  const normalizedIdealSolution =
+    typeof payload.idealSolutionCode === 'string'
+      ? payload.idealSolutionCode.trim()
+      : '';
+  const shouldUpdateIdealSolution = normalizedIdealSolution.length > 1;
+  const idealSolutionValue = shouldUpdateIdealSolution
+    ? normalizedIdealSolution
+    : existingQuestion?.idealSolutionCode ?? null;
+
+  const normalizedNote =
+    typeof payload.note === 'string' ? payload.note.trim() : '';
+  const shouldUpdateNote = normalizedNote.length > 1;
+  const noteValue = shouldUpdateNote ? normalizedNote : existingQuestion?.note ?? null;
+
   const command = new UpdateCommand({
     TableName: userDsaTableName,
     Key: {
@@ -77,20 +91,18 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       questionIndex,
     },
     UpdateExpression:
-      'SET #title = :title, titleSlug = :titleSlug, difficulty = :difficulty, description = :description, solution = :solution, idealSolutionCode = :idealSolutionCode, #note = :note, updatedAt = :updatedAt, questionId = :questionId, createdAt = :createdAt, lastReviewedAt = if_not_exists(lastReviewedAt, :lastReviewedAt), lastReviewStatus = if_not_exists(lastReviewStatus, :lastReviewStatus)',
+      'SET #title = :title, titleSlug = :titleSlug, difficulty = :difficulty, description = :description, solution = :solution, idealSolutionCode = :idealSolutionCode, #note = :note, updatedAt = :updatedAt, questionId = :questionId, createdAt = :createdAt',
     ExpressionAttributeValues: {
       ':title': String(payload.title).trim(),
       ':titleSlug': String(payload.titleSlug).trim(),
       ':difficulty': String(payload.difficulty).trim(),
       ':description': String(payload.description).trim(),
       ':solution': stringifyOptional(payload.solution),
-      ':idealSolutionCode': stringifyOptional(payload.idealSolutionCode),
-      ':note': stringifyOptional(payload.note),
+      ':idealSolutionCode': idealSolutionValue,
+      ':note': noteValue,
       ':updatedAt': now,
       ':createdAt': createdAt,
       ':questionId': questionId,
-      ':lastReviewedAt': existingQuestion?.lastReviewedAt ?? null,
-      ':lastReviewStatus': existingQuestion?.lastReviewStatus ?? null,
     },
     ExpressionAttributeNames: {
       '#title': 'title',
@@ -170,6 +182,10 @@ function mapQuestion(record: UserDsaQuestionRecord) {
     note: record.note ?? null,
     lastReviewedAt: record.lastReviewedAt ?? null,
     lastReviewStatus: record.lastReviewStatus ?? null,
+    reviewIntervalSeconds: record.reviewIntervalSeconds ?? null,
+    reviewEaseFactor: record.reviewEaseFactor ?? null,
+    reviewRepetitions: record.reviewRepetitions ?? null,
+    nextReviewDate: record.nextReviewDate ?? null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };

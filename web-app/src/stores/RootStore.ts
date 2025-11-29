@@ -1,5 +1,5 @@
 import { LoginStore } from './LoginStore'
-import { NotebookStore } from './NotebookStore'
+import { NotebookStore } from '@/features/notebook/NotebookStore'
 
 export class RootStore {
   loginStore: LoginStore

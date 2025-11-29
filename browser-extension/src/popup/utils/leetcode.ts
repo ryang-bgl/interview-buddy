@@ -89,8 +89,8 @@ export async function findLeetCodeProblemDetailsInActivePage(
             if (normalized.includes("easy")) {
               return "Easy";
             }
-            if (normalized.includes("medium")) {
-              return "Medium";
+            if (normalized.includes("good")) {
+              return "Good";
             }
             if (normalized.includes("hard")) {
               return "Hard";

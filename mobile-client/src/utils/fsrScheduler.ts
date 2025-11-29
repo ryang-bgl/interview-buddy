@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LeetCodeSolution, ReviewSession } from '@/types/solution';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LeetCodeSolution, ReviewSession } from "@/types/solution";
 
-const SOLUTIONS_KEY = 'leetcode_solutions';
-const REVIEW_SESSIONS_KEY = 'review_sessions';
+const SOLUTIONS_KEY = "leetcode_solutions";
+const REVIEW_SESSIONS_KEY = "review_sessions";
 
 // FSR (Spaced Repetition) Algorithm based on SuperMemo SM-2
 export class FSRScheduler {
@@ -20,7 +20,7 @@ export class FSRScheduler {
    */
   static calculateNextReview(
     solution: LeetCodeSolution,
-    difficulty: 'easy' | 'medium' | 'hard'
+    difficulty: "easy" | "good" | "hard"
   ): LeetCodeSolution {
     let { easeFactor, interval, repetitions } = solution;
     const now = new Date();
@@ -28,13 +28,13 @@ export class FSRScheduler {
     // Convert difficulty to quality (0-5 scale used in SM-2)
     let quality: number;
     switch (difficulty) {
-      case 'hard':
+      case "hard":
         quality = 1; // Incorrect response; correct on second attempt
         break;
-      case 'medium':
+      case "good":
         quality = 3; // Correct response with serious difficulty
         break;
-      case 'easy':
+      case "easy":
         quality = 5; // Perfect response
         break;
     }
@@ -90,12 +90,14 @@ export async function getAllSolutions(): Promise<LeetCodeSolution[]> {
     return solutions.map((solution: any) => ({
       ...solution,
       nextReviewDate: new Date(solution.nextReviewDate),
-      lastReviewedAt: solution.lastReviewedAt ? new Date(solution.lastReviewedAt) : undefined,
+      lastReviewedAt: solution.lastReviewedAt
+        ? new Date(solution.lastReviewedAt)
+        : undefined,
       createdAt: new Date(solution.createdAt),
       updatedAt: new Date(solution.updatedAt),
     }));
   } catch (error) {
-    console.error('Error loading solutions:', error);
+    console.error("Error loading solutions:", error);
     return [];
   }
 }
@@ -103,11 +105,13 @@ export async function getAllSolutions(): Promise<LeetCodeSolution[]> {
 /**
  * Save solutions to local storage
  */
-export async function saveSolutions(solutions: LeetCodeSolution[]): Promise<void> {
+export async function saveSolutions(
+  solutions: LeetCodeSolution[]
+): Promise<void> {
   try {
     await AsyncStorage.setItem(SOLUTIONS_KEY, JSON.stringify(solutions));
   } catch (error) {
-    console.error('Error saving solutions:', error);
+    console.error("Error saving solutions:", error);
     throw error;
   }
 }
@@ -120,7 +124,7 @@ export async function getSolutionsDueForReview(): Promise<LeetCodeSolution[]> {
   const now = new Date();
 
   return solutions
-    .filter(solution => solution.nextReviewDate <= now)
+    .filter((solution) => solution.nextReviewDate <= now)
     .sort((a, b) => a.nextReviewDate.getTime() - b.nextReviewDate.getTime());
 }
 
@@ -129,13 +133,13 @@ export async function getSolutionsDueForReview(): Promise<LeetCodeSolution[]> {
  */
 export async function markSolutionReviewed(
   solutionId: string,
-  difficulty: 'easy' | 'medium' | 'hard'
+  difficulty: "easy" | "good" | "hard"
 ): Promise<void> {
   const solutions = await getAllSolutions();
-  const solutionIndex = solutions.findIndex(s => s.id === solutionId);
+  const solutionIndex = solutions.findIndex((s) => s.id === solutionId);
 
   if (solutionIndex === -1) {
-    throw new Error('Solution not found');
+    throw new Error("Solution not found");
   }
 
   // Update the solution with new FSR parameters
@@ -158,7 +162,18 @@ export async function markSolutionReviewed(
 /**
  * Add a new solution
  */
-export async function addSolution(solution: Omit<LeetCodeSolution, 'id' | 'easeFactor' | 'interval' | 'repetitions' | 'nextReviewDate' | 'createdAt' | 'updatedAt'>): Promise<void> {
+export async function addSolution(
+  solution: Omit<
+    LeetCodeSolution,
+    | "id"
+    | "easeFactor"
+    | "interval"
+    | "repetitions"
+    | "nextReviewDate"
+    | "createdAt"
+    | "updatedAt"
+  >
+): Promise<void> {
   const solutions = await getAllSolutions();
   const now = new Date();
   const nextReviewDate = new Date();
@@ -167,7 +182,7 @@ export async function addSolution(solution: Omit<LeetCodeSolution, 'id' | 'easeF
   const newSolution: LeetCodeSolution = {
     ...solution,
     id: Date.now().toString(),
-    easeFactor: FSRScheduler['INITIAL_EASE_FACTOR'],
+    easeFactor: FSRScheduler["INITIAL_EASE_FACTOR"],
     interval: 1,
     repetitions: 0,
     nextReviewDate,
@@ -196,7 +211,7 @@ async function recordReviewSession(session: ReviewSession): Promise<void> {
 
     await AsyncStorage.setItem(REVIEW_SESSIONS_KEY, JSON.stringify(sessions));
   } catch (error) {
-    console.error('Error recording review session:', error);
+    console.error("Error recording review session:", error);
   }
 }
 
@@ -214,7 +229,7 @@ export async function getReviewSessions(): Promise<ReviewSession[]> {
       reviewedAt: new Date(session.reviewedAt),
     }));
   } catch (error) {
-    console.error('Error loading review sessions:', error);
+    console.error("Error loading review sessions:", error);
     return [];
   }
 }
@@ -239,7 +254,7 @@ export async function getUserStats() {
     dayEnd.setDate(dayEnd.getDate() + 1);
 
     const reviewsOnDay = sessions.filter(
-      session => session.reviewedAt >= dayStart && session.reviewedAt < dayEnd
+      (session) => session.reviewedAt >= dayStart && session.reviewedAt < dayEnd
     );
 
     if (reviewsOnDay.length > 0) {
@@ -250,13 +265,13 @@ export async function getUserStats() {
     }
   }
 
-  const averageEaseFactor = solutions.length > 0
-    ? solutions.reduce((sum, s) => sum + s.easeFactor, 0) / solutions.length
-    : FSRScheduler['INITIAL_EASE_FACTOR'];
+  const averageEaseFactor =
+    solutions.length > 0
+      ? solutions.reduce((sum, s) => sum + s.easeFactor, 0) / solutions.length
+      : FSRScheduler["INITIAL_EASE_FACTOR"];
 
-  const lastReviewDate = sessions.length > 0
-    ? sessions[sessions.length - 1].reviewedAt
-    : undefined;
+  const lastReviewDate =
+    sessions.length > 0 ? sessions[sessions.length - 1].reviewedAt : undefined;
 
   return {
     totalSolutions: solutions.length,

@@ -204,6 +204,10 @@ class ApiClient {
     payload: {
       lastReviewedAt: string;
       lastReviewStatus?: "easy" | "good" | "hard";
+      nextReviewDate: string;
+      reviewIntervalSeconds?: number | null;
+      reviewEaseFactor?: number | null;
+      reviewRepetitions?: number | null;
     }
   ): Promise<ApiResponse<DsaQuestion>> {
     return this.request<DsaQuestion>(

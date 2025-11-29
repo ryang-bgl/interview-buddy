@@ -15,11 +15,11 @@ import { router } from "expo-router";
 import { useSolutions, useQuestions } from "@/hooks/useStores";
 import { useColorScheme } from "@/components/useColorScheme";
 
-type DifficultyOption = "Easy" | "Medium" | "Hard" | "Unknown";
+type DifficultyOption = "Easy" | "Good" | "Hard" | "Unknown";
 
 const DIFFICULTY_FILTERS: DifficultyOption[] = [
   "Easy",
-  "Medium",
+  "Good",
   "Hard",
   "Unknown",
 ];
@@ -457,7 +457,9 @@ export default function ProblemListsScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
-  const [selectedFilters, setSelectedFilters] = useState<DifficultyOption[]>([]);
+  const [selectedFilters, setSelectedFilters] = useState<DifficultyOption[]>(
+    []
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 5;
 
@@ -477,7 +479,8 @@ export default function ProblemListsScreen() {
     const lowerQuery = searchQuery.trim().toLowerCase();
 
     return sortedReminders.filter((reminder) => {
-      const difficultyValue = (reminder.difficulty ?? "Unknown") as DifficultyOption;
+      const difficultyValue = (reminder.difficulty ??
+        "Unknown") as DifficultyOption;
       const matchesQuery = lowerQuery
         ? (reminder.title || "").toLowerCase().includes(lowerQuery) ||
           (reminder.questionIndex || "").toLowerCase().includes(lowerQuery)
@@ -725,9 +728,8 @@ export default function ProblemListsScreen() {
                   "No note yet";
                 const isDue = new Date(reminder.nextReviewDate) <= new Date();
                 const identifier = reminder.questionIndex || reminder.id;
-                const reminderDifficulty = (
-                  reminder.difficulty ?? "Unknown"
-                ) as DifficultyOption;
+                const reminderDifficulty = (reminder.difficulty ??
+                  "Unknown") as DifficultyOption;
                 return (
                   <TouchableOpacity
                     key={reminder.id || reminder.questionIndex}

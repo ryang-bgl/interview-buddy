@@ -1,15 +1,15 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { apiClient } from '@/services/api';
+import { apiClient } from "@/services/api";
 import {
   FlashcardCardRecord,
   FlashcardNoteRecord,
   FlashcardNoteSummary,
-} from '@/types/flashcard';
-import { spacedRepetitionScheduler } from '@/utils/spacedRepetitionScheduler';
-import { ReviewDifficulty } from '@/config/spacedRepetition';
+} from "@/types/flashcard";
+import { spacedRepetitionScheduler } from "@/utils/spacedRepetitionScheduler";
+import { ReviewDifficulty } from "@/config/spacedRepetition";
 
 export interface FlashcardReviewState {
   easeFactor: number;
@@ -31,7 +31,7 @@ export interface FlashcardReminder extends FlashcardReviewState {
   url: string;
 }
 
-interface FlashcardStoreState {
+export interface FlashcardStoreState {
   notes: FlashcardNoteRecord[];
   summaries: FlashcardNoteSummary[];
   reviewNoteIds: string[];
@@ -41,7 +41,11 @@ interface FlashcardStoreState {
   lastUpdatedAt: string | null;
   loadNotes: () => Promise<void>;
   refreshNotes: () => Promise<void>;
-  reviewCard: (noteId: string, cardId: string, difficulty: ReviewDifficulty) => void;
+  reviewCard: (
+    noteId: string,
+    cardId: string,
+    difficulty: ReviewDifficulty
+  ) => void;
   getAllReminders: () => FlashcardReminder[];
   getDueCards: () => FlashcardReminder[];
   clearError: () => void;
@@ -95,10 +99,10 @@ export const useFlashcardStore = create<FlashcardStoreState>()(
         try {
           const response = await apiClient.listGeneralNotes();
           if (!response.success || !response.data) {
-            throw new Error(response.error || 'Failed to load flashcards');
+            throw new Error(response.error || "Failed to load flashcards");
           }
 
-          const summaries = response.data.notes.map(summary => ({
+          const summaries = response.data.notes.map((summary) => ({
             ...summary,
             tags: summary.tags ?? [],
           }));
@@ -106,14 +110,18 @@ export const useFlashcardStore = create<FlashcardStoreState>()(
           const normalizedNotes = detailedNotes.map(normalizeNote);
           const reviewStates = { ...get().reviewStates };
           const existingSelection = get().reviewNoteIds;
-          const summaryIdSet = new Set(summaries.map(summary => summary.noteId));
-          let reviewNoteIds = existingSelection.filter(id => summaryIdSet.has(id));
+          const summaryIdSet = new Set(
+            summaries.map((summary) => summary.noteId)
+          );
+          let reviewNoteIds = existingSelection.filter((id) =>
+            summaryIdSet.has(id)
+          );
           if (!reviewNoteIds.length) {
-            reviewNoteIds = summaries.map(summary => summary.noteId);
+            reviewNoteIds = summaries.map((summary) => summary.noteId);
           }
 
-          normalizedNotes.forEach(note => {
-            note.cards.forEach(card => {
+          normalizedNotes.forEach((note) => {
+            note.cards.forEach((card) => {
               const key = buildCardKey(note.noteId, card.id!);
               if (!reviewStates[key]) {
                 reviewStates[key] = createInitialReviewState();
@@ -131,10 +139,10 @@ export const useFlashcardStore = create<FlashcardStoreState>()(
             lastUpdatedAt: new Date().toISOString(),
           });
         } catch (error: any) {
-          console.error('Failed to load flashcards', error);
+          console.error("Failed to load flashcards", error);
           set({
             isLoading: false,
-            error: error?.message || 'Unable to load flashcards',
+            error: error?.message || "Unable to load flashcards",
           });
         }
       },
@@ -147,7 +155,10 @@ export const useFlashcardStore = create<FlashcardStoreState>()(
         const reviewStates = { ...get().reviewStates };
         const key = buildCardKey(noteId, cardId);
         const currentState = reviewStates[key] ?? createInitialReviewState();
-        const nextState = spacedRepetitionScheduler.schedule(currentState, difficulty);
+        const nextState = spacedRepetitionScheduler.schedule(
+          currentState,
+          difficulty
+        );
         reviewStates[key] = {
           easeFactor: nextState.easeFactor,
           interval: nextState.interval,
@@ -157,7 +168,7 @@ export const useFlashcardStore = create<FlashcardStoreState>()(
         };
 
         const nowIso = nextState.lastReviewedAt.toISOString();
-        const notes = get().notes.map(note => {
+        const notes = get().notes.map((note) => {
           if (note.noteId !== noteId) {
             return note;
           }
@@ -175,11 +186,11 @@ export const useFlashcardStore = create<FlashcardStoreState>()(
         const { notes, reviewStates, reviewNoteIds } = get();
         const allowed = new Set(reviewNoteIds);
         const reminders: FlashcardReminder[] = [];
-        notes.forEach(note => {
+        notes.forEach((note) => {
           if (!allowed.has(note.noteId)) {
             return;
           }
-          note.cards.forEach(card => {
+          note.cards.forEach((card) => {
             const cardId = card.id!;
             const key = buildCardKey(note.noteId, cardId);
             const state = reviewStates[key] ?? createInitialReviewState();
@@ -203,29 +214,33 @@ export const useFlashcardStore = create<FlashcardStoreState>()(
       getDueCards: () => {
         return get()
           .getAllReminders()
-          .filter(reminder => new Date(reminder.nextReviewDate).getTime() <= Date.now())
+          .filter(
+            (reminder) =>
+              new Date(reminder.nextReviewDate).getTime() <= Date.now()
+          )
           .sort(
             (a, b) =>
-              new Date(a.nextReviewDate).getTime() - new Date(b.nextReviewDate).getTime()
+              new Date(a.nextReviewDate).getTime() -
+              new Date(b.nextReviewDate).getTime()
           );
       },
 
       clearError: () => set({ error: null }),
 
       toggleReviewNote: (noteId) => {
-        set(state => {
+        set((state) => {
           const exists = state.reviewNoteIds.includes(noteId);
           const reviewNoteIds = exists
-            ? state.reviewNoteIds.filter(id => id !== noteId)
+            ? state.reviewNoteIds.filter((id) => id !== noteId)
             : [...state.reviewNoteIds, noteId];
           return { reviewNoteIds };
         });
       },
     }),
     {
-      name: 'flashcard-storage',
+      name: "flashcard-storage",
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: state => ({
+      partialize: (state) => ({
         notes: state.notes,
         summaries: state.summaries,
         reviewNoteIds: state.reviewNoteIds,
@@ -240,16 +255,20 @@ async function loadDetailedNotes(
   summaries: FlashcardNoteSummary[]
 ): Promise<FlashcardNoteRecord[]> {
   const detailed = await Promise.all(
-    summaries.map(async summary => {
+    summaries.map(async (summary) => {
       try {
         const detailResponse = await apiClient.getGeneralNoteByUrl(summary.url);
         if (!detailResponse.success || !detailResponse.data) {
-          console.warn('Failed to load note detail', summary.url, detailResponse.error);
+          console.warn(
+            "Failed to load note detail",
+            summary.url,
+            detailResponse.error
+          );
           return null;
         }
         return detailResponse.data;
       } catch (error) {
-        console.warn('Error loading note detail', summary.url, error);
+        console.warn("Error loading note detail", summary.url, error);
         return null;
       }
     })

@@ -33,6 +33,10 @@ export interface UserDsaQuestionRecord {
   updatedAt: string;
   lastReviewedAt?: string;
   lastReviewStatus?: "easy" | "good" | "hard";
+  reviewIntervalSeconds?: number;
+  reviewEaseFactor?: number;
+  reviewRepetitions?: number;
+  nextReviewDate?: string;
 }
 
 export interface UserNoteCardRecord {
@@ -60,6 +64,10 @@ export interface UserNoteRecord {
   updatedAt: string;
   lastReviewedAt?: string | null;
   lastReviewStatus?: "easy" | "good" | "hard" | null;
+  reviewIntervalSeconds?: number;
+  reviewEaseFactor?: number;
+  reviewRepetitions?: number;
+  nextReviewDate?: string | null;
 }
 
 export type UserNoteJobStatus =

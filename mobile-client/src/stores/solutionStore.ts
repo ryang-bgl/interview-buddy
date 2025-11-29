@@ -1,9 +1,9 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LeetCodeSolution, UserStats, ReviewSession } from '@/types/solution';
-import { apiClient } from '@/services/api';
-import { spacedRepetitionScheduler } from '@/utils/spacedRepetitionScheduler';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LeetCodeSolution, UserStats, ReviewSession } from "@/types/solution";
+import { apiClient } from "@/services/api";
+import { spacedRepetitionScheduler } from "@/utils/spacedRepetitionScheduler";
 
 export interface SolutionState {
   // State
@@ -11,27 +11,37 @@ export interface SolutionState {
   userStats: UserStats | null;
   isLoading: boolean;
   error: string | null;
-  syncStatus: 'idle' | 'syncing' | 'success' | 'error';
+  syncStatus: "idle" | "syncing" | "success" | "error";
   lastSyncTime: Date | null;
 
   // Actions
   loadSolutions: () => Promise<void>;
-  addSolution: (solution: Omit<LeetCodeSolution, 'id' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
-  updateSolution: (id: string, updates: Partial<LeetCodeSolution>) => Promise<boolean>;
+  addSolution: (
+    solution: Omit<LeetCodeSolution, "id" | "createdAt" | "updatedAt">
+  ) => Promise<boolean>;
+  updateSolution: (
+    id: string,
+    updates: Partial<LeetCodeSolution>
+  ) => Promise<boolean>;
   deleteSolution: (id: string) => Promise<boolean>;
-  reviewSolution: (id: string, difficulty: 'easy' | 'medium' | 'hard') => void;
+  reviewSolution: (id: string, difficulty: "easy" | "good" | "hard") => void;
   syncSolutions: () => Promise<void>;
   loadUserStats: () => Promise<void>;
   clearError: () => void;
 
   // Local-only actions (for offline use)
   addSolutionLocally: (solution: LeetCodeSolution) => void;
-  updateSolutionLocally: (id: string, updates: Partial<LeetCodeSolution>) => void;
+  updateSolutionLocally: (
+    id: string,
+    updates: Partial<LeetCodeSolution>
+  ) => void;
   deleteSolutionLocally: (id: string) => void;
 
   // Computed getters
   getDueForReview: () => LeetCodeSolution[];
-  getSolutionsByDifficulty: (difficulty: 'Easy' | 'Medium' | 'Hard') => LeetCodeSolution[];
+  getSolutionsByDifficulty: (
+    difficulty: "Easy" | "Medium" | "Hard"
+  ) => LeetCodeSolution[];
   getSolutionsByTag: (tag: string) => LeetCodeSolution[];
 }
 
@@ -43,7 +53,7 @@ export const useSolutionStore = create<SolutionState>()(
       userStats: null,
       isLoading: false,
       error: null,
-      syncStatus: 'idle',
+      syncStatus: "idle",
       lastSyncTime: null,
 
       // Actions
@@ -62,13 +72,13 @@ export const useSolutionStore = create<SolutionState>()(
           } else {
             set({
               isLoading: false,
-              error: response.error || 'Failed to load solutions',
+              error: response.error || "Failed to load solutions",
             });
           }
         } catch (error) {
           set({
             isLoading: false,
-            error: 'Network error. Using cached solutions.',
+            error: "Network error. Using cached solutions.",
           });
         }
       },
@@ -90,7 +100,7 @@ export const useSolutionStore = create<SolutionState>()(
           } else {
             set({
               isLoading: false,
-              error: response.error || 'Failed to add solution',
+              error: response.error || "Failed to add solution",
             });
             return false;
           }
@@ -107,7 +117,7 @@ export const useSolutionStore = create<SolutionState>()(
           set({
             solutions: [...currentSolutions, newSolution],
             isLoading: false,
-            error: 'Added locally. Will sync when online.',
+            error: "Added locally. Will sync when online.",
           });
           return true;
         }
@@ -121,7 +131,7 @@ export const useSolutionStore = create<SolutionState>()(
 
           if (response.success && response.data) {
             const currentSolutions = get().solutions;
-            const updatedSolutions = currentSolutions.map(solution =>
+            const updatedSolutions = currentSolutions.map((solution) =>
               solution.id === id ? response.data! : solution
             );
 
@@ -134,7 +144,7 @@ export const useSolutionStore = create<SolutionState>()(
           } else {
             set({
               isLoading: false,
-              error: response.error || 'Failed to update solution',
+              error: response.error || "Failed to update solution",
             });
             return false;
           }
@@ -143,7 +153,7 @@ export const useSolutionStore = create<SolutionState>()(
           get().updateSolutionLocally(id, updates);
           set({
             isLoading: false,
-            error: 'Updated locally. Will sync when online.',
+            error: "Updated locally. Will sync when online.",
           });
           return true;
         }
@@ -157,7 +167,9 @@ export const useSolutionStore = create<SolutionState>()(
 
           if (response.success) {
             const currentSolutions = get().solutions;
-            const filteredSolutions = currentSolutions.filter(solution => solution.id !== id);
+            const filteredSolutions = currentSolutions.filter(
+              (solution) => solution.id !== id
+            );
 
             set({
               solutions: filteredSolutions,
@@ -168,14 +180,14 @@ export const useSolutionStore = create<SolutionState>()(
           } else {
             set({
               isLoading: false,
-              error: response.error || 'Failed to delete solution',
+              error: response.error || "Failed to delete solution",
             });
             return false;
           }
         } catch (error) {
           set({
             isLoading: false,
-            error: 'Network error. Cannot delete solution.',
+            error: "Network error. Cannot delete solution.",
           });
           return false;
         }
@@ -183,7 +195,7 @@ export const useSolutionStore = create<SolutionState>()(
 
       reviewSolution: (id, difficulty) => {
         const solutions = get().solutions;
-        const solution = solutions.find(s => s.id === id);
+        const solution = solutions.find((s) => s.id === id);
 
         if (!solution) return;
 
@@ -214,7 +226,7 @@ export const useSolutionStore = create<SolutionState>()(
       },
 
       syncSolutions: async () => {
-        set({ syncStatus: 'syncing', error: null });
+        set({ syncStatus: "syncing", error: null });
 
         try {
           const currentSolutions = get().solutions;
@@ -226,20 +238,20 @@ export const useSolutionStore = create<SolutionState>()(
           if (response.success && response.data) {
             set({
               solutions: response.data.solutions,
-              syncStatus: 'success',
+              syncStatus: "success",
               lastSyncTime: response.data.lastSyncTime,
               error: null,
             });
           } else {
             set({
-              syncStatus: 'error',
-              error: response.error || 'Sync failed',
+              syncStatus: "error",
+              error: response.error || "Sync failed",
             });
           }
         } catch (error) {
           set({
-            syncStatus: 'error',
-            error: 'Network error during sync',
+            syncStatus: "error",
+            error: "Network error during sync",
           });
         }
       },
@@ -252,7 +264,7 @@ export const useSolutionStore = create<SolutionState>()(
             set({ userStats: response.data });
           }
         } catch (error) {
-          console.warn('Failed to load user stats');
+          console.warn("Failed to load user stats");
         }
       },
 
@@ -268,7 +280,7 @@ export const useSolutionStore = create<SolutionState>()(
 
       updateSolutionLocally: (id, updates) => {
         const currentSolutions = get().solutions;
-        const updatedSolutions = currentSolutions.map(solution =>
+        const updatedSolutions = currentSolutions.map((solution) =>
           solution.id === id
             ? { ...solution, ...updates, updatedAt: new Date() }
             : solution
@@ -278,30 +290,34 @@ export const useSolutionStore = create<SolutionState>()(
 
       deleteSolutionLocally: (id) => {
         const currentSolutions = get().solutions;
-        const filteredSolutions = currentSolutions.filter(solution => solution.id !== id);
+        const filteredSolutions = currentSolutions.filter(
+          (solution) => solution.id !== id
+        );
         set({ solutions: filteredSolutions });
       },
 
       // Computed getters
       getDueForReview: () => {
         const now = new Date();
-        return get().solutions.filter(solution =>
-          new Date(solution.nextReviewDate) <= now
+        return get().solutions.filter(
+          (solution) => new Date(solution.nextReviewDate) <= now
         );
       },
 
       getSolutionsByDifficulty: (difficulty) => {
-        return get().solutions.filter(solution => solution.difficulty === difficulty);
+        return get().solutions.filter(
+          (solution) => solution.difficulty === difficulty
+        );
       },
 
       getSolutionsByTag: (tag) => {
-        return get().solutions.filter(solution =>
+        return get().solutions.filter((solution) =>
           solution.tags.includes(tag)
         );
       },
     }),
     {
-      name: 'solution-storage',
+      name: "solution-storage",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         solutions: state.solutions,

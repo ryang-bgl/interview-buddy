@@ -94,6 +94,12 @@ export interface UserDsaQuestionResponse {
   solution: string | null;
   idealSolutionCode: string | null;
   note: string | null;
+  lastReviewedAt?: string | null;
+  lastReviewStatus?: "easy" | "good" | "hard" | null;
+  reviewIntervalSeconds?: number | null;
+  reviewEaseFactor?: number | null;
+  reviewRepetitions?: number | null;
+  nextReviewDate?: string | null;
 }
 
 export interface GenerateAiSolutionRequest {

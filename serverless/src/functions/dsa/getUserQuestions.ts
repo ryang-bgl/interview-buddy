@@ -70,6 +70,10 @@ function mapQuestion(record: UserDsaQuestionRecord) {
     note: record.note ?? null,
     lastReviewedAt: record.lastReviewedAt ?? null,
     lastReviewStatus: record.lastReviewStatus ?? null,
+    reviewIntervalSeconds: record.reviewIntervalSeconds ?? null,
+    reviewEaseFactor: record.reviewEaseFactor ?? null,
+    reviewRepetitions: record.reviewRepetitions ?? null,
+    nextReviewDate: record.nextReviewDate ?? null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };

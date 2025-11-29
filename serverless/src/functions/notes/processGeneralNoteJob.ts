@@ -103,6 +103,10 @@ async function processJob({ jobId }: ProcessorInput) {
       updatedAt: now,
       lastReviewedAt: null,
       lastReviewStatus: null,
+      reviewIntervalSeconds: null,
+      reviewEaseFactor: null,
+      reviewRepetitions: null,
+      nextReviewDate: null,
     };
 
     await docClient.send(

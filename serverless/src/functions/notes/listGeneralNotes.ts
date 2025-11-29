@@ -28,6 +28,10 @@ interface NoteSummary {
   lastReviewStatus: string | null;
   cardCount: number;
   tags: string[];
+  reviewIntervalSeconds?: number | null;
+  reviewEaseFactor?: number | null;
+  reviewRepetitions?: number | null;
+  nextReviewDate?: string | null;
 }
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
@@ -56,7 +60,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         ":userId": userId,
       },
       ProjectionExpression:
-        "noteId, sourceUrl, topic, summary, cards, createdAt, lastReviewedAt, lastReviewStatus",
+        "noteId, sourceUrl, topic, summary, cards, createdAt, lastReviewedAt, lastReviewStatus, reviewIntervalSeconds, reviewEaseFactor, reviewRepetitions, nextReviewDate",
     });
     const result = await docClient.send(query);
     const items = (result.Items as UserNoteRecord[] | undefined) ?? [];
@@ -95,5 +99,9 @@ function mapToSummary(note: UserNoteRecord): NoteSummary {
     lastReviewStatus: note.lastReviewStatus ?? null,
     cardCount: note.cards?.length ?? 0,
     tags: Array.from(tags),
+    reviewIntervalSeconds: note.reviewIntervalSeconds ?? null,
+    reviewEaseFactor: note.reviewEaseFactor ?? null,
+    reviewRepetitions: note.reviewRepetitions ?? null,
+    nextReviewDate: note.nextReviewDate ?? null,
   };
 }

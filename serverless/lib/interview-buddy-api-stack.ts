@@ -353,6 +353,27 @@ export class InterviewBuddyApiStack extends Stack {
       }
     );
 
+    const updateNoteReviewFn = new NodejsFunction(
+      this,
+      "UpdateNoteReviewFunction",
+      {
+        ...defaultLambdaProps,
+        entry: path.join(
+          __dirname,
+          "..",
+          "src",
+          "functions",
+          "notes",
+          "updateNoteReview.ts"
+        ),
+        handler: "handler",
+        environment: {
+          USER_NOTES_TABLE_NAME: userNotesTable.tableName,
+          ...commonLambdaEnv,
+        },
+      }
+    );
+
     const addGeneralNoteCardFn = new NodejsFunction(
       this,
       "AddGeneralNoteCardFunction",
@@ -466,6 +487,7 @@ export class InterviewBuddyApiStack extends Stack {
     userNotesTable.grantReadData(listGeneralNotesFn);
     userNotesTable.grantReadWriteData(addGeneralNoteCardFn);
     userNotesTable.grantReadWriteData(deleteGeneralNoteCardFn);
+    userNotesTable.grantReadWriteData(updateNoteReviewFn);
     generalNoteJobsTable.grantReadWriteData(generalNoteJobRequestFn);
     generalNoteJobsTable.grantReadWriteData(generalNoteJobProcessorFn);
     generalNoteJobsTable.grantReadData(getGeneralNoteJobFn);
@@ -589,6 +611,15 @@ export class InterviewBuddyApiStack extends Stack {
       integration: new HttpLambdaIntegration(
         "DeleteGeneralNoteCardIntegration",
         deleteGeneralNoteCardFn
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: "/api/general-note/notes/{noteId}/review",
+      methods: [HttpMethod.PATCH],
+      integration: new HttpLambdaIntegration(
+        "UpdateNoteReviewIntegration",
+        updateNoteReviewFn
       ),
     });
 

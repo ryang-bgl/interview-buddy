@@ -55,7 +55,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         ":userId": userId,
       },
       ProjectionExpression:
-        "noteId, sourceUrl, topic, summary, cards, createdAt, lastReviewedAt, lastReviewStatus",
+        "noteId, sourceUrl, topic, summary, cards, createdAt, lastReviewedAt, lastReviewStatus, reviewIntervalSeconds, reviewEaseFactor, reviewRepetitions, nextReviewDate",
     });
     const result = await docClient.send(query);
     const items = (result.Items as UserNoteRecord[] | undefined) ?? [];
@@ -82,6 +82,10 @@ function mapNote(note: UserNoteRecord) {
     createdAt: note.createdAt,
     lastReviewedAt: note.lastReviewedAt ?? null,
     lastReviewStatus: note.lastReviewStatus ?? null,
+    reviewIntervalSeconds: note.reviewIntervalSeconds ?? null,
+    reviewEaseFactor: note.reviewEaseFactor ?? null,
+    reviewRepetitions: note.reviewRepetitions ?? null,
+    nextReviewDate: note.nextReviewDate ?? null,
   };
 }
 

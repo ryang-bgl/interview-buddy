@@ -2,7 +2,7 @@ export interface LeetCodeSolution {
   id: string;
   problemNumber: number;
   title: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: "Easy" | "Good" | "Hard";
   code: string;
   language: string;
   notes?: string;
@@ -23,7 +23,7 @@ export interface LeetCodeSolution {
 export interface ReviewSession {
   solutionId: string;
   reviewedAt: Date;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: "easy" | "good" | "hard";
   timeSpent?: number;
 }
 
