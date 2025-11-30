@@ -4,23 +4,15 @@ import { UserRecord } from "./types";
 import { docClient } from "./dynamodb";
 import { GetCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
-const supabaseProjectRef = process.env.SUPABASE_PROJECT_REF;
 const supabaseJwtAudience =
   process.env.SUPABASE_JWT_AUDIENCE ?? "authenticated";
 const supabaseIssuer =
-  process.env.SUPABASE_AUTH_URL ??
-  (supabaseProjectRef
-    ? `https://${supabaseProjectRef}.supabase.co/auth/v1`
-    : undefined);
-const jwksUrl =
-  process.env.SUPABASE_JWKS_URL ??
-  (supabaseProjectRef
-    ? `https://${supabaseProjectRef}.supabase.co/auth/v1/.well-known/jwks.json`
-    : undefined);
+  process.env.JWT_ISSUER?.trim() ?? process.env.SUPABASE_AUTH_URL?.trim();
+const jwksUrl = process.env.SUPABASE_JWKS_URL?.trim();
 
-if (!supabaseProjectRef || !jwksUrl || !supabaseIssuer) {
+if (!supabaseIssuer || !jwksUrl) {
   throw new Error(
-    "SUPABASE_PROJECT_REF and SUPABASE_AUTH_URL/SUPABASE_JWKS_URL must be configured"
+    "JWT_ISSUER (or SUPABASE_AUTH_URL) and SUPABASE_JWKS_URL must be configured"
   );
 }
 

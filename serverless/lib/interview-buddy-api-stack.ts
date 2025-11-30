@@ -54,15 +54,34 @@ export class InterviewBuddyApiStack extends Stack {
     const stage = props.stage ?? "dev";
     const stageSuffix = stage.toLowerCase();
 
-    const supabaseProjectRef = new CfnParameter(this, "SupabaseProjectRef", {
-      type: "String",
-      description: "Supabase project reference (e.g., abcdefghijklmnoqrst).",
-    });
-
     const supabaseJwtAudience = new CfnParameter(this, "SupabaseJwtAudience", {
       type: "String",
       description: "Expected JWT audience from Supabase tokens.",
       default: "authenticated",
+    });
+
+    const supabaseAuthUrlParam = new CfnParameter(this, "SupabaseAuthUrl", {
+      type: "String",
+      description:
+        "Supabase auth base URL (e.g., https://project.supabase.co/auth/v1)",
+      default: process.env.SUPABASE_AUTH_URL ?? process.env.AUTH_HOST ?? "",
+    });
+
+    const supabaseJwksUrlParam = new CfnParameter(this, "SupabaseJwksUrl", {
+      type: "String",
+      description:
+        "Supabase JWKS endpoint (e.g., https://project.supabase.co/auth/v1/.well-known/jwks.json)",
+      default: process.env.SUPABASE_JWKS_URL ?? process.env.AUTH_JWKS_URL ?? "",
+    });
+
+    const supabaseIssuerParam = new CfnParameter(this, "SupabaseJwtIssuer", {
+      type: "String",
+      description: "Supabase JWT issuer (iss claim)",
+      default:
+        process.env.JWT_ISSUER ??
+        process.env.SUPABASE_AUTH_URL ??
+        process.env.AUTH_HOST ??
+        "",
     });
 
     const deepseekApiKey = new CfnParameter(this, "DeepseekApiKey", {
@@ -96,8 +115,9 @@ export class InterviewBuddyApiStack extends Stack {
       default: process.env.HTTP_API_HOST ?? "",
     });
 
-    const supabaseAuthUrl = `https://${supabaseProjectRef.valueAsString}.supabase.co/auth/v1`;
-    const supabaseJwksUrl = `${supabaseAuthUrl}/.well-known/jwks.json`;
+    const supabaseAuthUrl = supabaseAuthUrlParam.valueAsString;
+    const supabaseJwksUrl = supabaseJwksUrlParam.valueAsString;
+    const supabaseJwtIssuer = supabaseIssuerParam.valueAsString;
 
     const userIdIndexName = "id-index";
     const usersTable = new Table(this, "UsersTable", {
@@ -158,10 +178,10 @@ export class InterviewBuddyApiStack extends Stack {
       STAGE: stage,
       USERS_TABLE_NAME: usersTable.tableName,
       USERS_TABLE_ID_INDEX_NAME: userIdIndexName,
-      SUPABASE_PROJECT_REF: supabaseProjectRef.valueAsString,
       SUPABASE_AUTH_URL: supabaseAuthUrl,
       SUPABASE_JWKS_URL: supabaseJwksUrl,
       SUPABASE_JWT_AUDIENCE: supabaseJwtAudience.valueAsString,
+      JWT_ISSUER: supabaseJwtIssuer,
     } as const;
 
     const defaultLambdaProps = {

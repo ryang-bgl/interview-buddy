@@ -40,18 +40,35 @@ export function loadProjectEnv(options = {}) {
   const envFile = resolveEnvPath(options.file ?? stageReference)
   const values = parseEnvFile(envFile)
 
-  const supabaseProjectRef = values.SupabaseProjectRef ?? ''
-  const supabaseUrl =
-    values.SUPABASE_URL ??
-    values.SupabaseUrl ??
-    (supabaseProjectRef ? `https://${supabaseProjectRef}.supabase.co` : '')
+  const supabaseUrl = values.AUTH_HOST ?? values.SUPABASE_AUTH_URL ?? ''
   const supabaseAnonKey =
     values.SUPABASE_ANON_KEY ?? values.SupabaseAnonKey ?? ''
+  const supabaseJwksUrl = values.AUTH_JWKS_URL ?? ''
+  const supabaseIssuer =
+    values.JWT_ISSUER ?? values.AUTH_HOST ?? values.SUPABASE_AUTH_URL ?? ''
   const supabaseRedirectExtension =
     values.SUPABASE_EXTENSION_REDIRECT_URL ??
     values.SUPABASE_REDIRECT_URL_EXTENSION ??
     values.SUPABASE_EXTENSION_REDIRECT ??
     ''
+
+  if (!supabaseUrl) {
+    throw new Error(
+      `AUTH_HOST (Supabase URL) missing in ${envFile}. Add AUTH_HOST=https://<project>.supabase.co`,
+    )
+  }
+
+  if (!supabaseJwksUrl) {
+    throw new Error(
+      `AUTH_JWKS_URL missing in ${envFile}. Provide the Supabase JWKS endpoint`,
+    )
+  }
+
+  if (!supabaseIssuer) {
+    throw new Error(
+      `JWT_ISSUER missing in ${envFile}. Set JWT_ISSUER to your Supabase auth issuer`,
+    )
+  }
 
   const apiHost = values.ApiHost ?? ''
   const apiOrigin =
@@ -66,9 +83,10 @@ export function loadProjectEnv(options = {}) {
     file: envFile,
     values,
     supabase: {
-      projectRef: supabaseProjectRef,
       url: supabaseUrl,
       anonKey: supabaseAnonKey,
+      jwksUrl: supabaseJwksUrl,
+      issuer: supabaseIssuer,
       jwtAudience: values.SupabaseJwtAudience ?? 'authenticated',
       redirectExtension: supabaseRedirectExtension,
     },

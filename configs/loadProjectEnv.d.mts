@@ -3,9 +3,10 @@ export type LoadedProjectEnv = {
   file: string
   values: Record<string, string>
   supabase: {
-    projectRef: string
     url: string
     anonKey: string
+    jwksUrl: string
+    issuer: string
     jwtAudience: string
     redirectExtension: string
   }
