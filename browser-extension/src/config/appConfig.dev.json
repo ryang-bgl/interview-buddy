@@ -1,8 +1,0 @@
-{
-  "serverOrigin": "https://api.leetstack.app",
-  "supabase": {
-    "url": "https://dytenzvmlucodjjxlhyk.supabase.co",
-    "anonKey": "sb_publishable_4gaw9ZYRl4YuxBnKoabqSg_zCe8N-s0",
-    "redirectTo": "https://oifnnfghdioggiklipedbeolcgnbhjeg.chromiumapp.org/auth"
-  }
-}

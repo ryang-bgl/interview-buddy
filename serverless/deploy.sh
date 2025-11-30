@@ -8,7 +8,10 @@ PARAM_FILE="../configs/${STAGE}.env"
 PARAMS=()
 while IFS='=' read -r key value || [[ -n "${key:-}" ]]; do
   [[ -z "$key" || "$key" =~ ^# ]] && continue
-  PARAMS+=( "--parameters" "${key}=${value}" )
+  export "$key"="$value"
+  if [[ "$key" =~ ^[A-Za-z][A-Za-z0-9]+$ ]]; then
+    PARAMS+=( "--parameters" "${key}=${value}" )
+  fi
 done < "$PARAM_FILE"
 
 if ((${#PARAMS[@]})); then

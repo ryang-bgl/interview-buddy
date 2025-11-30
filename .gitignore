@@ -12,3 +12,6 @@ leetstack-landing/node_modules
 website/node_modules
 website/dist/
 .DS_Store
+configs/*
+!configs/loadProjectEnv.mjs
+!configs/loadProjectEnv.d.mts

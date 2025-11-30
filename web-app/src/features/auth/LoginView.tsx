@@ -108,7 +108,7 @@ const LoginView = observer(() => {
                 Move faster on interviews.
               </h1>
               <p className="text-base text-white/70">
-                Capture in Chrome, review here.
+                Capture in Chrome, review on the go with Mobile and Web.
               </p>
             </div>
             <div className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
@@ -250,7 +250,8 @@ const LoginView = observer(() => {
               <div className="flex items-start gap-3 rounded-2xl border border-border/80 p-4 text-sm text-muted-foreground">
                 <Sparkles className="mt-0.5 h-4 w-4 text-primary" />
                 <div>
-                  Use the same email as the Chrome extension to sync instantly.
+                  Use the same email as the Chrome extension to sync all your
+                  notes.
                 </div>
               </div>
             </CardContent>

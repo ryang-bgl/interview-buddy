@@ -4,11 +4,13 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "VITE_APP_ENV=dev vite",
-    "prod": "VITE_APP_ENV=prod vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "build:dev": "VITE_APP_ENV=dev tsc -b && VITE_APP_ENV=dev vite build"
+    "dev": "cross-env LEETSTACK_STAGE=dev vite",
+    "dev:prod": "cross-env LEETSTACK_STAGE=prod vite",
+    "build": "npm run build:prod",
+    "build:dev": "cross-env LEETSTACK_STAGE=dev npm run build:base",
+    "build:prod": "cross-env LEETSTACK_STAGE=prod npm run build:base",
+    "build:base": "tsc -b && vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.7",
@@ -23,6 +25,7 @@
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "~5.8.3",

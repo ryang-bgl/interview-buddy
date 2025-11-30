@@ -14,15 +14,7 @@ export default defineManifest({
     },
     default_popup: "src/popup/index.html",
   },
-  permissions: [
-    "cookies",
-    "contentSettings",
-    "scripting",
-    "tabs",
-    "activeTab",
-    "storage",
-    "identity",
-  ],
+  permissions: ["scripting", "activeTab", "storage"],
   host_permissions: [
     "https://w2ikvgnue9.execute-api.us-east-1.amazonaws.com/*",
     "https://*.chromiumapp.org/*",

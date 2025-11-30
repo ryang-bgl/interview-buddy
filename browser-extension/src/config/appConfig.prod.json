@@ -1,8 +1,0 @@
-{
-  "serverOrigin": "https://api.leetstack.app",
-  "supabase": {
-    "url": "https://zykivurebnasnqurscoo.supabase.co",
-    "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5a2l2dXJlYm5hc25xdXJzY29vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MDU2OTcsImV4cCI6MjA3OTk4MTY5N30.O-cI4Lt2fhE6lhIG8BvwoCUbUwaeZWC7vC81ER0MrDU",
-    "redirectTo": "https://leetstack.app"
-  }
-}
