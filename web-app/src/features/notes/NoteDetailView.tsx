@@ -1,41 +1,41 @@
-import { useEffect } from 'react'
-import { observer } from 'mobx-react-lite'
-import { useParams, Link } from 'react-router-dom'
-import { useStores } from '@/stores/StoreProvider'
+import { useEffect } from "react";
+import { observer } from "mobx-react-lite";
+import { useParams, Link } from "react-router-dom";
+import { useStores } from "@/stores/StoreProvider";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { LoadingIndicator } from '@/components/ui/loading-indicator'
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 const parseTags = (value: string) =>
   value
-    .split(',')
+    .split(",")
     .map((tag) => tag.trim())
-    .filter(Boolean)
+    .filter(Boolean);
 
 const NoteDetailView = observer(() => {
-  const { noteId } = useParams<{ noteId: string }>()
-  const { notebookStore } = useStores()
+  const { noteId } = useParams<{ noteId: string }>();
+  const { notebookStore } = useStores();
   useEffect(() => {
-    notebookStore.ensureNotesLoaded()
-  }, [notebookStore])
-  const note = noteId ? notebookStore.getNoteById(noteId) : null
-  const loading = notebookStore.isLoadingNotes && !notebookStore.hasLoadedNotes
+    notebookStore.ensureNotesLoaded();
+  }, [notebookStore]);
+  const note = noteId ? notebookStore.getNoteById(noteId) : null;
+  const loading = notebookStore.isLoadingNotes && !notebookStore.hasLoadedNotes;
 
   if (loading) {
     return (
       <div className="rounded-2xl border border-border/70 bg-muted/30 p-6">
         <LoadingIndicator label="Loading note…" />
       </div>
-    )
+    );
   }
 
   if (!note) {
@@ -46,7 +46,7 @@ const NoteDetailView = observer(() => {
           <Link to="/notes">Back to notes</Link>
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -56,8 +56,15 @@ const NoteDetailView = observer(() => {
           <Link to="/notes">← Back to list</Link>
         </Button>
         <p className="text-sm text-muted-foreground">Note detail</p>
-        <h1 className="text-3xl font-semibold tracking-tight">{note.topic ?? note.summary ?? note.url}</h1>
-        <a href={note.url} target="_blank" rel="noreferrer" className="text-sm text-primary underline">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          {note.topic ?? note.summary ?? note.url}
+        </h1>
+        <a
+          href={note.url}
+          target="_blank"
+          rel="noreferrer"
+          className="text-sm text-primary underline"
+        >
           {note.url}
         </a>
         <div className="flex flex-wrap gap-2">
@@ -68,27 +75,14 @@ const NoteDetailView = observer(() => {
           ))}
         </div>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Summary</CardTitle>
-          <CardDescription>Edit AI output before creating cards.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            rows={6}
-            value={note.summary ?? ''}
-            onChange={(event) => notebookStore.updateNoteSummary(note.noteId, event.target.value)}
-          />
-        </CardContent>
-      </Card>
-
       <div className="space-y-4">
         {note.cards.map((card) => (
           <Card key={card.id}>
             <CardHeader>
               <CardTitle className="text-base">Flashcard</CardTitle>
-              <CardDescription>Front, back, and tags sync with the review queue.</CardDescription>
+              <CardDescription>
+                Front, back, and tags sync with the review queue.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Textarea
@@ -113,7 +107,7 @@ const NoteDetailView = observer(() => {
               />
               <Textarea
                 rows={3}
-                value={card.extra ?? ''}
+                value={card.extra ?? ""}
                 onChange={(event) =>
                   notebookStore.updateFlashcard(note.noteId, card.id!, {
                     extra: event.target.value,
@@ -121,24 +115,12 @@ const NoteDetailView = observer(() => {
                 }
                 placeholder="Extra context"
               />
-              <Input
-                value={(card.tags ?? []).join(', ')}
-                onChange={(event) =>
-                  notebookStore.updateFlashcard(note.noteId, card.id!, {
-                    tags: parseTags(event.target.value),
-                  })
-                }
-                placeholder="comma separated tags"
-              />
-              <div className="text-xs text-muted-foreground">
-                Last reviewed {note.lastReviewedAt ? new Date(note.lastReviewedAt).toLocaleDateString() : '—'}
-              </div>
             </CardContent>
           </Card>
         ))}
       </div>
     </div>
-  )
-})
+  );
+});
 
-export default NoteDetailView
+export default NoteDetailView;
