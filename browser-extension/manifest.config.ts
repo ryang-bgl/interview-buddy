@@ -15,11 +15,11 @@ export default defineManifest({
     default_popup: "src/popup/index.html",
   },
   permissions: ["scripting", "activeTab", "storage"],
-  host_permissions: ["https://*.leetstack.app/*"],
+  host_permissions: ["https://leetcode.com/*", "https://leetcode.cn/*"],
   content_scripts: [
     {
       js: ["src/content/main.tsx"],
-      matches: ["https://*/*"],
+      matches: ["https://leetcode.com/*", "https://leetcode.cn/*"],
     },
   ],
 });

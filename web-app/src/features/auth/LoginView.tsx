@@ -258,7 +258,7 @@ const LoginView = observer(() => {
 
             <CardFooter className="flex flex-col gap-4 border-t border-border/60 bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted-foreground">
-                Need help? founders@leetstack.com
+                Need help? leetstack.app@gmail.com
               </p>
               <Button variant="ghost" size="sm" className="group">
                 View release notes

@@ -1,0 +1,99 @@
+---
+import "../styles/global.css";
+
+const seo = {
+  title: "LeetStack Chrome Extension Privacy Policy",
+  description:
+    "Learn how the LeetStack browser extension handles your email address and saved problem content.",
+  siteUrl: "https://www.leetstack.app/browser-extension-privacy",
+};
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{seo.title}</title>
+    <meta name="description" content={seo.description} />
+    <link rel="canonical" href={seo.siteUrl} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <main class="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-16">
+      <header class="space-y-2">
+        <p class="text-sm font-semibold uppercase tracking-widest text-slate-500">
+          Privacy Policy
+        </p>
+        <h1 class="text-3xl font-bold">LeetStack Browser Extension</h1>
+        <p class="text-base text-slate-600">Last updated: {new Date().toLocaleDateString("en-US")}</p>
+        <p class="text-lg text-slate-600">
+          We built the LeetStack Chrome extension to help you capture practice notes without
+          collecting any unnecessary information. This page explains exactly what data we handle
+          and how it is used.
+        </p>
+      </header>
+
+      <section class="space-y-4">
+        <h2 class="text-2xl font-semibold">Information We Collect</h2>
+        <ul class="list-disc space-y-3 pl-5 text-slate-700">
+          <li>
+            <span class="font-semibold">Email address:</span> used to send you a one-time login link
+            or OTP through Supabase authentication.
+          </li>
+          <li>
+            <span class="font-semibold">Problem content you explicitly save:</span> when you click
+            “Save,” we capture the code, notes, or metadata you provide and store it securely on the
+            LeetStack backend.
+          </li>
+        </ul>
+        <p class="text-slate-600">
+          We do <strong>not</strong> record or transmit any other browsing data, page content, or
+          personal information unless you intentionally submit it through the save action.
+        </p>
+      </section>
+
+      <section class="space-y-3">
+        <h2 class="text-2xl font-semibold">How We Use Your Data</h2>
+        <p class="text-slate-600">
+          The data you provide is used only to create and sync your LeetStack notes so you can
+          review them later in the LeetStack mobile app or web dashboard. We do not sell or share your
+          data with advertisers or unrelated third parties. Supabase is our authentication provider
+          and receives your email solely to deliver the OTP email.
+        </p>
+      </section>
+
+      <section class="space-y-3">
+        <h2 class="text-2xl font-semibold">Storage & Security</h2>
+        <p class="text-slate-600">
+          Saved content and account information are stored in our managed cloud databases (AWS +
+          Supabase). Access is limited to authenticated requests from the extension or our backend
+          services, and all communication occurs over HTTPS.
+        </p>
+      </section>
+
+      <section class="space-y-3">
+        <h2 class="text-2xl font-semibold">Your Choices</h2>
+        <p class="text-slate-600">
+          You can delete saved notes at any time from the LeetStack interface. If you would like your
+          account or data removed entirely, contact us and we will process the deletion promptly.
+        </p>
+      </section>
+
+      <section class="space-y-3">
+        <h2 class="text-2xl font-semibold">Contact Us</h2>
+        <p class="text-slate-600">
+          Questions or requests about this policy? Email us at
+          <a class="text-blue-600 hover:underline" href="mailto:leetstack.app@gmail.com">
+            leetstack.app@gmail.com
+          </a>
+          .
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

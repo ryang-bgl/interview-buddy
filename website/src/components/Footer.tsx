@@ -103,10 +103,10 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="#"
+                  href="/browser-extension-privacy"
                   className="hover:text-white transition-colors hover:translate-x-1 inline-block"
                 >
-                  Privacy Policy
+                  Browser Extension Privacy
                 </a>
               </li>
               <li>
