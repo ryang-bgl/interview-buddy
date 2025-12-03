@@ -150,7 +150,7 @@ async function loadCachedSolution({
   language,
 }: {
   questionIndex: string;
-  language?: string;
+  language?: string | null;
 }): Promise<AiSolutionRecord | null> {
   const languageKey = language ?? "default";
   const command = new GetCommand({
@@ -165,8 +165,8 @@ async function callDeepseek({
   questionIndex,
   language,
 }: {
-  question: UserDsaQuestionRecord;
-  language?: string;
+  questionIndex: string;
+  language?: string | null;
 }): Promise<string> {
   const prompt = `You are helping a candidate prepare for coding interviews. Given the following LeetCode problem ${questionIndex}, craft a clean, well-commented solution including time and space complexity.\n\nReturn only the correct and optimal solution and brief explanation.`;
   const deepseekModel = process.env.DEEPSEEK_MODEL ?? "deepseek-chat";

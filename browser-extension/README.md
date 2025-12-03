@@ -29,7 +29,7 @@ npm run dev
    - Under **Authentication → Settings**, enable **Email OTP** and customize the magic-link template if desired.
    - Add your Chrome extension redirect (`https://<EXTENSION_ID>.chromiumapp.org/auth`) to the "Redirect URLs" list so Supabase is allowed to complete the flow.
 
-4. Open Chrome and navigate to `chrome://extensions/`, enable "Developer mode", and load the unpacked extension from the `dist` directory.
+4. Open Chrome and navigate to `chrome://extensions/`, enable "Developer mode", and load the unpacked extension from the `dist` directory. Pin the extension icon and click it to toggle the Chrome side panel powered by this UI. Chrome will prompt for "Read your browsing history" because the extension now injects scripts into any tab (`<all_urls>`) to support element selection and scraping; approve the prompt so the AI can read the current page content.
 
 5. Build for production:
 
@@ -39,7 +39,7 @@ npm run build
 
 ## Project Structure
 
-- `src/popup/` - Extension popup UI
+- `src/popup/` - React UI rendered inside the Chrome side panel
 - `src/content/` - Content scripts
 - `manifest.config.ts` - Chrome extension manifest configuration
 - `src/lib/supabaseClient.ts` - Supabase client initialization used by the popup
@@ -52,7 +52,7 @@ npm run build
 
 ## Chrome Extension Development Notes
 
-- The popup uses Supabase email OTP. Users receive a short code via email, enter it, and the Supabase session token is forwarded to the AWS API Gateway.
+- The side panel uses Supabase email OTP. Users receive a short code via email, enter it, and the Supabase session token is forwarded to the AWS API Gateway.
 - Use `manifest.config.ts` to configure permissions/hosts; the extension needs `identity` plus access to your Supabase project URL and API Gateway domain.
 - The CRXJS plugin automatically handles manifest generation.
-- Content scripts should be placed in `src/content/` and popup UI in `src/popup/`.
+- Content scripts should be placed in `src/content/` and the side panel UI in `src/popup/`.

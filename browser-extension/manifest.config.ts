@@ -12,7 +12,14 @@ export default defineManifest({
     default_icon: {
       48: "public/assets/leetstack.png",
     },
-    default_popup: "src/popup/index.html",
   },
-  permissions: ["scripting", "activeTab", "storage"],
+  background: {
+    service_worker: "src/background/index.ts",
+    type: "module",
+  },
+  side_panel: {
+    default_path: "src/popup/index.html",
+  },
+  permissions: ["scripting", "activeTab", "tabs", "storage", "sidePanel"],
+  host_permissions: ["<all_urls>"],
 });

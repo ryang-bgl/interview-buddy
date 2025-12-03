@@ -13,6 +13,7 @@ import {
   UnauthorizedError,
 } from "../../shared/supabaseAuth";
 import type { UserNoteCardRecord, UserNoteRecord } from "../../shared/types";
+import { chunkArticleContent } from "../../shared/noteChunker";
 
 const userNotesTableName = process.env.USER_NOTES_TABLE_NAME;
 const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
@@ -340,9 +341,14 @@ async function generateCompleteStack(input: {
   initialAnchor?: FlashcardAnchor | null;
 }): Promise<StackResponse> {
   const aggregated: UserNoteCardRecord[] = [];
-  let anchor: FlashcardAnchor | null = input.initialAnchor ?? null;
   let derivedTopic: string | null = null;
-  const maxIterations = 10;
+  const segments = chunkArticleContent(input.content, {
+    anchor: input.initialAnchor ?? undefined,
+    targetSize: 500,
+    overlapBlocks: 2,
+  });
+
+  const chunks = segments.length > 0 ? segments : [input.content];
   const formatCardForLog = (card?: UserNoteCardRecord) => {
     if (!card) {
       return "n/a";
@@ -352,35 +358,31 @@ async function generateCompleteStack(input: {
     return `Front: ${front || "(empty)"} | Back: ${back || "(empty)"}`;
   };
 
-  for (let index = 0; index < maxIterations; index += 1) {
+  for (let index = 0; index < chunks.length; index += 1) {
+    const chunkContent = chunks[index];
     const chunk = await generateAnkiStack({
       ...input,
-      anchorCard: anchor,
+      content: chunkContent,
+      anchorCard: null,
     });
     if (!derivedTopic && chunk.topic) {
       derivedTopic = chunk.topic;
     }
     if (!chunk.cards.length) {
       console.info(
-        "[general-note] Attempt %d returned 0 cards; stopping.",
+        "[general-note] Chunk %d returned 0 cards; stopping.",
         index + 1
       );
-      break;
+      continue;
     }
     aggregated.push(...chunk.cards);
-    const last = chunk.cards[chunk.cards.length - 1];
-    anchor = {
-      front: last.front,
-      back: last.back,
-      extra: last.extra ?? null,
-    };
     console.info(
-      "[general-note] Attempt %d produced %d cards (total=%d). First=%s, Last=%s",
+      "[general-note] Chunk %d produced %d cards (total=%d). First=%s, Last=%s",
       index + 1,
       chunk.cards.length,
       aggregated.length,
-      formatCardForLog(aggregated[0]),
-      formatCardForLog(aggregated[aggregated.length - 1])
+      formatCardForLog(chunk.cards[0]),
+      formatCardForLog(chunk.cards[chunk.cards.length - 1])
     );
   }
 
@@ -413,7 +415,9 @@ async function generateAnkiStack(input: {
           "Resume from the point immediately after the last saved flashcard.",
           `Previous front: ${input.anchorCard.front}`,
           `Previous back: ${input.anchorCard.back}`,
-          input.anchorCard.extra ? `Previous extra: ${input.anchorCard.extra}` : null,
+          input.anchorCard.extra
+            ? `Previous extra: ${input.anchorCard.extra}`
+            : null,
           "Locate where that flashcard content appears in the provided text, make sure you don't repeat it, then continue generating cards right after that location.",
         ].join("\n")
       : "Start from the beginning of the provided content.",
@@ -421,7 +425,7 @@ async function generateAnkiStack(input: {
     "Add summary cards that capture the most critical takeaways for each major section before diving into supporting details.",
     "Generate as many cards as needed to cover the entire source material—avoid arbitrary limits like 10 cards; long-form content should typically yield dozens of cards.",
     "Do not be overly concise—cover every important insight from the provided material.",
-    "If there is nothing left after the anchor point, respond with the JSON payload but set \"cards\" to an empty array.",
+    'If there is nothing left after the anchor point, respond with the JSON payload but set "cards" to an empty array.',
     'Respond strictly in JSON using this structure: {"title": "Meaningful title", "tags": ["SystemDesign"], "cards": [{"front": "question", "back": "detailed answer", "extra"?: "tips"}]}.',
     'Each tag in the payload must be one of the following enum values: "SystemDesign", "Behaviour", "Algo", "Other".',
     "Here is the raw content, bounded by triple quotes:",
@@ -459,6 +463,11 @@ async function generateAnkiStack(input: {
 
   const aiContent = body?.choices?.[0]?.message?.content;
   if (typeof aiContent !== "string") {
+    console.error(
+      "==== generateAnkiStack, error in deepseek response aiContent",
+      JSON.stringify(aiContent)
+    );
+
     throw new Error("DeepSeek response missing content");
   }
 
