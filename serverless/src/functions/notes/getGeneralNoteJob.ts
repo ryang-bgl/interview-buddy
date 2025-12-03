@@ -70,6 +70,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
             topic: job.resultTopic ?? job.topic ?? null,
             summary: job.resultSummary ?? null,
             cards: job.resultCards ?? [],
+            newCards: job.resultNewCards ?? job.resultCards?.length ?? 0,
           }
         : undefined,
   });

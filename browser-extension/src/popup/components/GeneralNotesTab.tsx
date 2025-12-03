@@ -1,21 +1,34 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   createGeneralNoteJob,
-  getExistingGeneralNote,
   getGeneralNoteJob,
+  getExistingGeneralNote,
   addGeneralNoteCard,
   deleteGeneralNoteCard,
-  type GeneralNoteJobResult,
-  type GeneralNoteJobStatusResponse,
 } from "@/lib/api";
 import { getActiveTab } from "../utils/browser";
-import { captureActivePageContent } from "../utils/page";
+import {
+  captureActivePageContent,
+  selectPageElementContent,
+} from "../utils/page";
 
 type GenerationState = "idle" | "generating" | "success" | "error";
 type CopyState = "idle" | "copied";
 
 type StackResult =
-  | (GeneralNoteJobResult & { url: string; source: "generated" | "existing" })
+  | {
+      noteId: string | null;
+      topic: string | null;
+      summary: string | null;
+      cards: {
+        id?: string | null;
+        front: string;
+        back: string;
+        extra?: string | null;
+      }[];
+      url: string;
+      source: "generated" | "existing";
+    }
   | null;
 
 export default function GeneralNotesTab() {
@@ -24,9 +37,6 @@ export default function GeneralNotesTab() {
     useState<GenerationState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<CopyState>("idle");
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [latestJobStatus, setLatestJobStatus] =
-    useState<GeneralNoteJobStatusResponse | null>(null);
   const [cardDraft, setCardDraft] = useState({
     front: "",
     back: "",
@@ -39,21 +49,26 @@ export default function GeneralNotesTab() {
     null
   );
   const [isLoadingExisting, setIsLoadingExisting] = useState(true);
+  const [selectedSource, setSelectedSource] = useState<
+    | {
+        url: string;
+        title: string | null;
+        text: string;
+      }
+    | null
+  >(null);
+  const [isSelectingContent, setIsSelectingContent] = useState(false);
 
   const START_SLOT_ID = "__start__";
 
-  const isPolling = Boolean(activeJobId);
-  const isGenerating =
-    generationState === "generating" ||
-    isPolling ||
-    latestJobStatus?.status === "processing";
+  const isGenerating = generationState === "generating";
   const cardsCount = stackResult?.cards?.length ?? 0;
   const hasCards = cardsCount > 0;
   const canEditCards = Boolean(stackResult?.noteId);
 
   const statusText = (() => {
-    if (isPolling || latestJobStatus?.status === "processing") {
-      return "AI is reading this page and drafting review cards...";
+    if (isSelectingContent) {
+      return "Click any element on the page to capture only that section.";
     }
     if (generationState === "generating") {
       return "Queuing AI to study this page...";
@@ -76,7 +91,7 @@ export default function GeneralNotesTab() {
     if (generationState === "error") {
       return "text-red-600";
     }
-    if (isPolling || generationState === "generating") {
+    if (generationState === "generating" || isSelectingContent) {
       return "text-blue-600";
     }
     if (hasCards) {
@@ -148,9 +163,6 @@ export default function GeneralNotesTab() {
     setErrorMessage(null);
     setCopyState("idle");
     setStackResult(null);
-    setLatestJobStatus(null);
-    setActiveJobId(null);
-
     try {
       const tab = await getActiveTab();
       const tabId = tab?.id;
@@ -159,20 +171,26 @@ export default function GeneralNotesTab() {
         throw new Error("Open the page you want to convert before generating.");
       }
 
+      let selectionToUse = selectedSource;
+      if (selectionToUse && selectionToUse.url !== tabUrl) {
+        selectionToUse = null;
+        setSelectedSource(null);
+      }
+
       const snapshot = await captureActivePageContent(tabId);
-      const payload = snapshot?.text?.trim();
+      const rawPayload = selectionToUse?.text ?? snapshot?.text ?? "";
+      const payload = rawPayload.trim();
       if (!payload) {
         throw new Error(
           "Couldn't read the current page. Refresh it and try again."
         );
       }
 
-      const job = await createGeneralNoteJob({
+      await runGenerationLoop({
         url: tabUrl,
         payload,
-        topic: snapshot?.title ?? tab.title ?? null,
+        topic: selectionToUse?.title ?? snapshot?.title ?? tab.title ?? null,
       });
-      setActiveJobId(job.jobId);
     } catch (error) {
       const message =
         error instanceof Error && error.message
@@ -183,54 +201,121 @@ export default function GeneralNotesTab() {
     }
   };
 
-  useEffect(() => {
-    if (!activeJobId) {
-      return undefined;
+  const handleSelectElement = async () => {
+    setErrorMessage(null);
+    setGenerationState("idle");
+    setCopyState("idle");
+    setIsSelectingContent(true);
+
+    try {
+      const tab = await getActiveTab();
+      const tabId = tab?.id;
+      const tabUrl = tab?.url?.trim();
+      if (!tabId || !tabUrl) {
+        throw new Error("Load the page you want to capture before selecting.");
+      }
+
+      const selection = await selectPageElementContent(tabId);
+      const normalized = selection?.text?.trim();
+      if (!selection || !normalized) {
+        setGenerationState("idle");
+        return;
+      }
+
+      setSelectedSource({
+        url: tabUrl,
+        title: selection.title ?? tab.title ?? null,
+        text: normalized,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Unable to capture the selected element";
+      setErrorMessage(message);
+      setGenerationState("error");
+    } finally {
+      setIsSelectingContent(false);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedSource(null);
+  };
+
+  const runGenerationLoop = async ({
+    url,
+    payload,
+    topic,
+  }: {
+    url: string;
+    payload: string;
+    topic: string | null;
+  }) => {
+    const MAX_ATTEMPTS = 5;
+    let attempts = 0;
+    let observedProgress = false;
+
+    while (attempts < MAX_ATTEMPTS) {
+      const job = await createGeneralNoteJob({
+        url,
+        payload,
+        topic,
+      });
+      const polled = await pollJobUntilComplete(job.jobId);
+      if (!polled?.result) {
+        break;
+      }
+      const { result, url: jobUrl } = polled;
+      if (result.newCards && result.newCards > 0) {
+        observedProgress = true;
+      }
+
+      setStackResult((prev) => {
+        const normalizedCards = result.cards ?? [];
+        const derivedSource: "generated" | "existing" =
+          prev?.source ??
+          (result.newCards === (result.cards?.length ?? 0)
+            ? "generated"
+            : "existing");
+        return {
+          noteId: result.noteId ?? prev?.noteId ?? null,
+          topic: result.topic ?? prev?.topic ?? null,
+          summary: result.summary ?? prev?.summary ?? null,
+          cards: normalizedCards,
+          url: jobUrl,
+          source: derivedSource,
+        };
+      });
+      setGenerationState("success");
+
+      if (!result.newCards || result.newCards <= 0) {
+        break;
+      }
+      attempts += 1;
     }
 
-    let cancelled = false;
+    if (!observedProgress) {
+      setErrorMessage("No new flashcards were generated for this page.");
+      setGenerationState("error");
+    }
+  };
 
-    const poll = async () => {
-      try {
-        const status = await getGeneralNoteJob(activeJobId);
-        if (cancelled) {
-          return;
-        }
-        setLatestJobStatus(status);
-
-        if (status.status === "completed" && status.result) {
-          setStackResult({
-            ...status.result,
-            url: status.url,
-            source: "generated",
-          });
-          setGenerationState("success");
-          setActiveJobId(null);
-        } else if (status.status === "failed") {
-          setErrorMessage(
-            status.errorMessage ?? "Failed to generate review cards"
-          );
-          setGenerationState("error");
-          setActiveJobId(null);
-        }
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
-        console.warn("[leetstack] Failed to poll general note job", error);
-        setErrorMessage("Unable to check job status");
-        setGenerationState("error");
-        setActiveJobId(null);
+  const pollJobUntilComplete = async (
+    jobId: string
+  ): Promise<Awaited<ReturnType<typeof getGeneralNoteJob>>> => {
+    const POLL_INTERVAL_MS = 1500;
+    while (true) {
+      const status = await getGeneralNoteJob(jobId);
+      if (status.status === "completed" && status.result) {
+        return status;
       }
-    };
-
-    void poll();
-    const intervalId = window.setInterval(poll, 3000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [activeJobId]);
+      if (status.status === "failed") {
+        throw new Error(status.errorMessage ?? "Failed to generate review cards");
+      }
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    }
+  };
 
   useEffect(() => {
     setActiveInsertAfterId(null);
@@ -478,6 +563,32 @@ export default function GeneralNotesTab() {
           <span>Checking if you've already saved cards for this page…</span>
         </div>
       )}
+      {selectedSource ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+          <div className="flex items-start gap-3">
+            <div className="flex-1">
+              <p className="text-xs uppercase tracking-wide text-amber-700">
+                Selected section
+              </p>
+              <p className="mt-1 font-semibold">
+                {selectedSource.title ?? "From current page"}
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-amber-800">
+                {selectedSource.text.length > 320
+                  ? `${selectedSource.text.slice(0, 320)}...`
+                  : selectedSource.text}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              className="text-xs font-semibold uppercase tracking-wide text-amber-800 underline-offset-4 hover:underline"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      ) : null}
       {!stackResult && !isLoadingExisting && (
         <section className="space-y-4">
           <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4 text-sm text-purple-900">
@@ -487,17 +598,28 @@ export default function GeneralNotesTab() {
               review cards.
             </p>
             <p className="mt-2 text-xs text-purple-700">
-              Tip: load the page you want to study first, then tap the button
-              below.
+              Tip: load the page you want to study first. Use “Select element”
+              to capture a single section or run generation for the entire
+              page.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <span className={`text-sm ${statusTone}`}>{statusText}</span>
             <button
               type="button"
+              onClick={handleSelectElement}
+              disabled={
+                isSelectingContent || isLoadingExisting || isGenerating
+              }
+              className="ml-auto inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSelectingContent ? "Click on the page..." : "Select element"}
+            </button>
+            <button
+              type="button"
               onClick={handleGenerate}
               disabled={isGenerating || isLoadingExisting}
-              className="ml-auto inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-orange-400 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition hover:shadow-xl hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-orange-400 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition hover:shadow-xl hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isGenerating ? "Generating..." : "AI generates review cards"}
             </button>
@@ -537,14 +659,32 @@ export default function GeneralNotesTab() {
                   : "No cards returned"}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleCopyStack}
-              disabled={!hasCards}
-              className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {copyState === "copied" ? "Copied" : "Copy stack"}
-            </button>
+            <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={handleSelectElement}
+                disabled={isSelectingContent || isGenerating}
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSelectingContent ? "Click on the page..." : "Select element"}
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isGenerating}
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isGenerating ? "Continuing..." : "Generate more cards"}
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyStack}
+                disabled={!hasCards}
+                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {copyState === "copied" ? "Copied" : "Copy stack"}
+              </button>
+            </div>
           </div>
 
           {hasCards ? (

@@ -9,7 +9,8 @@
     "deploy:dev": "cdk deploy InterviewBuddyApiStack-dev -c stage=dev",
     "deploy:prod": "cdk deploy InterviewBuddyApiStack-prod -c stage=prod",
     "destroy": "cdk destroy",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "test:notes": "vitest run tests/generateGeneralNoteLambda.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.540.0",
@@ -25,6 +26,7 @@
     "cdk": "2.1031.2",
     "esbuild": "^0.20.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
   }
 }

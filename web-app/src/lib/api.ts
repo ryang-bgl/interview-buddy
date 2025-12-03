@@ -125,6 +125,18 @@ export interface FlashcardNoteRecord {
   nextReviewDate?: string | null;
 }
 
+export interface UpdateGeneralNoteCardPayload {
+  front: string;
+  back: string;
+  extra?: string | null;
+}
+
+export interface UpdateGeneralNoteCardResponse {
+  noteId: string;
+  card: FlashcardCardRecord;
+  cards?: FlashcardCardRecord[];
+}
+
 export interface SubmitFeedbackPayload {
   message: string;
   category?: "bug" | "idea" | "other";
@@ -186,6 +198,22 @@ export async function listGeneralNotes() {
 export async function getGeneralNoteByUrl(url: string) {
   const encoded = encodeURIComponent(url);
   return request<FlashcardNoteRecord>(`/api/general-note/note?url=${encoded}`);
+}
+
+export async function updateGeneralNoteCard(
+  noteId: string,
+  cardId: string,
+  payload: UpdateGeneralNoteCardPayload
+) {
+  const encodedNoteId = encodeURIComponent(noteId);
+  const encodedCardId = encodeURIComponent(cardId);
+  return request<UpdateGeneralNoteCardResponse>(
+    `/api/ai/general-note/notes/${encodedNoteId}/cards/${encodedCardId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }
+  );
 }
 
 export async function submitFeedback(payload: SubmitFeedbackPayload) {

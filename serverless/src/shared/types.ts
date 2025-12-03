@@ -102,6 +102,7 @@ export interface UserNoteJobRecord {
   resultTopic?: string | null;
   resultSummary?: string | null;
   resultCards?: UserNoteCardRecord[];
+  resultNewCards?: number;
   errorMessage?: string | null;
   createdAt: string;
   updatedAt: string;

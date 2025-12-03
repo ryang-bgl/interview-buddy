@@ -7,6 +7,7 @@ import {
   type FlashcardCardRecord,
   type FlashcardNoteRecord,
   type FlashcardNoteSummary,
+  updateGeneralNoteCard,
   updateNoteReview,
   updateQuestionReview,
 } from "@/lib/api";
@@ -32,10 +33,21 @@ type ReviewCard = {
   questionIndex?: string;
 };
 
-interface NotebookNote extends FlashcardNoteRecord {
+type NotebookFlashcard = FlashcardCardRecord & {
+  id: string;
+  originalFront: string;
+  originalBack: string;
+  originalExtra: string;
+  hasPendingChanges: boolean;
+  isSaving: boolean;
+  saveError: string | null;
+};
+
+type NotebookNote = Omit<FlashcardNoteRecord, "cards"> & {
   tags: string[];
   cardCount: number;
-}
+  cards: NotebookFlashcard[];
+};
 
 type RemoteReviewSnapshot = {
   nextReviewDate?: string | null;
@@ -45,15 +57,26 @@ type RemoteReviewSnapshot = {
   reviewRepetitions?: number | null;
 };
 
-const ensureCardId = (
+const createNotebookFlashcard = (
   noteId: string,
   card: FlashcardCardRecord,
   index: number
-) => ({
-  ...card,
-  id: card.id ?? `${noteId}-${index}`,
-  tags: card.tags ?? [],
-});
+): NotebookFlashcard => {
+  const id = card.id ?? `${noteId}-${index}`;
+  const extra = typeof card.extra === "string" ? card.extra : "";
+  return {
+    ...card,
+    id,
+    tags: card.tags ?? [],
+    extra,
+    originalFront: card.front,
+    originalBack: card.back,
+    originalExtra: extra,
+    hasPendingChanges: false,
+    isSaving: false,
+    saveError: null,
+  };
+};
 
 export class NotebookStore {
   problems: DsaQuestion[] = [];
@@ -151,7 +174,7 @@ export class NotebookStore {
             tags: summary?.tags ?? [],
             cardCount: summary?.cardCount ?? note.cards.length,
             cards: note.cards.map((card, index) =>
-              ensureCardId(note.noteId, card, index)
+              createNotebookFlashcard(note.noteId, card, index)
             ),
           };
         });
@@ -216,8 +239,8 @@ export class NotebookStore {
     });
 
     this.notes.forEach((note) => {
-      note.cards.forEach((card, index) => {
-        const id = `note-${note.noteId}-${card.id ?? index}`;
+      note.cards.forEach((card) => {
+        const id = `note-${note.noteId}-${card.id}`;
         const existing = previous.get(id);
         const state = this.ensureReviewState(id, {
           nextReviewDate: note.nextReviewDate ?? note.lastReviewedAt ?? null,
@@ -230,7 +253,7 @@ export class NotebookStore {
           id,
           prompt: card.front,
           answer: card.back,
-          extra: card.extra,
+          extra: card.extra ? card.extra : undefined,
           tags: card.tags ?? [],
           streak: existing?.streak ?? 0,
           due: state.nextReviewDate,
@@ -519,8 +542,57 @@ export class NotebookStore {
     if (!note) return;
     const flashcard = note.cards.find((card) => card.id === cardId);
     if (!flashcard) return;
-    Object.assign(flashcard, partial);
+    if (partial.front !== undefined) {
+      flashcard.front = partial.front;
+    }
+    if (partial.back !== undefined) {
+      flashcard.back = partial.back;
+    }
+    if (partial.extra !== undefined) {
+      flashcard.extra = this.normalizeCardExtra(partial.extra);
+    }
+    flashcard.hasPendingChanges = this.hasFlashcardChanged(flashcard);
+    flashcard.saveError = null;
     this.syncNoteReviewCard(note, flashcard);
+  }
+
+  async saveFlashcard(noteId: string, cardId: string) {
+    const note = this.getNoteById(noteId);
+    if (!note) return;
+    const flashcard = note.cards.find((card) => card.id === cardId);
+    if (!flashcard || !flashcard.hasPendingChanges || flashcard.isSaving) {
+      return;
+    }
+    flashcard.isSaving = true;
+    flashcard.saveError = null;
+    const pendingFront = flashcard.front;
+    const pendingBack = flashcard.back;
+    const pendingExtra = this.normalizeCardExtra(flashcard.extra);
+    try {
+      await updateGeneralNoteCard(noteId, cardId, {
+        front: pendingFront,
+        back: pendingBack,
+        extra: pendingExtra.length ? pendingExtra : null,
+      });
+      runInAction(() => {
+        flashcard.originalFront = pendingFront;
+        flashcard.originalBack = pendingBack;
+        flashcard.originalExtra = pendingExtra;
+        flashcard.hasPendingChanges = this.hasFlashcardChanged(flashcard);
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to save flashcard";
+      runInAction(() => {
+        flashcard.saveError = message;
+      });
+    } finally {
+      runInAction(() => {
+        flashcard.isSaving = false;
+      });
+    }
   }
 
   gradeReviewCard(cardId: string, grade: "hard" | "good" | "easy") {
@@ -588,7 +660,7 @@ export class NotebookStore {
 
   private syncNoteReviewCard(
     note: NotebookNote,
-    flashcard: FlashcardCardRecord
+    flashcard: NotebookFlashcard
   ) {
     const id = `note-${note.noteId}-${flashcard.id}`;
     const existing = this.reviewCards.get(id);
@@ -597,9 +669,22 @@ export class NotebookStore {
       ...existing,
       prompt: flashcard.front,
       answer: flashcard.back,
-      extra: flashcard.extra,
+      extra: flashcard.extra ? flashcard.extra : undefined,
       tags: flashcard.tags ?? [],
     });
+  }
+
+  private normalizeCardExtra(value: string | null | undefined) {
+    return typeof value === "string" ? value : "";
+  }
+
+  private hasFlashcardChanged(card: NotebookFlashcard) {
+    const currentExtra = this.normalizeCardExtra(card.extra);
+    return (
+      card.front !== card.originalFront ||
+      card.back !== card.originalBack ||
+      currentExtra !== card.originalExtra
+    );
   }
 
   getStats() {

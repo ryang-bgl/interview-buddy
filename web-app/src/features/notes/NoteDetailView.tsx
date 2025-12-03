@@ -11,15 +11,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-
-const parseTags = (value: string) =>
-  value
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
 
 const NoteDetailView = observer(() => {
   const { noteId } = useParams<{ noteId: string }>();
@@ -89,32 +82,53 @@ const NoteDetailView = observer(() => {
                 rows={4}
                 value={card.front}
                 onChange={(event) =>
-                  notebookStore.updateFlashcard(note.noteId, card.id!, {
+                  notebookStore.updateFlashcard(note.noteId, card.id, {
                     front: event.target.value,
                   })
                 }
+                disabled={card.isSaving}
                 placeholder="Front"
               />
               <Textarea
                 rows={4}
                 value={card.back}
                 onChange={(event) =>
-                  notebookStore.updateFlashcard(note.noteId, card.id!, {
+                  notebookStore.updateFlashcard(note.noteId, card.id, {
                     back: event.target.value,
                   })
                 }
+                disabled={card.isSaving}
                 placeholder="Back"
               />
               <Textarea
                 rows={3}
                 value={card.extra ?? ""}
                 onChange={(event) =>
-                  notebookStore.updateFlashcard(note.noteId, card.id!, {
+                  notebookStore.updateFlashcard(note.noteId, card.id, {
                     extra: event.target.value,
                   })
                 }
+                disabled={card.isSaving}
                 placeholder="Extra context"
               />
+              {card.saveError ? (
+                <p className="text-sm text-destructive">{card.saveError}</p>
+              ) : null}
+              {card.hasPendingChanges ? (
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                  <p className="text-sm text-muted-foreground">
+                    {card.isSaving ? "Saving…" : "Unsaved changes"}
+                  </p>
+                  <Button
+                    onClick={() =>
+                      notebookStore.saveFlashcard(note.noteId, card.id)
+                    }
+                    disabled={card.isSaving}
+                  >
+                    {card.isSaving ? "Saving…" : "Save card"}
+                  </Button>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ))}

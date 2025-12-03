@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
-import { PutCommand } from "@aws-sdk/lib-dynamodb";
+import { PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { docClient } from "../../shared/dynamodb";
 import {
   badRequest,
@@ -41,6 +41,12 @@ interface StackResponse {
   topic: string;
   summary: string | null;
   cards: UserNoteCardRecord[];
+}
+
+interface FlashcardAnchor {
+  front: string;
+  back: string;
+  extra?: string | null;
 }
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
@@ -86,21 +92,101 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   const topic = optionalText(payload.topic);
   const requirements = optionalText(payload.requirements);
 
+  let existingNote: UserNoteRecord | null = null;
+  try {
+    existingNote = await findExistingNote(userId, normalizedUrl);
+  } catch (error) {
+    console.error("Failed to query existing note for continuation", error);
+    return internalError();
+  }
+
+  const initialAnchor = buildAnchorFromCard(
+    existingNote?.cards?.[existingNote.cards.length - 1]
+  );
+
   let stack: StackResponse;
   try {
-    stack = await generateAnkiStack({
+    stack = await generateCompleteStack({
       url: normalizedUrl,
       content: normalizedPayload,
       topic,
       requirements,
+      initialAnchor,
     });
   } catch (error) {
     console.error("Failed to generate flashcards via DeepSeek", error);
     return internalError();
   }
 
-  const noteId = crypto.randomUUID();
+  const newCardsCount = stack.cards.length;
   const now = new Date().toISOString();
+
+  if (existingNote) {
+    const existingCards = existingNote.cards ?? [];
+    const updatedCards =
+      newCardsCount > 0 ? [...existingCards, ...stack.cards] : existingCards;
+    const nextSummary = existingNote.summary ?? stack.summary ?? null;
+
+    if (newCardsCount > 0) {
+      const updateParts = ["cards = :cards", "updatedAt = :updatedAt"];
+      const names: Record<string, string> = {};
+      const values: Record<string, unknown> = {
+        ":cards": updatedCards,
+        ":updatedAt": now,
+      };
+      if (nextSummary) {
+        updateParts.push("#summary = :summary");
+        names["#summary"] = "summary";
+        values[":summary"] = nextSummary;
+      }
+      try {
+        await docClient.send(
+          new UpdateCommand({
+            TableName: userNotesTableName,
+            Key: { userId, noteId: existingNote.noteId },
+            UpdateExpression: `SET ${updateParts.join(", ")}`,
+            ExpressionAttributeNames:
+              Object.keys(names).length > 0 ? names : undefined,
+            ExpressionAttributeValues: values,
+          })
+        );
+      } catch (error) {
+        console.error("Failed to append cards to existing note", error);
+        return internalError();
+      }
+    }
+
+    return jsonResponse(200, {
+      noteId: existingNote.noteId,
+      url: normalizedUrl,
+      topic: existingNote.topic ?? stack.topic,
+      summary: nextSummary,
+      cards: updatedCards,
+      createdAt: existingNote.createdAt,
+      lastReviewedAt: existingNote.lastReviewedAt ?? null,
+      lastReviewStatus: existingNote.lastReviewStatus ?? null,
+      reviewIntervalSeconds: existingNote.reviewIntervalSeconds ?? null,
+      reviewEaseFactor: existingNote.reviewEaseFactor ?? null,
+      reviewRepetitions: existingNote.reviewRepetitions ?? null,
+      nextReviewDate: existingNote.nextReviewDate ?? null,
+      newCards: newCardsCount,
+      totalCards: updatedCards.length,
+    });
+  }
+
+  if (newCardsCount === 0) {
+    return jsonResponse(200, {
+      noteId: null,
+      url: normalizedUrl,
+      topic: topic ?? stack.topic,
+      summary: stack.summary,
+      cards: [],
+      newCards: 0,
+      totalCards: 0,
+    });
+  }
+
+  const noteId = crypto.randomUUID();
   const record: UserNoteRecord = {
     userId,
     noteId,
@@ -118,19 +204,19 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     updatedAt: now,
     lastReviewedAt: null,
     lastReviewStatus: null,
-    reviewIntervalSeconds: null,
-    reviewEaseFactor: null,
-    reviewRepetitions: null,
+    reviewIntervalSeconds: undefined,
+    reviewEaseFactor: undefined,
+    reviewRepetitions: undefined,
     nextReviewDate: null,
   };
 
-  const putCommand = new PutCommand({
-    TableName: userNotesTableName,
-    Item: record,
-  });
-
   try {
-    await docClient.send(putCommand);
+    await docClient.send(
+      new PutCommand({
+        TableName: userNotesTableName,
+        Item: record,
+      })
+    );
   } catch (error) {
     console.error("Failed to persist user note record", error);
     return internalError();
@@ -145,10 +231,12 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     createdAt: now,
     lastReviewedAt: null,
     lastReviewStatus: null,
-    reviewIntervalSeconds: null,
-    reviewEaseFactor: null,
-    reviewRepetitions: null,
+    reviewIntervalSeconds: undefined,
+    reviewEaseFactor: undefined,
+    reviewRepetitions: undefined,
     nextReviewDate: null,
+    newCards: newCardsCount,
+    totalCards: stack.cards.length,
   });
 };
 
@@ -206,11 +294,109 @@ function optionalText(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+async function findExistingNote(
+  userId: string,
+  url: string
+): Promise<UserNoteRecord | null> {
+  const query = new QueryCommand({
+    TableName: userNotesTableName,
+    KeyConditionExpression: "userId = :userId",
+    FilterExpression: "sourceUrl = :sourceUrl",
+    ExpressionAttributeValues: {
+      ":userId": userId,
+      ":sourceUrl": url,
+    },
+    Limit: 1,
+  });
+
+  try {
+    const result = await docClient.send(query);
+    const items = (result.Items as UserNoteRecord[] | undefined) ?? [];
+    return items[0] ?? null;
+  } catch (error) {
+    console.error("Failed to load existing note", error);
+    throw error;
+  }
+}
+
+function buildAnchorFromCard(
+  card?: UserNoteCardRecord
+): FlashcardAnchor | null {
+  if (!card) {
+    return null;
+  }
+  return {
+    front: card.front,
+    back: card.back,
+    extra: card.extra ?? null,
+  };
+}
+
+async function generateCompleteStack(input: {
+  url: string;
+  content: string;
+  topic: string | null;
+  requirements: string | null;
+  initialAnchor?: FlashcardAnchor | null;
+}): Promise<StackResponse> {
+  const aggregated: UserNoteCardRecord[] = [];
+  let anchor: FlashcardAnchor | null = input.initialAnchor ?? null;
+  let derivedTopic: string | null = null;
+  const maxIterations = 10;
+  const formatCardForLog = (card?: UserNoteCardRecord) => {
+    if (!card) {
+      return "n/a";
+    }
+    const front = card.front.replace(/\s+/g, " ").slice(0, 80);
+    const back = card.back.replace(/\s+/g, " ").slice(0, 80);
+    return `Front: ${front || "(empty)"} | Back: ${back || "(empty)"}`;
+  };
+
+  for (let index = 0; index < maxIterations; index += 1) {
+    const chunk = await generateAnkiStack({
+      ...input,
+      anchorCard: anchor,
+    });
+    if (!derivedTopic && chunk.topic) {
+      derivedTopic = chunk.topic;
+    }
+    if (!chunk.cards.length) {
+      console.info(
+        "[general-note] Attempt %d returned 0 cards; stopping.",
+        index + 1
+      );
+      break;
+    }
+    aggregated.push(...chunk.cards);
+    const last = chunk.cards[chunk.cards.length - 1];
+    anchor = {
+      front: last.front,
+      back: last.back,
+      extra: last.extra ?? null,
+    };
+    console.info(
+      "[general-note] Attempt %d produced %d cards (total=%d). First=%s, Last=%s",
+      index + 1,
+      chunk.cards.length,
+      aggregated.length,
+      formatCardForLog(aggregated[0]),
+      formatCardForLog(aggregated[aggregated.length - 1])
+    );
+  }
+
+  return {
+    topic: derivedTopic ?? input.topic ?? "Interview study stack",
+    summary: null,
+    cards: aggregated,
+  };
+}
+
 async function generateAnkiStack(input: {
   url: string;
   content: string;
   topic: string | null;
   requirements: string | null;
+  anchorCard?: FlashcardAnchor | null;
 }): Promise<StackResponse> {
   const systemPrompt =
     "You are a tutor specialised to help the candidate pass technical interviews at companies like Facebook or Google. Interviews span system design and behavioural rounds. Your job is to analyse the provided material and craft the best plan for the candidate to master the knowledge.";
@@ -222,7 +408,20 @@ async function generateAnkiStack(input: {
       ? `Respect these additional requirements: ${input.requirements}.`
       : null,
     "Turn the content into Anki-style stack cards so I can review them repeatedly.",
+    input.anchorCard
+      ? [
+          "Resume from the point immediately after the last saved flashcard.",
+          `Previous front: ${input.anchorCard.front}`,
+          `Previous back: ${input.anchorCard.back}`,
+          input.anchorCard.extra ? `Previous extra: ${input.anchorCard.extra}` : null,
+          "Locate where that flashcard content appears in the provided text, make sure you don't repeat it, then continue generating cards right after that location.",
+        ].join("\n")
+      : "Start from the beginning of the provided content.",
+    "Break the material into logical sections (headings, paragraphs, phases) and create at least one card per important idea.",
+    "Add summary cards that capture the most critical takeaways for each major section before diving into supporting details.",
+    "Generate as many cards as needed to cover the entire source material—avoid arbitrary limits like 10 cards; long-form content should typically yield dozens of cards.",
     "Do not be overly concise—cover every important insight from the provided material.",
+    "If there is nothing left after the anchor point, respond with the JSON payload but set \"cards\" to an empty array.",
     'Respond strictly in JSON using this structure: {"title": "Meaningful title", "tags": ["SystemDesign"], "cards": [{"front": "question", "back": "detailed answer", "extra"?: "tips"}]}.',
     'Each tag in the payload must be one of the following enum values: "SystemDesign", "Behaviour", "Algo", "Other".',
     "Here is the raw content, bounded by triple quotes:",
@@ -294,17 +493,13 @@ function parseStackPayload(
     ? parsed.cards
     : [];
   const cards: UserNoteCardRecord[] = cardsInput
-    .map((card: any, index: number) => normalizeCard(card, index))
+    .map((card: any) => normalizeCard(card))
     .filter((card): card is UserNoteCardRecord => Boolean(card));
-
-  if (cards.length === 0) {
-    throw new Error("DeepSeek response did not contain any cards");
-  }
 
   return { topic, summary: null, cards };
 }
 
-function normalizeCard(card: any, index: number): UserNoteCardRecord | null {
+function normalizeCard(card: any): UserNoteCardRecord | null {
   const front = optionalText(card?.front);
   const back = optionalText(card?.back);
   if (!front || !back) {
@@ -319,10 +514,15 @@ function normalizeCard(card: any, index: number): UserNoteCardRecord | null {
     : undefined;
 
   return {
-    id: optionalText(card?.id) ?? `card-${index + 1}`,
+    id: crypto.randomUUID(),
     front,
     back,
     extra: extra ?? undefined,
     tags: tags && tags.length > 0 ? tags : undefined,
   };
 }
+
+export const __testHelpers = {
+  generateCompleteStack,
+  generateAnkiStack,
+};

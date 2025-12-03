@@ -12,6 +12,6 @@
     "rootDir": ".",
     "types": ["node", "aws-lambda"]
   },
-  "include": ["bin/**/*.ts", "lib/**/*.ts", "src/**/*.ts"],
+  "include": ["bin/**/*.ts", "lib/**/*.ts", "src/**/*.ts", "tests/**/*.ts"],
   "exclude": ["dist", "node_modules"]
 }
