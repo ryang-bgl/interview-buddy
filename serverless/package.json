@@ -10,13 +10,16 @@
     "deploy:prod": "cdk deploy InterviewBuddyApiStack-prod -c stage=prod",
     "destroy": "cdk destroy",
     "cdk": "cdk",
-    "test:notes": "vitest run tests/generateGeneralNoteLambda.test.ts"
+    "test:notes": "vitest run tests/generateGeneralNoteLambda.test.ts",
+    "test:notes:jobs": "vitest run tests/processGeneralNoteJob.test.ts",
+    "test:notes:openai": "vitest run tests/openAiFlashcards.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.540.0",
     "@aws-sdk/lib-dynamodb": "^3.540.0",
     "constructs": "^10.3.0",
     "jose": "^5.10.0",
+    "openai": "^4.73.1",
     "source-map-support": "^0.5.21"
   },
   "devDependencies": {

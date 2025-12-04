@@ -3,9 +3,15 @@ export interface PageContentSnapshot {
   text: string;
 }
 
+export interface PageHtmlSnapshot {
+  title: string;
+  html: string;
+}
+
 export interface ElementSelectionResult {
   title: string;
   text: string;
+  html?: string;
 }
 
 export async function captureActivePageContent(
@@ -54,6 +60,32 @@ export async function selectPageElementContent(
     return (result?.result ?? null) as ElementSelectionResult | null;
   } catch (error) {
     console.warn("[leetstack] Failed to capture selected element", error);
+    return null;
+  }
+}
+
+export async function captureActivePageHtml(
+  tabId: number
+): Promise<PageHtmlSnapshot | null> {
+  if (typeof chrome === "undefined" || !chrome.scripting?.executeScript) {
+    return null;
+  }
+
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const doc = document;
+        return {
+          title: doc.title ?? "",
+          html: doc.body?.innerHTML ?? doc.documentElement?.innerHTML ?? "",
+        };
+      },
+    });
+
+    return (result?.result ?? null) as PageHtmlSnapshot | null;
+  } catch (error) {
+    console.warn("[leetstack] Failed to capture page HTML", error);
     return null;
   }
 }
@@ -124,6 +156,16 @@ function elementSelectorScript(): Promise<ElementSelectionResult | null> {
       return target.textContent?.trim() ?? "";
     };
 
+    const extractElementHtml = (target: Element | null) => {
+      if (!target) {
+        return "";
+      }
+      if (target instanceof HTMLElement) {
+        return target.innerHTML || target.outerHTML || "";
+      }
+      return target.outerHTML ?? target.textContent ?? "";
+    };
+
     const cleanup = () => {
       document.removeEventListener("mousemove", onMouseMove, true);
       document.removeEventListener("click", onClick, true);
@@ -192,11 +234,13 @@ function elementSelectorScript(): Promise<ElementSelectionResult | null> {
         return;
       }
       const text = extractElementText(target);
+      const html = extractElementHtml(target);
       finish(
         text
           ? {
               text,
               title: document.title ?? "",
+              html,
             }
           : null
       );

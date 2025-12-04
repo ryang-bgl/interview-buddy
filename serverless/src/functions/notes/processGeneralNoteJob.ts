@@ -14,6 +14,16 @@ import type {
 } from "../../shared/types";
 import { chunkArticleContent } from "../../shared/noteChunker";
 
+interface GenerationDebugContext {
+  jobId?: string;
+}
+
+interface ChunkDebugOptions extends GenerationDebugContext {
+  chunkIndex: number;
+  totalChunks: number;
+  chunkChars: number;
+}
+
 const jobsTableName = process.env.GENERAL_NOTE_JOBS_TABLE_NAME;
 const userNotesTableName = process.env.USER_NOTES_TABLE_NAME;
 const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
@@ -95,14 +105,17 @@ async function processJob({ jobId }: ProcessorInput) {
     const existingAnchor = buildAnchorFromCard(
       existingNote?.cards?.[existingNote.cards.length - 1]
     );
-    const stack = await generateCompleteStack({
-      url: jobRecord.url,
-      content: jobRecord.requestPayload.content,
-      topic: jobRecord.requestPayload.topic ?? jobRecord.topic ?? null,
-      requirements:
-        jobRecord.requestPayload.requirements ?? jobRecord.requirements ?? null,
-      initialAnchor: existingAnchor,
-    });
+    const stack = await generateCompleteStack(
+      {
+        url: jobRecord.url,
+        content: jobRecord.requestPayload.content,
+        topic: jobRecord.requestPayload.topic ?? jobRecord.topic ?? null,
+        requirements:
+          jobRecord.requestPayload.requirements ?? jobRecord.requirements ?? null,
+        initialAnchor: existingAnchor,
+      },
+      { jobId }
+    );
     const newCardsCount = stack.cards.length;
     const now = new Date().toISOString();
     let noteId = existingNote?.noteId ?? crypto.randomUUID();
@@ -265,21 +278,32 @@ async function updateJobStatus(jobId: string, status: string) {
   );
 }
 
-async function generateCompleteStack(input: {
-  url: string;
-  content: string;
-  topic: string | null;
-  requirements: string | null;
-  initialAnchor?: FlashcardAnchor | null;
-}): Promise<StackResponse> {
+async function generateCompleteStack(
+  input: {
+    url: string;
+    content: string;
+    topic: string | null;
+    requirements: string | null;
+    initialAnchor?: FlashcardAnchor | null;
+  },
+  debugContext?: GenerationDebugContext
+): Promise<StackResponse> {
   const aggregated: UserNoteCardRecord[] = [];
   let derivedTopic: string | null = null;
+  const chunkStart = Date.now();
   const segments = chunkArticleContent(input.content, {
     anchor: input.initialAnchor ?? undefined,
     targetSize: 500,
     overlapBlocks: 2,
   });
   const chunks = segments.length > 0 ? segments : [input.content];
+  const chunkDurationMs = Date.now() - chunkStart;
+  console.info("[general-note-job] Completed chunking", {
+    jobId: debugContext?.jobId,
+    chunks: chunks.length,
+    durationMs: chunkDurationMs,
+    totalChars: input.content.length,
+  });
   const formatCardForLog = (card?: UserNoteCardRecord) => {
     if (!card) {
       return "n/a";
@@ -291,11 +315,27 @@ async function generateCompleteStack(input: {
 
   for (let index = 0; index < chunks.length; index += 1) {
     const chunkContent = chunks[index];
-    const chunk = await generateAnkiStack({
-      ...input,
-      content: chunkContent,
-      anchorCard: null,
+    console.info("[general-note-job] Prepared chunk", {
+      jobId: debugContext?.jobId,
+      chunkIndex: index + 1,
+      totalChunks: chunks.length,
+      chars: chunkContent.length,
+      topic: input.topic,
+      requirements: input.requirements,
     });
+    const chunk = await generateAnkiStack(
+      {
+        ...input,
+        content: chunkContent,
+        anchorCard: null,
+      },
+      {
+        chunkIndex: index + 1,
+        totalChunks: chunks.length,
+        chunkChars: chunkContent.length,
+        jobId: debugContext?.jobId,
+      }
+    );
     if (!derivedTopic && chunk.topic) {
       derivedTopic = chunk.topic;
     }
@@ -324,13 +364,16 @@ async function generateCompleteStack(input: {
   };
 }
 
-async function generateAnkiStack(input: {
-  url: string;
-  content: string;
-  topic: string | null;
-  requirements: string | null;
-  anchorCard?: FlashcardAnchor | null;
-}): Promise<StackResponse> {
+async function generateAnkiStack(
+  input: {
+    url: string;
+    content: string;
+    topic: string | null;
+    requirements: string | null;
+    anchorCard?: FlashcardAnchor | null;
+  },
+  debugInfo?: ChunkDebugOptions
+): Promise<StackResponse> {
   const systemPrompt =
     "You are a tutor specialised to help the candidate pass technical interviews at companies like Facebook or Google. Interviews span system design and behavioural rounds. Your job is to analyse the provided material and craft the best plan for the candidate to master the knowledge.";
 
@@ -369,36 +412,55 @@ async function generateAnkiStack(input: {
 
   const userPrompt = userPromptSegments.join("\n");
 
+  const requestPayload = {
+    model: deepseekModel,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    max_tokens: DEEPSEEK_MAX_TOKENS,
+  };
+  console.info("[general-note-job] Calling DeepSeek", {
+    jobId: debugInfo?.jobId,
+    chunkIndex: debugInfo?.chunkIndex,
+    totalChunks: debugInfo?.totalChunks,
+    chunkChars: debugInfo?.chunkChars,
+  });
+  const apiStart = Date.now();
   const response = await fetch(deepseekApiUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${deepseekApiKey}`,
     },
-    body: JSON.stringify({
-      model: deepseekModel,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      max_tokens: DEEPSEEK_MAX_TOKENS,
-    }),
+    body: JSON.stringify(requestPayload),
   });
 
   const body = await safeReadJson(response);
   if (!response.ok) {
-    console.error("DeepSeek API error", response.status, body);
+    console.error("DeepSeek API error", response.status, body, {
+      jobId: debugInfo?.jobId,
+      chunkIndex: debugInfo?.chunkIndex,
+    });
     throw new Error("DeepSeek generation failed");
   }
 
   const aiContent = body?.choices?.[0]?.message?.content;
   if (typeof aiContent !== "string") {
     console.error(
-      "==== error in deepseek response aiContent",
-      JSON.stringify(aiContent)
+      "==== error in deepseek response aiContent body",
+      JSON.stringify(body)
     );
     throw new Error("DeepSeek response missing content");
   }
+  const durationMs = Date.now() - apiStart;
+  console.info("[general-note-job] DeepSeek finished", {
+    jobId: debugInfo?.jobId,
+    chunkIndex: debugInfo?.chunkIndex,
+    totalChunks: debugInfo?.totalChunks,
+    durationMs,
+    status: response.status,
+  });
 
   return parseStackPayload(aiContent, input.topic);
 }
@@ -516,3 +578,8 @@ function buildAnchorFromCard(
     extra: card.extra ?? null,
   };
 }
+
+export const __testHelpers = {
+  generateCompleteStack,
+  generateAnkiStack,
+};

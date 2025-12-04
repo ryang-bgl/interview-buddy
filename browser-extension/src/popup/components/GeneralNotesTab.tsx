@@ -9,8 +9,10 @@ import {
 import { getActiveTab } from "../utils/browser";
 import {
   captureActivePageContent,
+  captureActivePageHtml,
   selectPageElementContent,
 } from "../utils/page";
+import TurndownService from "turndown";
 
 type GenerationState = "idle" | "generating" | "success" | "error";
 type CopyState = "idle" | "copied";
@@ -54,10 +56,12 @@ export default function GeneralNotesTab() {
         url: string;
         title: string | null;
         text: string;
+        html?: string | null;
       }
     | null
   >(null);
   const [isSelectingContent, setIsSelectingContent] = useState(false);
+  const [isLoggingMarkdown, setIsLoggingMarkdown] = useState(false);
 
   const START_SLOT_ID = "__start__";
 
@@ -69,6 +73,9 @@ export default function GeneralNotesTab() {
   const statusText = (() => {
     if (isSelectingContent) {
       return "Click any element on the page to capture only that section.";
+    }
+    if (isLoggingMarkdown) {
+      return "Generating Markdown preview in console...";
     }
     if (generationState === "generating") {
       return "Queuing AI to study this page...";
@@ -222,10 +229,28 @@ export default function GeneralNotesTab() {
         return;
       }
 
+      if (selection.html) {
+        try {
+          const turndown = new TurndownService();
+          const markdown = turndown.turndown(selection.html);
+          console.log("[leetstack] Selected element markdown", {
+            url: tabUrl,
+            title: selection.title ?? tab.title ?? null,
+            markdown,
+          });
+        } catch (error) {
+          console.warn(
+            "[leetstack] Failed to convert selected element to markdown",
+            error
+          );
+        }
+      }
+
       setSelectedSource({
         url: tabUrl,
         title: selection.title ?? tab.title ?? null,
         text: normalized,
+        html: selection.html ?? null,
       });
     } catch (error) {
       const message =
@@ -241,6 +266,39 @@ export default function GeneralNotesTab() {
 
   const handleClearSelection = () => {
     setSelectedSource(null);
+  };
+
+  const handleLogMarkdown = async () => {
+    setIsLoggingMarkdown(true);
+    setErrorMessage(null);
+    try {
+      const tab = await getActiveTab();
+      const tabId = tab?.id;
+      const tabUrl = tab?.url?.trim();
+      if (!tabId || !tabUrl) {
+        throw new Error("Open a page before requesting Markdown.");
+      }
+      const snapshot = await captureActivePageHtml(tabId);
+      if (!snapshot?.html) {
+        throw new Error("Unable to read the page HTML. Refresh and try again.");
+      }
+      const turndown = new TurndownService();
+      const markdown = turndown.turndown(snapshot.html);
+      console.log("[leetstack] Page Markdown", {
+        url: tabUrl,
+        title: snapshot.title,
+        markdown,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to convert page to Markdown";
+      setErrorMessage(message);
+      setGenerationState("error");
+    } finally {
+      setIsLoggingMarkdown(false);
+    }
   };
 
   const runGenerationLoop = async ({
@@ -623,6 +681,14 @@ export default function GeneralNotesTab() {
             >
               {isGenerating ? "Generating..." : "AI generates review cards"}
             </button>
+            <button
+              type="button"
+              onClick={handleLogMarkdown}
+              disabled={isLoggingMarkdown || isLoadingExisting}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isLoggingMarkdown ? "Converting..." : "Log page markdown"}
+            </button>
           </div>
         </section>
       )}
@@ -675,6 +741,14 @@ export default function GeneralNotesTab() {
                 className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isGenerating ? "Continuing..." : "Generate more cards"}
+              </button>
+              <button
+                type="button"
+                onClick={handleLogMarkdown}
+                disabled={isLoggingMarkdown}
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isLoggingMarkdown ? "Converting..." : "Log page markdown"}
               </button>
               <button
                 type="button"

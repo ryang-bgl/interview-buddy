@@ -258,22 +258,26 @@ export class InterviewBuddyApiStack extends Stack {
       }
     );
 
-    const createFeedbackFn = new NodejsFunction(this, "CreateFeedbackFunction", {
-      ...defaultLambdaProps,
-      entry: path.join(
-        __dirname,
-        "..",
-        "src",
-        "functions",
-        "feedback",
-        "createFeedback.ts"
-      ),
-      handler: "handler",
-      environment: {
-        ...commonLambdaEnv,
-        USER_FEEDBACK_TABLE_NAME: userFeedbackTable.tableName,
-      },
-    });
+    const createFeedbackFn = new NodejsFunction(
+      this,
+      "CreateFeedbackFunction",
+      {
+        ...defaultLambdaProps,
+        entry: path.join(
+          __dirname,
+          "..",
+          "src",
+          "functions",
+          "feedback",
+          "createFeedback.ts"
+        ),
+        handler: "handler",
+        environment: {
+          ...commonLambdaEnv,
+          USER_FEEDBACK_TABLE_NAME: userFeedbackTable.tableName,
+        },
+      }
+    );
 
     const generateAiSolutionFn = new NodejsFunction(
       this,
@@ -306,7 +310,7 @@ export class InterviewBuddyApiStack extends Stack {
       "ProcessGeneralNoteJobFunction",
       {
         ...defaultLambdaProps,
-        timeout: Duration.minutes(10),
+        timeout: Duration.minutes(15),
         entry: path.join(
           __dirname,
           "..",
