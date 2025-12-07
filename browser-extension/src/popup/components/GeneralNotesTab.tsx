@@ -7,11 +7,7 @@ import {
   deleteGeneralNoteCard,
 } from "@/lib/api";
 import { getActiveTab } from "../utils/browser";
-import {
-  captureActivePageContent,
-  captureActivePageHtml,
-  selectPageElementContent,
-} from "../utils/page";
+import { selectPageElementContent } from "../utils/page";
 import TurndownService from "turndown";
 import { TaskStatus } from "../../../../shared-types/TaskStatus";
 
@@ -31,7 +27,9 @@ type StackResult = {
 
 export default function GeneralNotesTab() {
   const [stackResult, setStackResult] = useState<StackResult>(null);
-  const [generationState, setGenerationState] = useState<TaskStatus | "idle" | "loading" | "success" | "error">("pending");
+  const [generationState, setGenerationState] = useState<
+    TaskStatus | "idle" | "loading" | "success" | "error"
+  >("pending");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [generatedCardsCount, setGeneratedCardsCount] = useState<number>(0);
   const [cardDraft, setCardDraft] = useState({
@@ -52,6 +50,7 @@ export default function GeneralNotesTab() {
     text: string;
     html?: string | null;
     markdown?: string | null;
+    topic?: string | null;
   } | null>(null);
   const [isSelectingContent, setIsSelectingContent] = useState(false);
 
@@ -104,11 +103,28 @@ export default function GeneralNotesTab() {
     };
   }, []);
 
+  // Clear selected source when tab changes
+  useEffect(() => {
+    const checkTabUrl = async () => {
+      const tab = await getActiveTab();
+      const currentTabUrl = tab?.url?.trim();
+      if (
+        selectedSource &&
+        currentTabUrl &&
+        selectedSource.url !== currentTabUrl
+      ) {
+        setSelectedSource(null);
+      }
+    };
+
+    checkTabUrl();
+  }, [selectedSource?.url]);
+
   // Extract topic from markdown headings
   const extractTopicFromMarkdown = (markdown: string): string | null => {
     // Find first # or ## heading and extract the topic
     // Using exec is more efficient as it stops at first match
-    const lines = markdown.split('\n');
+    const lines = markdown.split("\n");
     for (const line of lines) {
       // Skip empty lines and whitespace-only lines
       if (!line.trim()) {
@@ -135,73 +151,45 @@ export default function GeneralNotesTab() {
         throw new Error("Open the page you want to convert before generating.");
       }
 
-      let selectionToUse = selectedSource;
-      if (selectionToUse && selectionToUse.url !== tabUrl) {
-        selectionToUse = null;
+      // Must have selected content to generate cards
+      if (!selectedSource || selectedSource.url !== tabUrl) {
         setSelectedSource(null);
+        throw new Error(
+          "Please select an element on the page first before generating cards."
+        );
       }
 
-      const snapshot = await captureActivePageContent(tabId);
-
-      // Use markdown if available from selected element, otherwise try to convert page HTML to markdown
+      // Use markdown from selected element
       let payload: string;
-      if (selectionToUse?.markdown) {
-        // Use markdown from selected element
-        payload = selectionToUse.markdown.trim();
-      } else if (selectionToUse?.html) {
+      if (selectedSource.markdown) {
+        payload = selectedSource.markdown.trim();
+      } else if (selectedSource.html) {
         // Convert selected element HTML to markdown if not already converted
         try {
           const turndown = new TurndownService({
             headingStyle: "atx", // Use # for headings instead of underlines
           });
-          payload = turndown.turndown(selectionToUse.html).trim();
+          payload = turndown.turndown(selectedSource.html).trim();
         } catch (error) {
           console.warn(
-            "[leetstack] Failed to convert selected HTML to markdown, falling back to text",
+            "[leetstack] Failed to convert selected HTML to markdown, using text",
             error
           );
-          payload = selectionToUse.text.trim();
+          payload = selectedSource.text.trim();
         }
       } else {
-        // Try to get page HTML, extract body, and convert to markdown
-        try {
-          const pageHtmlSnapshot = await captureActivePageHtml(tabId);
-          if (pageHtmlSnapshot?.html) {
-            // Extract only the body content
-            const bodyMatch = pageHtmlSnapshot.html.match(
-              /<body[^>]*>([\s\S]*?)<\/body>/i
-            );
-            const bodyContent = bodyMatch
-              ? bodyMatch[1]
-              : pageHtmlSnapshot.html;
-
-            const turndown = new TurndownService({
-              headingStyle: "atx", // Use # for headings instead of underlines
-            });
-            const pageMarkdown = turndown.turndown(bodyContent);
-            payload = pageMarkdown.trim();
-          } else {
-            // Fallback to page text
-            payload = (snapshot?.text ?? "").trim();
-          }
-        } catch (error) {
-          console.warn(
-            "[leetstack] Failed to convert page body HTML to markdown, using text content",
-            error
-          );
-          payload = (snapshot?.text ?? "").trim();
-        }
+        payload = selectedSource.text.trim();
       }
 
       if (!payload) {
         throw new Error(
-          "Couldn't read the current page. Refresh it and try again."
+          "Selected content is empty. Please select a different element."
         );
       }
 
-      // Try to extract topic from markdown headings first, then fall back to titles
-      const extractedTopic = extractTopicFromMarkdown(payload);
-      const topic = extractedTopic ?? selectionToUse?.title ?? snapshot?.title ?? tab.title ?? null;
+      // Use topic from selected source
+      const topic =
+        selectedSource.topic ?? selectedSource.title ?? tab.title ?? null;
 
       await runGenerationLoop({
         url: tabUrl,
@@ -212,7 +200,7 @@ export default function GeneralNotesTab() {
       const message =
         error instanceof Error && error.message
           ? error.message
-          : "Failed to generate review cards";
+          : "Failed to generate flashcards";
       setErrorMessage(message);
       setGenerationState("error");
     }
@@ -258,12 +246,18 @@ export default function GeneralNotesTab() {
         }
       }
 
+      // Extract topic from markdown if available
+      const extractedTopic = markdown
+        ? extractTopicFromMarkdown(markdown)
+        : null;
+
       setSelectedSource({
         url: tabUrl,
         title: selection.title ?? tab.title ?? null,
         text: normalized,
         html: selection.html ?? null,
         markdown: markdown ?? null,
+        topic: extractedTopic,
       });
     } catch (error) {
       const message =
@@ -342,7 +336,6 @@ export default function GeneralNotesTab() {
     setCardDraft({ front: "", back: "", extra: "" });
   }, [stackResult?.noteId]);
 
-  
   const handleAddCard = async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     if (!stackResult?.noteId) {
@@ -561,47 +554,113 @@ export default function GeneralNotesTab() {
           <span>Checking if you've already saved cards for this page…</span>
         </div>
       )}
-      {selectedSource ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
-          <div className="flex items-start gap-3">
-            <div className="flex-1">
-              <p className="text-xs uppercase tracking-wide text-amber-700">
-                Selected section
+      {!stackResult &&
+        !isLoadingExisting &&
+        generationState !== "completed" && (
+          <section className="space-y-4">
+            <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4 text-sm text-purple-900">
+              <p>
+                <span className="font-semibold">
+                  Generate flashcards from any content:
+                </span>
               </p>
-              <p className="mt-1 font-semibold">
-                {selectedSource.title ?? "From current page"}
-              </p>
-              <p className="mt-2 text-xs leading-relaxed text-amber-800">
-                {selectedSource.text.length > 320
-                  ? `${selectedSource.text.slice(0, 320)}...`
-                  : selectedSource.text}
+              <ol className="mt-2 list-decimal list-inside space-y-1 text-xs text-purple-700">
+                <li>
+                  Click "Select element" and highlight content on the page
+                </li>
+                <li>
+                  Review your selection below, then click "Generate cards"
+                </li>
+                <li>AI will create flashcards from your selected content</li>
+              </ol>
+              <p className="mt-2 text-xs text-purple-700 italic">
+                Note: You must select an element before generating cards.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleClearSelection}
-              className="text-xs font-semibold uppercase tracking-wide text-amber-800 underline-offset-4 hover:underline"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      ) : null}
-      {!stackResult && !isLoadingExisting && generationState !== "completed" && (
-        <section className="space-y-4">
-          <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4 text-sm text-purple-900">
-            <p>
-              Capture the active tab's content—system design writeups,
-              behavioural prompts, anything—and let AI turn it into Anki-style
-              review cards.
-            </p>
-            <p className="mt-2 text-xs text-purple-700">
-              Tip: load the page you want to study first. Use “Select element”
-              to capture a single section or run generation for the entire page.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSelectElement}
+                  disabled={
+                    isSelectingContent || isLoadingExisting || isGenerating
+                  }
+                  className="ml-auto inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+                    <path d="M13 13l6 6" />
+                  </svg>
+                  {isSelectingContent
+                    ? "Click on the page..."
+                    : "Select element"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={
+                    isGenerating || isLoadingExisting || !selectedSource
+                  }
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-orange-400 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition hover:shadow-xl hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 disabled:cursor-not-allowed disabled:opacity-70 disabled:from-slate-400 disabled:via-slate-500 disabled:to-slate-600 disabled:shadow-none"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
+                  </svg>
+                  {isGenerating ? "Generating..." : "Generate cards"}
+                </button>
+              </div>
+
+              {/* Show selected element content below buttons */}
+              {selectedSource ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs uppercase tracking-wide text-amber-700 font-medium">
+                        Selected content
+                      </p>
+                      {selectedSource.topic && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs font-medium text-amber-600">
+                            Topic:
+                          </span>
+                          <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
+                            {selectedSource.topic}
+                          </span>
+                        </div>
+                      )}
+                      <p className="mt-2 text-xs leading-relaxed text-amber-800 line-clamp-3">
+                        {selectedSource.text.length > 200
+                          ? `${selectedSource.text.slice(0, 200)}...`
+                          : selectedSource.text}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearSelection}
+                      className="flex-shrink-0 text-xs font-semibold uppercase tracking-wide text-amber-800 underline-offset-4 hover:underline"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Show generation progress after selected content */}
               {isGenerating && generatedCardsCount > 0 && (
                 <div className="flex justify-center">
                   <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm text-blue-700 border border-blue-200">
@@ -638,28 +697,9 @@ export default function GeneralNotesTab() {
                   </div>
                 </div>
               )}
-              <button
-                type="button"
-                onClick={handleSelectElement}
-                disabled={
-                  isSelectingContent || isLoadingExisting || isGenerating
-                }
-                className="ml-auto inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSelectingContent ? "Click on the page..." : "Select element"}
-              </button>
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={isGenerating || isLoadingExisting}
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-orange-400 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition hover:shadow-xl hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isGenerating ? "Generating..." : "AI generates review cards"}
-              </button>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
       {stackResult ? (
         <section className="space-y-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">

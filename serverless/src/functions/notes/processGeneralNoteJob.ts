@@ -407,7 +407,7 @@ async function markJobFailed(jobId: string, error: unknown) {
         ":error":
           error instanceof Error && error.message
             ? error.message
-            : "Failed to generate review cards",
+            : "Failed to generate flashcards",
         ":updatedAt": new Date().toISOString(),
       },
     })

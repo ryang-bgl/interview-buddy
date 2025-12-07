@@ -13,7 +13,7 @@ A React + TypeScript + MobX + React Router + Tailwind SPA that complements the C
   - Inline edit controls for notes/solutions.
 
 ### 2. General Notes & Flashcards
-- Separate section for notes generated from arbitrary text (mirroring the "Text -> Review Cards" flow in the extension).
+- Separate section for notes generated from arbitrary text (mirroring the "Text -> Flashcards" flow in the extension).
 - Overview list shows note summary, tags, and source URL.
 - Detail page displays the note summary plus all flashcards.
 - Inline editing for each flashcard (front/back/extra/tags) so users can clean up AI output without leaving the web app.

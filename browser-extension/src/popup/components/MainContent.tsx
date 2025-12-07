@@ -24,7 +24,7 @@ interface MainContentProps {
 
 const MAIN_TABS = [
   { id: "leetcode", label: "DSA Notebook" },
-  { id: "generalNotes", label: "Text -> Review Cards" },
+  { id: "generalNotes", label: "Text -> Flashcards" },
 ] as const;
 
 type MainTabId = (typeof MAIN_TABS)[number]["id"];
