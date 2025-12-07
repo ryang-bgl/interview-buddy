@@ -468,10 +468,11 @@ async function updateJobWithResults(
       TableName: jobsTableName,
       Key: { jobId },
       UpdateExpression:
-        "SET noteId = :noteId, cards = :cards, updatedAt = :updatedAt",
+        "SET noteId = :noteId, cards = :cards, updatedAt = :updatedAt, totalCards = :totalCards",
       ExpressionAttributeValues: {
         ":noteId": noteId,
         ":cards": cards,
+        ":totalCards": cards.length,
         ":updatedAt": new Date().toISOString(),
       },
     })

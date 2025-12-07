@@ -110,6 +110,10 @@ export default function GeneralNotesTab() {
     // Using exec is more efficient as it stops at first match
     const lines = markdown.split('\n');
     for (const line of lines) {
+      // Skip empty lines and whitespace-only lines
+      if (!line.trim()) {
+        continue;
+      }
       const headingMatch = line.match(/^#{1,2}\s+(.+)$/);
       if (headingMatch) {
         return headingMatch[1].trim();
@@ -280,7 +284,7 @@ export default function GeneralNotesTab() {
   const runGenerationLoop = async ({
     url,
     payload,
-    topic,
+    topic: initialTopic,
   }: {
     url: string;
     payload: string;
@@ -289,15 +293,15 @@ export default function GeneralNotesTab() {
     const job = await createGeneralNoteJob({
       url,
       content: payload,
-      topic,
+      topic: initialTopic,
     });
     const polled = await pollJobUntilComplete(job.jobId);
-    const { url: jobUrl, status, noteId, cards } = polled;
+    const { url: jobUrl, status, noteId, cards, topic } = polled;
 
     setStackResult((prev) => {
       return {
         noteId: noteId ?? prev?.noteId ?? null,
-        topic: prev?.topic ?? null,
+        topic: topic ?? prev?.topic ?? null,
         summary: prev?.summary ?? null,
         cards: cards || [],
         url: jobUrl,
@@ -583,7 +587,7 @@ export default function GeneralNotesTab() {
           </div>
         </div>
       ) : null}
-      {!stackResult && !isLoadingExisting && (
+      {!stackResult && !isLoadingExisting && generationState !== "completed" && (
         <section className="space-y-4">
           <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4 text-sm text-purple-900">
             <p>

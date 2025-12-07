@@ -109,7 +109,7 @@ export interface GeneralNoteJobResult {
 export interface GeneralNoteJobStatusResponse extends BaseTaskMetadata {
   /** URL of the source content */
   url: string;
-  /** Topic specified by user */
+  /** Topic specified by user or extracted from content */
   topic: string | null;
   /** User ID who initiated the job */
   userId: string;
