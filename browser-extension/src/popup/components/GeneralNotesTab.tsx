@@ -233,11 +233,6 @@ export default function GeneralNotesTab() {
             headingStyle: "atx", // Use # for headings instead of underlines
           });
           markdown = turndown.turndown(selection.html);
-          console.log("[leetstack] Selected element markdown", {
-            url: tabUrl,
-            title: selection.title ?? tab.title ?? null,
-            markdown,
-          });
         } catch (error) {
           console.warn(
             "[leetstack] Failed to convert selected element to markdown",
@@ -308,23 +303,13 @@ export default function GeneralNotesTab() {
   const pollJobUntilComplete = async (
     jobId: string
   ): Promise<Awaited<ReturnType<typeof getGeneralNoteJob>>> => {
-    const POLL_INTERVAL_MS = 3000;
+    const POLL_INTERVAL_MS = 10000;
 
     while (true) {
       const status = await getGeneralNoteJob(jobId);
-      console.log("====got status", status, status?.totalCards);
       setGeneratedCardsCount(status?.totalCards ?? 0);
 
       if (status.status === "completed") {
-        // Log the full response for debugging
-        console.log("[leetstack] Job completed", {
-          jobId,
-          status: status.status,
-          totalCards: status.totalCards,
-          noteId: status.noteId,
-          cards: status.cards,
-        });
-
         return status;
       }
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));

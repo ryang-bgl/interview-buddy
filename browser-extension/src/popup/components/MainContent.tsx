@@ -101,7 +101,6 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
           return;
         }
 
-        console.log("=====pageDetails", pageDetails);
         setLanguageLabel(pageDetails.language ?? "Unknown");
 
         const normalizedUrl = normalizeLeetCodeUrl(
