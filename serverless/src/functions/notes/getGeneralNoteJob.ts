@@ -57,21 +57,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   return jsonResponse(200, {
     jobId: job.jobId,
     status: job.status,
-    url: job.url,
-    topic: job.topic ?? null,
-    requirements: job.requirements ?? null,
-    createdAt: job.createdAt,
-    updatedAt: job.updatedAt,
+    cards: job.cards ?? [], // Actual cards data
+    totalCards: job.cards?.length ?? 0, // Number of cards
+    noteId: job.noteId ?? null,
     errorMessage: job.errorMessage ?? null,
-    result:
-      job.status === "completed"
-        ? {
-            noteId: job.resultNoteId ?? null,
-            topic: job.resultTopic ?? job.topic ?? null,
-            summary: job.resultSummary ?? null,
-            cards: job.resultCards ?? [],
-            newCards: job.resultNewCards ?? job.resultCards?.length ?? 0,
-          }
-        : undefined,
   });
 };

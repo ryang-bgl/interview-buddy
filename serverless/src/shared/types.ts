@@ -3,7 +3,7 @@ import type {
   UserNoteCardRecord as SharedUserNoteCardRecord,
   GeneralNoteJobStatus,
   GeneralNoteJobStatusResponse,
-} from "../../../shared-types/TaskStatus";
+} from "./TaskStatus";
 
 export interface UserRecord {
   id: string;
@@ -86,18 +86,15 @@ export interface UserNoteJobRecord {
   topic?: string | null;
   requirements?: string | null;
   status: UserNoteJobStatus;
-  requestPayload: {
+  requestPayload?: {
     content: string;
     topic?: string | null;
     requirements?: string | null;
   };
-  resultNoteId?: string | null;
-  resultTopic?: string | null;
-  resultSummary?: string | null;
-  resultCards?: UserNoteCardRecord[];
-  resultNewCards?: number;
+  noteId?: string | null;
+  cards?: UserNoteCardRecord[];
   errorMessage?: string | null;
   createdAt: string;
   updatedAt: string;
-  resultCardsCount?: number; // Track total cards for progress
+  totalCards?: number; // Track total cards for progress
 }

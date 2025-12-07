@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   createGeneralNoteJob,
   getGeneralNoteJob,
@@ -13,9 +13,7 @@ import {
   selectPageElementContent,
 } from "../utils/page";
 import TurndownService from "turndown";
-
-type GenerationState = "idle" | "generating" | "success" | "error";
-type CopyState = "idle" | "copied";
+import { TaskStatus } from "../../../../shared-types/TaskStatus";
 
 type StackResult = {
   noteId: string | null;
@@ -33,10 +31,9 @@ type StackResult = {
 
 export default function GeneralNotesTab() {
   const [stackResult, setStackResult] = useState<StackResult>(null);
-  const [generationState, setGenerationState] =
-    useState<GenerationState>("idle");
+  const [generationState, setGenerationState] = useState<TaskStatus | "idle" | "loading" | "success" | "error">("pending");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [copyState, setCopyState] = useState<CopyState>("idle");
+  const [generatedCardsCount, setGeneratedCardsCount] = useState<number>(0);
   const [cardDraft, setCardDraft] = useState({
     front: "",
     back: "",
@@ -57,70 +54,13 @@ export default function GeneralNotesTab() {
     markdown?: string | null;
   } | null>(null);
   const [isSelectingContent, setIsSelectingContent] = useState(false);
-  const [isLoggingMarkdown, setIsLoggingMarkdown] = useState(false);
 
   const START_SLOT_ID = "__start__";
 
-  const isGenerating = generationState === "generating";
+  const isGenerating = generationState === "processing";
   const cardsCount = stackResult?.cards?.length ?? 0;
   const hasCards = cardsCount > 0;
   const canEditCards = Boolean(stackResult?.noteId);
-
-  const statusText = (() => {
-    if (isSelectingContent) {
-      return "Click any element on the page to capture only that section.";
-    }
-    if (isLoggingMarkdown) {
-      return "Generating Markdown preview in console...";
-    }
-    if (generationState === "generating") {
-      if (selectedSource?.markdown || selectedSource?.html) {
-        return "Converting selected section to Markdown and generating cards...";
-      }
-      return "Converting page body to Markdown and generating cards...";
-    }
-    if (generationState === "error" && errorMessage) {
-      return errorMessage;
-    }
-    if (hasCards) {
-      if (stackResult?.source === "existing") {
-        return "Showing your saved flashcards for this page.";
-      }
-      return `AI generated ${
-        stackResult?.cards.length ?? 0
-      } card(s) for this page.`;
-    }
-    return "Open any interview prep article or prompt, then let AI create review cards from it.";
-  })();
-
-  const statusTone = (() => {
-    if (generationState === "error") {
-      return "text-red-600";
-    }
-    if (generationState === "generating" || isSelectingContent) {
-      return "text-blue-600";
-    }
-    if (hasCards) {
-      return "text-emerald-600";
-    }
-    return "text-slate-500";
-  })();
-
-  const ankiStackText = useMemo(() => {
-    if (!hasCards || !stackResult) {
-      return "";
-    }
-    return stackResult.cards
-      .map((card) => {
-        const front = card.front?.trim() ?? "";
-        const back = card.back?.trim() ?? "";
-        const extra = card.extra?.trim();
-        const safeFront = front || "Prompt";
-        const safeBack = back || "Answer";
-        return `${safeFront}\t${safeBack}${extra ? `\t${extra}` : ""}`;
-      })
-      .join("\n");
-  }, [hasCards, stackResult]);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,7 +87,7 @@ export default function GeneralNotesTab() {
           url: existing.url,
           source: "existing",
         });
-        setGenerationState("success");
+        setGenerationState("completed");
       } catch (error) {
         if (!cancelled) {
           console.warn("[leetstack] Failed to load existing note", error);
@@ -165,10 +105,10 @@ export default function GeneralNotesTab() {
   }, []);
 
   const handleGenerate = async () => {
-    setGenerationState("generating");
+    setGenerationState("processing");
     setErrorMessage(null);
-    setCopyState("idle");
     setStackResult(null);
+    setGeneratedCardsCount(0);
     try {
       const tab = await getActiveTab();
       const tabId = tab?.id;
@@ -259,7 +199,6 @@ export default function GeneralNotesTab() {
   const handleSelectElement = async () => {
     setErrorMessage(null);
     setGenerationState("idle");
-    setCopyState("idle");
     setIsSelectingContent(true);
 
     try {
@@ -320,41 +259,6 @@ export default function GeneralNotesTab() {
     setSelectedSource(null);
   };
 
-  const handleLogMarkdown = async () => {
-    setIsLoggingMarkdown(true);
-    setErrorMessage(null);
-    try {
-      const tab = await getActiveTab();
-      const tabId = tab?.id;
-      const tabUrl = tab?.url?.trim();
-      if (!tabId || !tabUrl) {
-        throw new Error("Open a page before requesting Markdown.");
-      }
-      const snapshot = await captureActivePageHtml(tabId);
-      if (!snapshot?.html) {
-        throw new Error("Unable to read the page HTML. Refresh and try again.");
-      }
-      const turndown = new TurndownService({
-        headingStyle: "atx", // Use # for headings instead of underlines
-      });
-      const markdown = turndown.turndown(snapshot.html);
-      console.log("[leetstack] Page Markdown", {
-        url: tabUrl,
-        title: snapshot.title,
-        markdown,
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : "Failed to convert page to Markdown";
-      setErrorMessage(message);
-      setGenerationState("error");
-    } finally {
-      setIsLoggingMarkdown(false);
-    }
-  };
-
   const runGenerationLoop = async ({
     url,
     payload,
@@ -364,68 +268,48 @@ export default function GeneralNotesTab() {
     payload: string;
     topic: string | null;
   }) => {
-    const MAX_ATTEMPTS = 5;
-    let attempts = 0;
-    let observedProgress = false;
+    const job = await createGeneralNoteJob({
+      url,
+      content: payload,
+      topic,
+    });
+    const polled = await pollJobUntilComplete(job.jobId);
+    const { url: jobUrl, status, noteId, cards } = polled;
 
-    while (attempts < MAX_ATTEMPTS) {
-      const job = await createGeneralNoteJob({
-        url,
-        content: payload,
-        topic,
-      });
-      const polled = await pollJobUntilComplete(job.jobId);
-      if (!polled?.result) {
-        break;
-      }
-      const { result, url: jobUrl } = polled;
-      if (result.newCards && result.newCards > 0) {
-        observedProgress = true;
-      }
-
-      setStackResult((prev) => {
-        const normalizedCards = result.cards ?? [];
-        const derivedSource: "generated" | "existing" =
-          prev?.source ??
-          (result.newCards === (result.cards?.length ?? 0)
-            ? "generated"
-            : "existing");
-        return {
-          noteId: result.noteId ?? prev?.noteId ?? null,
-          topic: result.topic ?? prev?.topic ?? null,
-          summary: result.summary ?? prev?.summary ?? null,
-          cards: normalizedCards,
-          url: jobUrl,
-          source: derivedSource,
-        };
-      });
-      setGenerationState("success");
-
-      if (!result.newCards || result.newCards <= 0) {
-        break;
-      }
-      attempts += 1;
-    }
-
-    if (!observedProgress) {
-      setErrorMessage("No new flashcards were generated for this page.");
-      setGenerationState("error");
-    }
+    setStackResult((prev) => {
+      return {
+        noteId: noteId ?? prev?.noteId ?? null,
+        topic: prev?.topic ?? null,
+        summary: prev?.summary ?? null,
+        cards: cards || [],
+        url: jobUrl,
+        source: "generated",
+      };
+    });
+    setGenerationState(status);
   };
 
   const pollJobUntilComplete = async (
     jobId: string
   ): Promise<Awaited<ReturnType<typeof getGeneralNoteJob>>> => {
     const POLL_INTERVAL_MS = 3000;
+
     while (true) {
       const status = await getGeneralNoteJob(jobId);
-      if (status.status === "completed" && status.result) {
+      console.log("====got status", status, status?.totalCards);
+      setGeneratedCardsCount(status?.totalCards ?? 0);
+
+      if (status.status === "completed") {
+        // Log the full response for debugging
+        console.log("[leetstack] Job completed", {
+          jobId,
+          status: status.status,
+          totalCards: status.totalCards,
+          noteId: status.noteId,
+          cards: status.cards,
+        });
+
         return status;
-      }
-      if (status.status === "failed") {
-        throw new Error(
-          status.errorMessage ?? "Failed to generate review cards"
-        );
       }
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     }
@@ -436,29 +320,7 @@ export default function GeneralNotesTab() {
     setCardDraft({ front: "", back: "", extra: "" });
   }, [stackResult?.noteId]);
 
-  const handleCopyStack = async () => {
-    if (!ankiStackText) {
-      return;
-    }
-    if (typeof navigator === "undefined" || !navigator.clipboard) {
-      setErrorMessage(
-        "Clipboard access is unavailable in this browser context."
-      );
-      setGenerationState("error");
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(ankiStackText);
-      setCopyState("copied");
-      window.setTimeout(() => setCopyState("idle"), 2500);
-    } catch (error) {
-      console.warn("[leetstack] Failed to copy generated stack", error);
-      setErrorMessage("Unable to copy stack to clipboard");
-      setGenerationState("error");
-    }
-  };
-
+  
   const handleAddCard = async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     if (!stackResult?.noteId) {
@@ -716,32 +578,63 @@ export default function GeneralNotesTab() {
               to capture a single section or run generation for the entire page.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className={`text-sm ${statusTone}`}>{statusText}</span>
-            <button
-              type="button"
-              onClick={handleSelectElement}
-              disabled={isSelectingContent || isLoadingExisting || isGenerating}
-              className="ml-auto inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSelectingContent ? "Click on the page..." : "Select element"}
-            </button>
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={isGenerating || isLoadingExisting}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-orange-400 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition hover:shadow-xl hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isGenerating ? "Generating..." : "AI generates review cards"}
-            </button>
-            <button
-              type="button"
-              onClick={handleLogMarkdown}
-              disabled={isLoggingMarkdown || isLoadingExisting}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isLoggingMarkdown ? "Converting..." : "Log page markdown"}
-            </button>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {isGenerating && generatedCardsCount > 0 && (
+                <div className="flex justify-center">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm text-blue-700 border border-blue-200">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                    </span>
+                    <span className="font-medium">
+                      <span className="inline-flex">
+                        {generatedCardsCount}
+                        <span className="mx-1">cards</span>
+                        <span className="inline-flex">
+                          <span>g</span>
+                          <span>e</span>
+                          <span>n</span>
+                          <span>e</span>
+                          <span>r</span>
+                          <span>a</span>
+                          <span>t</span>
+                          <span>e</span>
+                          <span>d</span>
+                        </span>
+                      </span>
+                    </span>
+                    <span className="inline-flex">
+                      <span>s</span>
+                      <span>o</span>
+                      <span> </span>
+                      <span>f</span>
+                      <span>a</span>
+                      <span>r</span>
+                      <span>...</span>
+                    </span>
+                  </div>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleSelectElement}
+                disabled={
+                  isSelectingContent || isLoadingExisting || isGenerating
+                }
+                className="ml-auto inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSelectingContent ? "Click on the page..." : "Select element"}
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isGenerating || isLoadingExisting}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-orange-400 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition hover:shadow-xl hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isGenerating ? "Generating..." : "AI generates review cards"}
+              </button>
+            </div>
           </div>
         </section>
       )}
@@ -755,11 +648,6 @@ export default function GeneralNotesTab() {
               <h2 className="text-lg font-semibold text-slate-900">
                 {stackResult.topic ?? "General note"}
               </h2>
-              <p className="text-xs text-slate-400">
-                {stackResult.source === "existing"
-                  ? "Loaded from your saved flashcards"
-                  : "Newly generated by AI"}
-              </p>
               {stackResult.url ? (
                 <a
                   href={stackResult.url}
@@ -787,32 +675,16 @@ export default function GeneralNotesTab() {
               >
                 {isSelectingContent ? "Click on the page..." : "Select element"}
               </button>
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isGenerating ? "Continuing..." : "Generate more cards"}
-              </button>
-              <button
-                type="button"
-                onClick={handleLogMarkdown}
-                disabled={isLoggingMarkdown}
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isLoggingMarkdown ? "Converting..." : "Log page markdown"}
-              </button>
-              <button
-                type="button"
-                onClick={handleCopyStack}
-                disabled={!hasCards}
-                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {copyState === "copied" ? "Copied" : "Copy stack"}
-              </button>
             </div>
           </div>
+
+          {/* Show error message if generation failed */}
+          {generationState === "failed" && errorMessage && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-900">
+              <p className="font-semibold">Error generating cards</p>
+              <p className="mt-1">{errorMessage}</p>
+            </div>
+          )}
 
           {hasCards ? (
             <ul className="space-y-3">
@@ -874,17 +746,6 @@ export default function GeneralNotesTab() {
               </div>
             </div>
           )}
-
-          {/* {ankiStackText ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Tab-delimited text for Anki import
-              </p>
-              <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-slate-700">
-                {ankiStackText}
-              </pre>
-            </div>
-          ) : null} */}
         </section>
       ) : null}
     </div>

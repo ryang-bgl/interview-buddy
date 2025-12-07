@@ -90,11 +90,11 @@ function mapToSummary(note: UserNoteRecord): NoteSummary {
   });
 
   return {
-    noteId: note.noteId,
+    noteId: note.noteId ?? "",
     url: note.sourceUrl,
     topic: note.topic ?? null,
     summary: note.summary ?? null,
-    createdAt: note.createdAt,
+    createdAt: note.createdAt ?? "",
     lastReviewedAt: note.lastReviewedAt ?? null,
     lastReviewStatus: note.lastReviewStatus ?? null,
     cardCount: note.cards?.length ?? 0,

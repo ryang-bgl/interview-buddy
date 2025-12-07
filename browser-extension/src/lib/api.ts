@@ -239,13 +239,13 @@ export async function createGeneralNoteJob(
 
 export async function getGeneralNoteJob(
   jobId: string
-): Promise<GeneralNoteJobStatusResponse> {
+): Promise<GeneralNoteJobStatusResponse & { resultCards?: any[] }> {
   const response = await request(`/api/ai/general-note/jobs/${jobId}`, {
     method: "GET",
   });
 
   if (response.ok) {
-    return (await response.json()) as GeneralNoteJobStatusResponse;
+    return (await response.json()) as GeneralNoteJobStatusResponse & { resultCards?: any[] };
   }
 
   let message = "Failed to load job status";

@@ -44,7 +44,7 @@ export interface BaseTaskMetadata {
   /** Total number of steps */
   totalSteps?: number;
   /** Error message if status is 'failed' */
-  errorMessage?: string | null;
+  errorMessage?: string;
   /** Number of retry attempts */
   retryCount?: number;
   /** Maximum allowed retries */
@@ -107,19 +107,32 @@ export interface GeneralNoteJobResult {
  * Full general note job status response
  */
 export interface GeneralNoteJobStatusResponse extends BaseTaskMetadata {
+  /** Type identifier for the job */
+  type: "general-note";
   /** URL of the source content */
   url: string;
   /** Topic specified by user */
   topic: string | null;
+  /** Special requirements from user */
+  requirements: string | null;
   /** User ID who initiated the job */
   userId: string;
-  noteId: string;
-  /** Generated flashcards (actual cards data) */
-  cards: UserNoteCardRecord[];
-  /** Number of cards created */
-  totalCards: number;
-  /** Error message if job failed */
-  errorMessage?: string | null;
+  /** Number of cards created (progress during processing, final count when complete) */
+  cards: number;
+  /** ID of the created note (available when job is completed) */
+  noteId?: string | null;
+  /** Generated flashcards (available when job is completed) */
+  resultCards?: UserNoteCardRecord[];
+  /** Progress details for processing jobs */
+  progress?: GeneralNoteJobProgress;
+  /** Final result when status is 'completed' (keep for backward compatibility) */
+  result?: GeneralNoteJobResult;
+  /** Request payload for debugging/retrying */
+  requestPayload?: {
+    content: string;
+    topic: string | null;
+    requirements: string | null;
+  };
 }
 
 // ===== Card Types =====

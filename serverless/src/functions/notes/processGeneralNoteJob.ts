@@ -82,6 +82,30 @@ async function processJob({ jobId }: ProcessorInput) {
 
   await updateJobStatus(jobId, "processing");
 
+  // Validate that the URL exists and is properly formatted
+  if (!jobRecord.url || jobRecord.url.trim().length === 0) {
+    const errorMsg = "Source URL is required but missing";
+    console.error("[general-note-job] " + errorMsg);
+    await markJobFailed(jobId, errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // Additional validation to ensure URL is valid
+  try {
+    const parsedUrl = new URL(jobRecord.url);
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      const errorMsg = `Invalid source URL protocol: ${parsedUrl.protocol}. Only HTTP and HTTPS are allowed`;
+      console.error("[general-note-job] " + errorMsg);
+      await markJobFailed(jobId, errorMsg);
+      throw new Error(errorMsg);
+    }
+  } catch (error) {
+    const errorMsg = `Invalid source URL format: ${jobRecord.url}`;
+    console.error("[general-note-job] " + errorMsg);
+    await markJobFailed(jobId, errorMsg);
+    throw new Error(errorMsg);
+  }
+
   try {
     let noteToProcess: UserNoteRecord | null = await findExistingNote(
       jobRecord.userId,
@@ -94,17 +118,19 @@ async function processJob({ jobId }: ProcessorInput) {
         sourceUrl: jobRecord.url,
         noteId: null,
         cards: [],
-        topic: jobRecord.topic,
+        topic: jobRecord.topic ?? undefined,
       };
     }
 
     // Chunk the markdown content for processing
     console.info("[general-note-job] Starting chunked processing", {
       jobId,
-      contentLength: jobRecord.requestPayload.content.length,
+      contentLength: jobRecord.requestPayload?.content.length ?? 0,
     });
 
-    const markdownChunks = chunkMarkdownBySections(jobRecord.requestPayload.content);
+    const markdownChunks = chunkMarkdownBySections(
+      jobRecord.requestPayload?.content ?? ""
+    );
     console.info("[general-note-job] Chunks created", {
       jobId,
       chunkCount: markdownChunks.length,
@@ -129,8 +155,8 @@ async function processJob({ jobId }: ProcessorInput) {
 
       // Combine chunks in this group
       const combinedContent = chunkGroup
-        .map(chunk => chunk.content)
-        .join('\n\n');
+        .map((chunk) => chunk.content)
+        .join("\n\n");
 
       try {
         const newCards = await generateOpenAiStack(combinedContent);
@@ -140,13 +166,13 @@ async function processJob({ jobId }: ProcessorInput) {
             jobId,
             groupIndex: groupIndex + 1,
             cardsGenerated: newCards.length,
-            existingCardsCount: noteToProcess.cards.length,
+            existingCardsCount: noteToProcess?.cards.length ?? 0,
           });
 
           // Save progress after each successful group
           try {
             // Add only the NEW cards to existing cards
-            const allCards = [...noteToProcess.cards, ...newCards];
+            const allCards = [...(noteToProcess?.cards ?? []), ...newCards];
 
             if (noteToProcess && noteToProcess.noteId) {
               // Update existing note with new cards only
@@ -158,33 +184,88 @@ async function processJob({ jobId }: ProcessorInput) {
               noteToProcess.cards = allCards;
             } else {
               // Create new note with cards from this group
-              await persistNewNoteWithFlashCards({
+              const createdNote = await persistNewNoteWithFlashCards({
                 jobRecord,
-                noteToProcess: noteToProcess,
+                noteToProcess: noteToProcess!,
                 newCards: newCards, // Only save new cards, not accumulated
               });
-              // Get the actual noteId from the database
-              const createdNote = await findExistingNote(
-                jobRecord.userId,
-                jobRecord.url
-              );
-              console.log("==== created note ", createdNote?.noteId);
-              if (createdNote) {
-                noteToProcess = createdNote;
-              } else {
-                console.log(
-                  "====== error in finding new note after saving, createdNote is null"
+              console.log("==== created note ", createdNote.noteId);
+
+              // Verify the note was actually saved by querying it directly by ID
+              // Add retry logic to handle DynamoDB eventual consistency
+              const MAX_RETRIES = 3;
+              const RETRY_DELAY_MS = 500;
+              let verifiedNote: UserNoteRecord | null = null;
+
+              for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+                if (attempt > 0) {
+                  console.info(
+                    `[general-note-job] Retry ${attempt}/${
+                      MAX_RETRIES - 1
+                    } to find saved note by ID`
+                  );
+                  await new Promise((resolve) =>
+                    setTimeout(resolve, RETRY_DELAY_MS)
+                  );
+                }
+
+                if (!createdNote.noteId) {
+                  throw new Error("Created note has no noteId");
+                }
+                verifiedNote = await findNoteById(
+                  jobRecord.userId,
+                  createdNote.noteId
                 );
+
+                if (verifiedNote) {
+                  // Also verify it has the expected cards
+                  if (verifiedNote.cards.length === newCards.length) {
+                    console.info(
+                      "[general-note-job] Verified note has correct number of cards",
+                      {
+                        expected: newCards.length,
+                        actual: verifiedNote.cards.length,
+                      }
+                    );
+                    break;
+                  } else {
+                    console.warn(
+                      "[general-note-job] Note found but card count mismatch",
+                      {
+                        expected: newCards.length,
+                        actual: verifiedNote.cards.length,
+                      }
+                    );
+                  }
+                }
               }
+
+              if (!verifiedNote) {
+                const errorMsg = `Failed to save note: created note with ID ${createdNote.noteId} but couldn't retrieve it after ${MAX_RETRIES} attempts`;
+                console.error("[general-note-job] " + errorMsg);
+
+                // Mark the job as failed
+                await markJobFailed(jobId, errorMsg);
+                throw new Error(errorMsg);
+              }
+
+              console.log(
+                "==== verified saved note with ID",
+                verifiedNote.noteId,
+                "and",
+                verifiedNote.cards.length,
+                "cards"
+              );
+              noteToProcess = verifiedNote;
             }
 
             // Update job progress with total card count
-            updateJobProgress(jobId, noteToProcess.cards.length);
+            updateJobProgress(jobId, noteToProcess?.cards.length ?? 0);
 
             console.info("[general-note-job] Saved cards for chunk group", {
               jobId,
               groupIndex: groupIndex + 1,
-              totalCardsAfterSave: noteToProcess.cards.length,
+              totalCardsAfterSave: noteToProcess?.cards.length ?? 0,
             });
           } catch (saveError) {
             console.error("[general-note-job] Failed to save progress", {
@@ -201,7 +282,8 @@ async function processJob({ jobId }: ProcessorInput) {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         console.error("[general-note-job] Failed to process chunk group", {
           jobId,
           groupIndex: groupIndex + 1,
@@ -209,13 +291,18 @@ async function processJob({ jobId }: ProcessorInput) {
         });
 
         // Don't retry on authentication errors
-        if (errorMessage.includes("OPENAI_API_KEY") ||
-            errorMessage.includes("authentication") ||
-            errorMessage.includes("401")) {
-          console.error("[general-note-job] Authentication error, stopping processing", {
-            jobId,
-            error: errorMessage,
-          });
+        if (
+          errorMessage.includes("OPENAI_API_KEY") ||
+          errorMessage.includes("authentication") ||
+          errorMessage.includes("401")
+        ) {
+          console.error(
+            "[general-note-job] Authentication error, stopping processing",
+            {
+              jobId,
+              error: errorMessage,
+            }
+          );
           break;
         }
 
@@ -227,9 +314,17 @@ async function processJob({ jobId }: ProcessorInput) {
     console.info("[general-note-job] Chunked processing completed", {
       jobId,
       totalGroups: chunkGroups.length,
-      totalCardsInDb: noteToProcess.cards.length,
+      totalCardsInDb: noteToProcess?.cards.length ?? 0,
     });
 
+    if (noteToProcess && noteToProcess.noteId) {
+      // Update job with final results
+      await updateJobWithResults(
+        jobId,
+        noteToProcess.noteId,
+        noteToProcess.cards
+      );
+    }
     await updateJobStatus(jobId, "completed");
   } catch (error) {
     console.error("[general-note-job] Processor failed", error);
@@ -245,12 +340,18 @@ async function persistNewNoteWithFlashCards({
   jobRecord: UserNoteJobRecord;
   noteToProcess: UserNoteRecord;
   newCards: UserNoteCardRecord[];
-}) {
+}): Promise<UserNoteRecord> {
   const now = new Date().toISOString();
+  const noteId = crypto.randomUUID();
+
+  // Validate sourceUrl before creating the note
+  if (!jobRecord.url || jobRecord.url.trim().length === 0) {
+    throw new Error("Cannot create note: sourceUrl is missing");
+  }
 
   const noteRecord: UserNoteRecord = {
     userId: jobRecord.userId,
-    noteId: crypto.randomUUID(),
+    noteId,
     sourceUrl: jobRecord.url,
     // Use topic from jobRecord first, then fall back to noteToProcess
     topic: jobRecord.topic ?? noteToProcess.topic,
@@ -266,12 +367,29 @@ async function persistNewNoteWithFlashCards({
     nextReviewDate: null,
   };
 
+  // Log for debugging
+  console.info("[general-note-job] Creating note record", {
+    noteId,
+    userId: jobRecord.userId,
+    sourceUrl: jobRecord.url,
+    cardCount: newCards.length,
+  });
+
   await docClient.send(
     new PutCommand({
       TableName: userNotesTableName,
       Item: noteRecord,
     })
   );
+
+  console.info("[general-note-job] Created new note", {
+    userId: jobRecord.userId,
+    noteId,
+    url: jobRecord.url,
+    cardCount: newCards.length,
+  });
+
+  return noteRecord;
 }
 
 async function markJobFailed(jobId: string, error: unknown) {
@@ -323,18 +441,38 @@ async function updateJobStatus(jobId: string, status: string) {
   );
 }
 
-async function updateJobProgress(jobId: string, cards: number) {
+async function updateJobProgress(jobId: string, totalCards: number) {
   await docClient.send(
     new UpdateCommand({
       TableName: jobsTableName,
       Key: { jobId },
-      UpdateExpression: "SET #status = :status, resultCards = :cards",
+      UpdateExpression: "SET #status = :status, totalCards = :totalCards",
       ExpressionAttributeNames: {
         "#status": "status",
       },
       ExpressionAttributeValues: {
         ":status": "processing",
+        ":totalCards": totalCards,
+      },
+    })
+  );
+}
+
+async function updateJobWithResults(
+  jobId: string,
+  noteId: string,
+  cards: UserNoteCardRecord[]
+) {
+  await docClient.send(
+    new UpdateCommand({
+      TableName: jobsTableName,
+      Key: { jobId },
+      UpdateExpression:
+        "SET noteId = :noteId, cards = :cards, updatedAt = :updatedAt",
+      ExpressionAttributeValues: {
+        ":noteId": noteId,
         ":cards": cards,
+        ":updatedAt": new Date().toISOString(),
       },
     })
   );
@@ -344,6 +482,8 @@ async function findExistingNote(
   userId: string,
   url: string
 ): Promise<UserNoteRecord | null> {
+  console.info("[general-note-job] Finding existing note", { userId, url });
+
   const query = new QueryCommand({
     TableName: userNotesTableName,
     KeyConditionExpression: "userId = :userId",
@@ -358,9 +498,56 @@ async function findExistingNote(
   try {
     const result = await docClient.send(query);
     const items = (result.Items as UserNoteRecord[] | undefined) ?? [];
+    console.info("[general-note-job] Query result", {
+      userId,
+      url,
+      itemCount: items.length,
+      firstNoteId: items[0]?.noteId,
+    });
     return items[0] ?? null;
   } catch (error) {
-    console.error("Failed to load existing note", error);
+    console.error("[general-note-job] Failed to load existing note", {
+      userId,
+      url,
+      error,
+    });
+    throw error;
+  }
+}
+
+async function findNoteById(
+  userId: string,
+  noteId: string
+): Promise<UserNoteRecord | null> {
+  console.info("[general-note-job] Finding note by ID", { userId, noteId });
+
+  const command = new GetCommand({
+    TableName: userNotesTableName,
+    Key: {
+      userId,
+      noteId,
+    },
+  });
+
+  try {
+    const result = await docClient.send(command);
+    const note = result.Item as UserNoteRecord | undefined;
+
+    console.info("[general-note-job] Get result", {
+      userId,
+      noteId,
+      found: !!note,
+      sourceUrl: note?.sourceUrl,
+      cardCount: note?.cards.length,
+    });
+
+    return note ?? null;
+  } catch (error) {
+    console.error("[general-note-job] Failed to load note by ID", {
+      userId,
+      noteId,
+      error,
+    });
     throw error;
   }
 }

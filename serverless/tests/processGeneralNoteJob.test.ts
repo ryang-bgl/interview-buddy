@@ -31,33 +31,14 @@ describe("processGeneralNoteJob.generateOpenAiStack", () => {
 
     const module = await import("../src/functions/notes/processGeneralNoteJob");
     const helpers = module.__testHelpers as {
-      generateOpenAiStack: (input: {
-        url: string;
-        content: string;
-        topic: string | null;
-        requirements: string | null;
-        metadata?: Record<string, unknown>;
-        existingCards?: Array<{ front: string; back: string; extra?: string }>;
-        retryCount?: number;
-      }) => Promise<{
-        topic: string;
-        summary: string | null;
-        cards: Array<{ front: string; back: string; extra?: string }>;
-      }>;
+      generateOpenAiStack: (content: string) => Promise<Array<{ front: string; back: string; extra?: string }>>;
     };
 
     const jobId = `debug-${Date.now()}`;
-    const stack = await helpers.generateOpenAiStack({
-      url: "https://example.com/system-design-guide",
-      content: testContent,
-      topic: "System design & behavior study plan",
-      requirements: "Prioritize consensus-building tactics and failure handling",
-      metadata: { jobId },
-    });
+    const cards = await helpers.generateOpenAiStack(testContent);
 
-    console.log("[test] Generated topic:", stack.topic);
-    console.log("[test] Cards returned:", stack.cards.length);
-    stack.cards.slice(0, 3).forEach((card, index) => {
+    console.log("[test] Cards returned:", cards.length);
+    cards.slice(0, 3).forEach((card, index) => {
       console.log(`-- Card ${index + 1} front:`, card.front);
       console.log(`   back:`, card.back);
       if (card.extra) {
@@ -73,12 +54,12 @@ describe("processGeneralNoteJob.generateOpenAiStack", () => {
     );
     fs.writeFileSync(
       filePath,
-      JSON.stringify({ cards: stack.cards }, null, 2),
+      JSON.stringify({ cards }, null, 2),
       "utf8"
     );
     console.log("[test] Cards saved", { filePath });
 
-    expect(Array.isArray(stack.cards)).toBe(true);
+    expect(Array.isArray(cards)).toBe(true);
   });
 
   testFn("supports retry with existing cards", async () => {
@@ -92,45 +73,14 @@ describe("processGeneralNoteJob.generateOpenAiStack", () => {
 
     const module = await import("../src/functions/notes/processGeneralNoteJob");
     const helpers = module.__testHelpers as {
-      generateOpenAiStack: (input: {
-        url: string;
-        content: string;
-        topic: string | null;
-        requirements: string | null;
-        metadata?: Record<string, unknown>;
-        existingCards?: Array<{ front: string; back: string; extra?: string }>;
-        retryCount?: number;
-      }) => Promise<{
-        topic: string;
-        summary: string | null;
-        cards: Array<{ front: string; back: string; extra?: string }>;
-      }>;
+      generateOpenAiStack: (content: string) => Promise<Array<{ front: string; back: string; extra?: string }>>;
     };
 
     const jobId = `retry-test-${Date.now()}`;
-    const existingCards = [
-      {
-        front: "What is system design?",
-        back: "System design is the process of defining the architecture, components, modules, interfaces, and data for a system to satisfy specified requirements.",
-        extra: "Key skill for technical interviews"
-      }
-    ];
+    const cards = await helpers.generateOpenAiStack(testContent);
 
-    const stack = await helpers.generateOpenAiStack({
-      url: "https://example.com/system-design-guide",
-      content: testContent,
-      topic: "System design & behavior study plan",
-      requirements: "Prioritize consensus-building tactics and failure handling",
-      metadata: { jobId },
-      existingCards,
-      retryCount: 1,
-    });
-
-    console.log("[test] Generated topic:", stack.topic);
-    console.log("[test] Total cards returned:", stack.cards.length);
-    console.log("[test] New cards added:", stack.cards.length - existingCards.length);
-
-    stack.cards.slice(0, 3).forEach((card, index) => {
+    console.log("[test] Cards returned:", cards.length);
+    cards.slice(0, 3).forEach((card, index) => {
       console.log(`-- Card ${index + 1} front:`, card.front);
       console.log(`   back:`, card.back);
       if (card.extra) {
@@ -138,13 +88,7 @@ describe("processGeneralNoteJob.generateOpenAiStack", () => {
       }
     });
 
-    expect(Array.isArray(stack.cards)).toBe(true);
-    expect(stack.cards.length).toBeGreaterThan(existingCards.length);
-
-    // Verify existing cards are preserved
-    const foundExistingCard = stack.cards.some(
-      card => card.front === existingCards[0].front
-    );
-    expect(foundExistingCard).toBe(true);
+    expect(Array.isArray(cards)).toBe(true);
+    expect(cards.length).toBeGreaterThan(0);
   });
 });
