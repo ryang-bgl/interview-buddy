@@ -104,6 +104,20 @@ export default function GeneralNotesTab() {
     };
   }, []);
 
+  // Extract topic from markdown headings
+  const extractTopicFromMarkdown = (markdown: string): string | null => {
+    // Find first # or ## heading and extract the topic
+    // Using exec is more efficient as it stops at first match
+    const lines = markdown.split('\n');
+    for (const line of lines) {
+      const headingMatch = line.match(/^#{1,2}\s+(.+)$/);
+      if (headingMatch) {
+        return headingMatch[1].trim();
+      }
+    }
+    return null;
+  };
+
   const handleGenerate = async () => {
     setGenerationState("processing");
     setErrorMessage(null);
@@ -181,10 +195,14 @@ export default function GeneralNotesTab() {
         );
       }
 
+      // Try to extract topic from markdown headings first, then fall back to titles
+      const extractedTopic = extractTopicFromMarkdown(payload);
+      const topic = extractedTopic ?? selectionToUse?.title ?? snapshot?.title ?? tab.title ?? null;
+
       await runGenerationLoop({
         url: tabUrl,
         payload,
-        topic: selectionToUse?.title ?? snapshot?.title ?? tab.title ?? null,
+        topic,
       });
     } catch (error) {
       const message =
