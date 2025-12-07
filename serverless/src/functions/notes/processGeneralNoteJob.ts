@@ -16,6 +16,11 @@ import {
   generateOpenAiStack,
   type FlashcardStackResponse,
 } from "../../shared/openAiNotes";
+import {
+  chunkMarkdownBySections,
+  groupChunksBySize,
+  type MarkdownChunk,
+} from "../../shared/markdownChunker";
 
 const jobsTableName = process.env.GENERAL_NOTE_JOBS_TABLE_NAME;
 const userNotesTableName = process.env.USER_NOTES_TABLE_NAME;
@@ -92,55 +97,56 @@ async function processJob({ jobId }: ProcessorInput) {
       };
     }
 
-    // Initialize retry variables
-    let stack: FlashcardStackResponse;
-    let retryCount = 0;
-    const maxRetries = 10;
-    let lastError: Error | null = null;
+    // Chunk the markdown content for processing
+    console.info("[general-note-job] Starting chunked processing", {
+      jobId,
+      contentLength: jobRecord.requestPayload.content.length,
+    });
 
-    // Retry logic: keep generating until we have cards or max retries reached
-    do {
-      const existingCards = noteToProcess.cards;
+    const markdownChunks = chunkMarkdownBySections(jobRecord.requestPayload.content);
+    console.info("[general-note-job] Chunks created", {
+      jobId,
+      chunkCount: markdownChunks.length,
+    });
+
+    // Group chunks to optimize API calls
+    const chunkGroups = groupChunksBySize(markdownChunks, 3000); // 3000 tokens per group
+    console.info("[general-note-job] Chunk groups created", {
+      jobId,
+      groupCount: chunkGroups.length,
+    });
+
+    // Process each chunk group
+    for (let groupIndex = 0; groupIndex < chunkGroups.length; groupIndex++) {
+      const chunkGroup = chunkGroups[groupIndex];
+      console.info("[general-note-job] Processing chunk group", {
+        jobId,
+        groupIndex: groupIndex + 1,
+        totalGroups: chunkGroups.length,
+        chunkCount: chunkGroup.length,
+      });
+
+      // Combine chunks in this group
+      const combinedContent = chunkGroup
+        .map(chunk => chunk.content)
+        .join('\n\n');
+
       try {
-        console.info("[general-note-job] Generation attempt", {
-          jobId,
-          attempt: retryCount + 1,
-          maxRetries,
-          existingCardsCount: noteToProcess.cards.length,
-        });
+        const newCards = await generateOpenAiStack(combinedContent);
 
-        let lastCards: UserNoteCardRecord[] = [];
-        const length = existingCards.length;
-        if (length > 2) {
-          lastCards = [existingCards[length - 2], existingCards[length - 1]];
-        } else if (length > 1) {
-          lastCards = [existingCards[length - 1]];
-        }
-
-        const newCards = await generateOpenAiStack(
-          jobRecord.requestPayload.content,
-          lastCards
-        );
-        console.log(
-          "==== last card for generate note",
-          lastCards,
-          newCards?.length > 0 ? newCards[newCards.length - 1] : []
-        );
-
-        // Check if we generated new cards
-        const newCardsCount = newCards.length;
-
-        if (newCardsCount > 0) {
-          // Success - we have new cards
-          console.info("[general-note-job] Generated new cards", {
+        if (newCards.length > 0) {
+          console.info("[general-note-job] Generated cards for chunk group", {
             jobId,
-            attempt: retryCount + 1,
-            newCardsCount,
+            groupIndex: groupIndex + 1,
+            cardsGenerated: newCards.length,
+            existingCardsCount: noteToProcess.cards.length,
           });
 
-          // Save progress after each successful generation
+          // Save progress after each successful group
           try {
+            // Add only the NEW cards to existing cards
             const allCards = [...noteToProcess.cards, ...newCards];
+
             if (noteToProcess && noteToProcess.noteId) {
               // Update existing note with new cards only
               await updateNoteCards(
@@ -150,11 +156,11 @@ async function processJob({ jobId }: ProcessorInput) {
               );
               noteToProcess.cards = allCards;
             } else {
-              // Create new note
+              // Create new note with cards from this group
               await persistNewNoteWithFlashCards({
                 jobRecord,
                 noteToProcess: noteToProcess,
-                newCards,
+                newCards: newCards, // Only save new cards, not accumulated
               });
               // Get the actual noteId from the database
               const createdNote = await findExistingNote(
@@ -170,79 +176,58 @@ async function processJob({ jobId }: ProcessorInput) {
                 );
               }
             }
+
+            // Update job progress with total card count
             updateJobProgress(jobId, noteToProcess.cards.length);
+
+            console.info("[general-note-job] Saved cards for chunk group", {
+              jobId,
+              groupIndex: groupIndex + 1,
+              totalCardsAfterSave: noteToProcess.cards.length,
+            });
           } catch (saveError) {
             console.error("[general-note-job] Failed to save progress", {
               jobId,
-              attempt: retryCount + 1,
+              groupIndex: groupIndex + 1,
               saveError,
             });
-            // Continue with retry even if save failed, but log the error
+            // Continue processing even if save failed
           }
+        }
 
-          // If this was the last attempt or we have enough cards, break
-          if (retryCount >= maxRetries - 1 || newCardsCount === 0) {
-            console.info(
-              "[general-note-job] Generation completed, total retry",
-              retryCount,
-              "total cards",
-              noteToProcess.cards.length,
-              "reason",
-              retryCount >= maxRetries - 1
-                ? "max retries reached"
-                : "no new cards generated"
-            );
-            break;
-          }
-
-          // Continue to next retry to get more cards
-          retryCount++;
-
-          console.info(
-            "[general-note-job] Continuing to generate more cards",
-            retryCount,
-            noteToProcess.cards.length,
-            jobId
-          );
-          // Delay before next retry
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          continue;
+        // Small delay between API calls to avoid rate limits
+        if (groupIndex < chunkGroups.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
       } catch (error) {
-        lastError =
-          error instanceof Error
-            ? error
-            : new Error("Unknown error during generation");
-        console.error("[general-note-job] Generation attempt failed", {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        console.error("[general-note-job] Failed to process chunk group", {
           jobId,
-          attempt: retryCount + 1,
-          error: lastError.message,
+          groupIndex: groupIndex + 1,
+          error: errorMessage,
         });
 
-        retryCount++;
-
-        // Don't retry on certain errors (like authentication)
-        if (
-          lastError.message.includes("OPENAI_API_KEY") ||
-          lastError.message.includes("authentication") ||
-          lastError.message.includes("401")
-        ) {
-          console.error(
-            "[general-note-job] Authentication error, not retrying",
-            {
-              jobId,
-              error: lastError.message,
-            }
-          );
+        // Don't retry on authentication errors
+        if (errorMessage.includes("OPENAI_API_KEY") ||
+            errorMessage.includes("authentication") ||
+            errorMessage.includes("401")) {
+          console.error("[general-note-job] Authentication error, stopping processing", {
+            jobId,
+            error: errorMessage,
+          });
           break;
         }
 
-        // Add delay before retry
-        if (retryCount < maxRetries) {
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-        }
+        // Continue with next chunk group even if current one failed
+        continue;
       }
-    } while (retryCount < maxRetries);
+    }
+
+    console.info("[general-note-job] Chunked processing completed", {
+      jobId,
+      totalGroups: chunkGroups.length,
+      totalCardsInDb: noteToProcess.cards.length,
+    });
 
     await updateJobStatus(jobId, "completed");
   } catch (error) {

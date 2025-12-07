@@ -17,7 +17,7 @@ import { generateOpenAiStack } from "../../shared/openAiNotes";
 import type { FlashcardStackResponse } from "../../shared/openAiNotes";
 
 const userNotesTableName = process.env.USER_NOTES_TABLE_NAME;
-const maxContentLength = 8000;
+const maxContentLength = 100000;
 
 if (!userNotesTableName) {
   throw new Error("USER_NOTES_TABLE_NAME env var must be set");

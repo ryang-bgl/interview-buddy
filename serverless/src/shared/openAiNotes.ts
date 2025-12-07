@@ -23,54 +23,35 @@ interface GenerateInput {
 }
 
 export async function generateOpenAiStack(
-  content: string,
-  lastCards?: UserNoteCardRecord[]
+  content: string
 ): Promise<UserNoteCardRecord[]> {
   const openAiApiKey = requireOpenAiKey();
   const systemPrompt =
     "You are a tutor specialised to help the candidate pass technical interviews at companies like Facebook or Google. Interviews span system design and behavioural rounds. Your job is to analyse the provided material and craft the best plan for the candidate to master the knowledge.";
 
-  const userPromptSegments = [];
-
-  // Add continuation context if this is a retry
-
-  userPromptSegments.push(
+  const userPrompt = [
     "Turn the content into Anki-style stack cards so I can review them repeatedly.",
     "The content is in Markdown format with headings (using # symbols), lists, and structured sections.",
     "IMPORTANT: Create cards for ALL major sections and subsections in the markdown. Do not skip any sections like NoSQL, Caching, Load Balancing, etc.",
     "Break the material into logical sections based on the markdown headings and create at least one card per important idea.",
     "Add summary cards that capture the most critical takeaways for each major section before diving into supporting details.",
-    "Generate as many cards as needed—avoid arbitrary limits like 10 cards; long-form content should typically yield dozens of cards.",
+    "Generate as many cards as needed, and long-form content should typically yield dozens of cards.",
+    "Remember: Create flashcards for ALL main sections and sub sections in this markdown content. The card generated should also summarize the content in that section, don't overly concise",
     "Do not be overly concise—cover every important insight from the provided material.",
     'Respond strictly in JSON using this structure: {"cards": [{"front": "question", "back": "detailed answer", "extra"?: "tips"}]}.',
-    "***IMPORTANT*** make sure it is a valid json, if the generated output is exceeding your output limit. then truncate the cards you need to include in the output. make sure it is a valid json"
-  );
-  if (lastCards && lastCards.length > 0) {
-    userPromptSegments.push(
-      "You have already generated flashcards from part of this content previously. The content of last few cards you generated is:",
-      "```json",
-      JSON.stringify(lastCards, null, 2),
-      "```",
-      'Find where that content is in the provided markdown content, ignore all the content from the beginning of the provided markdown text to that position, and **ONLY GENERATE FLASHCARDS FOR THE REST CONTENT AFTER THAT POSITION**. **IMPORTANT: IF THE POSITION IS AT THE END, DON\'T NEED TO CREATE FLASHCARDS, RETURN EMPTY CARDS ARRAY JSON {"cards": []}**'
-    );
-  } else {
-    userPromptSegments.push(
-      "Remember: Create flashcards for ALL main sections and sub sections in this markdown content."
-    );
-  }
-
-  userPromptSegments.push(
+    "***IMPORTANT*** make sure it is a valid json, if the generated output is exceeding your output limit. then truncate the cards you need to include in the output. make sure it is a valid json",
+    "",
     "Here is the markdown content, bounded by triple quotes:",
     '"""',
     content,
-    '"""'
+    '"""',
+  ].join("\n");
+
+  console.info(
+    "[openai-notes] Requesting flashcards",
+    content.length,
+    userPrompt
   );
-
-  const userPrompt = userPromptSegments.filter(Boolean).join("\n");
-
-  console.info("[openai-notes] Requesting flashcards", lastCards, {
-    prompt: userPrompt,
-  });
 
   const apiStart = Date.now();
   const response = await fetch(openAiApiUrl, {
