@@ -1,3 +1,10 @@
+// Import shared types
+import type {
+  UserNoteCardRecord as SharedUserNoteCardRecord,
+  GeneralNoteJobStatus,
+  GeneralNoteJobStatusResponse,
+} from "../../../shared-types/TaskStatus";
+
 export interface UserRecord {
   id: string;
   email: string;
@@ -39,13 +46,8 @@ export interface UserDsaQuestionRecord {
   nextReviewDate?: string;
 }
 
-export interface UserNoteCardRecord {
-  id?: string;
-  front: string;
-  back: string;
-  extra?: string | null;
-  tags?: string[];
-}
+// Re-export shared type with local alias for compatibility
+export type UserNoteCardRecord = SharedUserNoteCardRecord;
 
 export interface UserNoteRecord {
   userId: string;
@@ -74,11 +76,8 @@ export interface UserFeedbackRecord {
   updatedAt: string;
 }
 
-export type UserNoteJobStatus =
-  | "pending"
-  | "processing"
-  | "completed"
-  | "failed";
+// Re-export shared type for compatibility
+export type UserNoteJobStatus = GeneralNoteJobStatus;
 
 export interface UserNoteJobRecord {
   jobId: string;
@@ -100,4 +99,5 @@ export interface UserNoteJobRecord {
   errorMessage?: string | null;
   createdAt: string;
   updatedAt: string;
+  resultCardsCount?: number; // Track total cards for progress
 }

@@ -17,21 +17,19 @@ import TurndownService from "turndown";
 type GenerationState = "idle" | "generating" | "success" | "error";
 type CopyState = "idle" | "copied";
 
-type StackResult =
-  | {
-      noteId: string | null;
-      topic: string | null;
-      summary: string | null;
-      cards: {
-        id?: string | null;
-        front: string;
-        back: string;
-        extra?: string | null;
-      }[];
-      url: string;
-      source: "generated" | "existing";
-    }
-  | null;
+type StackResult = {
+  noteId: string | null;
+  topic: string | null;
+  summary: string | null;
+  cards: {
+    id?: string | null;
+    front: string;
+    back: string;
+    extra?: string | null;
+  }[];
+  url: string;
+  source: "generated" | "existing";
+} | null;
 
 export default function GeneralNotesTab() {
   const [stackResult, setStackResult] = useState<StackResult>(null);
@@ -51,16 +49,13 @@ export default function GeneralNotesTab() {
     null
   );
   const [isLoadingExisting, setIsLoadingExisting] = useState(true);
-  const [selectedSource, setSelectedSource] = useState<
-    | {
-        url: string;
-        title: string | null;
-        text: string;
-        html?: string | null;
-        markdown?: string | null;
-      }
-    | null
-  >(null);
+  const [selectedSource, setSelectedSource] = useState<{
+    url: string;
+    title: string | null;
+    text: string;
+    html?: string | null;
+    markdown?: string | null;
+  } | null>(null);
   const [isSelectingContent, setIsSelectingContent] = useState(false);
   const [isLoggingMarkdown, setIsLoggingMarkdown] = useState(false);
 
@@ -199,11 +194,14 @@ export default function GeneralNotesTab() {
         // Convert selected element HTML to markdown if not already converted
         try {
           const turndown = new TurndownService({
-            headingStyle: 'atx' // Use # for headings instead of underlines
+            headingStyle: "atx", // Use # for headings instead of underlines
           });
           payload = turndown.turndown(selectionToUse.html).trim();
         } catch (error) {
-          console.warn("[leetstack] Failed to convert selected HTML to markdown, falling back to text", error);
+          console.warn(
+            "[leetstack] Failed to convert selected HTML to markdown, falling back to text",
+            error
+          );
           payload = selectionToUse.text.trim();
         }
       } else {
@@ -212,11 +210,15 @@ export default function GeneralNotesTab() {
           const pageHtmlSnapshot = await captureActivePageHtml(tabId);
           if (pageHtmlSnapshot?.html) {
             // Extract only the body content
-            const bodyMatch = pageHtmlSnapshot.html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-            const bodyContent = bodyMatch ? bodyMatch[1] : pageHtmlSnapshot.html;
+            const bodyMatch = pageHtmlSnapshot.html.match(
+              /<body[^>]*>([\s\S]*?)<\/body>/i
+            );
+            const bodyContent = bodyMatch
+              ? bodyMatch[1]
+              : pageHtmlSnapshot.html;
 
             const turndown = new TurndownService({
-              headingStyle: 'atx' // Use # for headings instead of underlines
+              headingStyle: "atx", // Use # for headings instead of underlines
             });
             const pageMarkdown = turndown.turndown(bodyContent);
             payload = pageMarkdown.trim();
@@ -225,7 +227,10 @@ export default function GeneralNotesTab() {
             payload = (snapshot?.text ?? "").trim();
           }
         } catch (error) {
-          console.warn("[leetstack] Failed to convert page body HTML to markdown, using text content", error);
+          console.warn(
+            "[leetstack] Failed to convert page body HTML to markdown, using text content",
+            error
+          );
           payload = (snapshot?.text ?? "").trim();
         }
       }
@@ -276,7 +281,7 @@ export default function GeneralNotesTab() {
       if (selection.html) {
         try {
           const turndown = new TurndownService({
-            headingStyle: 'atx' // Use # for headings instead of underlines
+            headingStyle: "atx", // Use # for headings instead of underlines
           });
           markdown = turndown.turndown(selection.html);
           console.log("[leetstack] Selected element markdown", {
@@ -330,7 +335,7 @@ export default function GeneralNotesTab() {
         throw new Error("Unable to read the page HTML. Refresh and try again.");
       }
       const turndown = new TurndownService({
-        headingStyle: 'atx' // Use # for headings instead of underlines
+        headingStyle: "atx", // Use # for headings instead of underlines
       });
       const markdown = turndown.turndown(snapshot.html);
       console.log("[leetstack] Page Markdown", {
@@ -366,7 +371,7 @@ export default function GeneralNotesTab() {
     while (attempts < MAX_ATTEMPTS) {
       const job = await createGeneralNoteJob({
         url,
-        payload,
+        content: payload,
         topic,
       });
       const polled = await pollJobUntilComplete(job.jobId);
@@ -411,14 +416,16 @@ export default function GeneralNotesTab() {
   const pollJobUntilComplete = async (
     jobId: string
   ): Promise<Awaited<ReturnType<typeof getGeneralNoteJob>>> => {
-    const POLL_INTERVAL_MS = 1500;
+    const POLL_INTERVAL_MS = 3000;
     while (true) {
       const status = await getGeneralNoteJob(jobId);
       if (status.status === "completed" && status.result) {
         return status;
       }
       if (status.status === "failed") {
-        throw new Error(status.errorMessage ?? "Failed to generate review cards");
+        throw new Error(
+          status.errorMessage ?? "Failed to generate review cards"
+        );
       }
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     }
@@ -706,8 +713,7 @@ export default function GeneralNotesTab() {
             </p>
             <p className="mt-2 text-xs text-purple-700">
               Tip: load the page you want to study first. Use “Select element”
-              to capture a single section or run generation for the entire
-              page.
+              to capture a single section or run generation for the entire page.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -715,9 +721,7 @@ export default function GeneralNotesTab() {
             <button
               type="button"
               onClick={handleSelectElement}
-              disabled={
-                isSelectingContent || isLoadingExisting || isGenerating
-              }
+              disabled={isSelectingContent || isLoadingExisting || isGenerating}
               className="ml-auto inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSelectingContent ? "Click on the page..." : "Select element"}

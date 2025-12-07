@@ -1,5 +1,11 @@
 import config from "@/config";
 import { supabase } from "@/lib/supabaseClient";
+// Import shared types
+import type {
+  GeneralNoteJobStatusResponse,
+  CreateGeneralNoteJobRequest,
+  CreateGeneralNoteJobResponse,
+} from "../../../shared-types/TaskStatus";
 
 async function getAuthHeader(): Promise<string | null> {
   try {
@@ -165,6 +171,16 @@ export async function saveUserDsaQuestion(
   throw new Error(message);
 }
 
+// Re-export shared types for convenience
+export type {
+  GeneralNoteJobStatus,
+  GeneralNoteJobStatusResponse,
+  UserNoteCardRecord,
+  CreateGeneralNoteJobRequest,
+  CreateGeneralNoteJobResponse,
+} from "../../../shared-types/TaskStatus";
+
+// Local types that extend or adapt shared types
 export interface FlashCardPayload {
   id?: string | null;
   front: string;
@@ -177,62 +193,6 @@ export interface AddGeneralNoteCardRequest extends FlashCardPayload {
   insertAfterCardId?: string | null;
 }
 
-export interface GenerateGeneralNoteRequest {
-  url: string;
-  payload: string;
-  topic?: string | null;
-  requirements?: string | null;
-}
-
-export interface GenerateGeneralNoteResponse {
-  noteId: string | null;
-  url: string;
-  topic: string | null;
-  summary: string | null;
-  cards: FlashCardPayload[];
-  createdAt?: string;
-  lastReviewedAt?: string | null;
-  lastReviewStatus?: string | null;
-  newCards: number;
-  totalCards: number;
-}
-
-export interface CreateGeneralNoteJobRequest {
-  url: string;
-  payload: string;
-  topic?: string | null;
-  requirements?: string | null;
-}
-
-export interface CreateGeneralNoteJobResponse {
-  jobId: string;
-}
-
-export type GeneralNoteJobStatus =
-  | "pending"
-  | "processing"
-  | "completed"
-  | "failed";
-
-export interface GeneralNoteJobResult {
-  noteId: string | null;
-  topic: string | null;
-  summary: string | null;
-  cards: FlashCardPayload[];
-  newCards?: number;
-}
-
-export interface GeneralNoteJobStatusResponse {
-  jobId: string;
-  status: GeneralNoteJobStatus;
-  url: string;
-  topic: string | null;
-  requirements: string | null;
-  createdAt: string;
-  updatedAt: string;
-  errorMessage: string | null;
-  result?: GeneralNoteJobResult;
-}
 
 export interface GeneralNoteNoteResponse {
   noteId: string;
@@ -251,30 +211,6 @@ export interface UpdateGeneralNoteCardsResponse {
   card?: FlashCardPayload;
 }
 
-export async function generateGeneralNoteStack(
-  payload: GenerateGeneralNoteRequest
-): Promise<GenerateGeneralNoteResponse> {
-  const response = await request("/api/ai/general-note/anki-stack", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-
-  if (response.ok) {
-    return (await response.json()) as GenerateGeneralNoteResponse;
-  }
-
-  let message = "Failed to generate flashcards";
-  try {
-    const body = await response.json();
-    if (body && typeof body.message === "string") {
-      message = body.message;
-    }
-  } catch (error) {
-    console.warn("[leetstack] Unable to parse generation error", error);
-  }
-
-  throw new Error(message);
-}
 
 export async function createGeneralNoteJob(
   payload: CreateGeneralNoteJobRequest

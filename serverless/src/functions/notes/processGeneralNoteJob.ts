@@ -94,6 +94,7 @@ async function processJob({ jobId }: ProcessorInput) {
         sourceUrl: jobRecord.url,
         noteId: null,
         cards: [],
+        topic: jobRecord.topic,
       };
     }
 
@@ -251,7 +252,8 @@ async function persistNewNoteWithFlashCards({
     userId: jobRecord.userId,
     noteId: crypto.randomUUID(),
     sourceUrl: jobRecord.url,
-    topic: noteToProcess.topic,
+    // Use topic from jobRecord first, then fall back to noteToProcess
+    topic: jobRecord.topic ?? noteToProcess.topic,
     summary: noteToProcess.summary ?? undefined,
     cards: newCards,
     createdAt: now,
