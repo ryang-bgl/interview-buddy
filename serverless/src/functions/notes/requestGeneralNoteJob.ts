@@ -14,7 +14,7 @@ import {
 } from "../../shared/supabaseAuth";
 
 const jobsTableName = process.env.GENERAL_NOTE_JOBS_TABLE_NAME;
-const maxContentLength = Number(process.env.GENERAL_NOTE_MAX_CONTENT ?? 8000);
+const maxContentLength = 100000;
 
 if (!jobsTableName) {
   throw new Error("GENERAL_NOTE_JOBS_TABLE_NAME env var must be set");

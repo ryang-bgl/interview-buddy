@@ -49,19 +49,13 @@ export interface UserNoteCardRecord {
 
 export interface UserNoteRecord {
   userId: string;
-  noteId: string;
+  noteId: string | null;
   sourceUrl: string;
   topic?: string;
   summary?: string;
-  requestPayload: {
-    url: string;
-    payload: string;
-    topic?: string | null;
-    requirements?: string | null;
-  };
   cards: UserNoteCardRecord[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
   lastReviewedAt?: string | null;
   lastReviewStatus?: "easy" | "good" | "hard" | null;
   reviewIntervalSeconds?: number;

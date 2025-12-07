@@ -1,0 +1,732 @@
+"![System Design Primer](/primer/feature-image.png)![](/search.svg)
+
+Introduction
+------------
+
+System design knowledge matters for two reasons. First, companies test it in interviews, especially at senior levels. Second, it separates competent engineers from exceptional ones. Writing code is table stakes. Designing robust, scalable systems requires deeper expertise.
+
+System design is a broad term. We need precision.
+
+What Is System Design?
+----------------------
+
+Google, Amazon, and Netflix serve billions of users while handling terabytes of data and traffic spikes. They remain fast, reliable, and secure. This requires carefully designed systems optimized for efficiency at massive scale.
+
+System design creates the blueprint for every successful application. It combines databases, APIs, caching layers, load balancers, and distributed queues into a coherent whole. These components must work together to deliver smooth user experiences.
+
+Technical decisions directly impact performance, scaling, and adaptability. A system must stay fast when traffic doubles overnight. It must tolerate faults so server crashes don't affect users. It must store and retrieve data quickly while managing costs. System design addresses these questions.
+
+At its core, system design solves problems at scale. Getting a feature working for one user is straightforward. Making it work for millions efficiently and reliably requires balancing competing priorities: speed versus cost, consistency versus availability, simplicity versus flexibility. The challenge lies in finding the right trade-offs for each specific use case.
+
+What Are System Design Interviews?
+----------------------------------
+
+Writing code becomes less central as careers progress. Companies need engineers who design systems that handle high traffic, make decisions balancing cost and performance, and lead technical discussions. System design interviews assess these capabilities.
+
+These interviews appear at mid-level and senior positions. They increasingly appear for new graduates as well. At these levels, engineers contribute to application architecture and make design choices affecting entire systems. Interviews simulate real-world scenarios involving scalability, fault tolerance, and performance.
+
+System design takes years to master. Real systems require thousands of hours of work. Demonstrating competence in 45 minutes presents a unique challenge. Candidates must know what to answer and how to answer it. Most fail several interviews before understanding expectations.
+
+This primer provides the framework. Learn the concepts. Master the interview process. Land the job.
+
+What System Design Interviews Test
+----------------------------------
+
+System design interviews test soft skills more than raw knowledge. Can you break down vague, open-ended problems into solvable parts? Do you understand how components interact? Can you design scalable, reliable, maintainable systems?
+
+Every design decision has trade-offs. Explain why you chose one approach over another. Communication matters as much as technical depth. Clear explanations are essential for collaborating with teams and stakeholders in real settings. System design rarely follows a straight path. Adjust your approach based on new constraints or feedback.
+
+Where to Start
+--------------
+
+This primer follows a logical progression. First, understand system design concepts. Then learn the interview framework.
+
+New to system design? Start with the [main components section](/primer#main-components).
+
+Familiar with components but need interview structure? Check the [step-by-step interview walkthrough](/primer#interview-step-by-step).
+
+Want core concepts quickly? Review [Understanding Core Design Challenges](/primer#core-design-challenges) and [How to Scale a System](/primer#designing-for-scale).
+
+Interviewing tomorrow? See the [System Design Master Template](/primer#master-template) for the pattern that solves most problems.
+
+Main Components
+---------------
+
+Common system design problems have been solved. Engineers developed reusable tools called components. These fit into most systems.
+
+System design interviews test your ability to assemble components correctly. Learn how each technology works and when to use it. That's the game.
+
+Each component section follows this structure: first, the problem it solves and when to use it. Second, how it works technically. Third, common implementations with trade-offs.
+
+Microservices
+-------------
+
+### The Problem
+
+Services contain application code and business logic. You can structure applications as monoliths or microservices. Large-scale systems benefit from microservices.
+
+Monolithic architecture puts all functionality in one codebase running as a single process. This works for small applications but breaks at scale. Any change requires redeploying everything. A bug in one component crashes the whole system. The codebase grows harder to understand. Different components can't scale independently.
+
+Microservices break applications into smaller, independent services handling specific business functions. An e-commerce system might split into product catalog, shopping cart, user authentication, order processing, and payment processing services.
+
+![Microservices Architecture](/concepts/microservices/microservices.png)![](/search.svg)
+
+### How Microservices Work
+
+Each service runs as its own process and deploys independently. Services communicate through well-defined APIs, typically REST or gRPC. Each service manages its own database, preventing direct coupling. Services scale independently based on specific load requirements.
+
+You should explain service discovery (how services find each other), data consistency across services, and fault isolation (containing failures to prevent cascading).
+
+### Common Implementations
+
+Spring Boot is popular for Java microservices. It provides built-in support for REST APIs and service discovery with an extensive ecosystem. Use it for Java-based microservices requiring robust enterprise features.
+
+Node.js with Express offers lightweight, fast development with a large npm package ecosystem. Use it for JavaScript or TypeScript microservices needing quick iteration.
+
+Go with Gin delivers excellent performance and built-in concurrency support. Use it for microservices requiring high throughput and low latency.
+
+Relational Databases
+--------------------
+
+### The Problem
+
+Most applications handle structured data that must stay accurate and interrelated. Relational databases organize data into tables resembling spreadsheets. Each table contains rows (records) and columns (fields). Relationships link different pieces of data together. An e-commerce system might have one table for customers, another for orders, with relationships tracking who bought what.
+
+![Basic Structure Example](/fundamentals/sql-database/basic-structure-example.png)![](/search.svg)
+
+Choose relational databases when data must stay consistent. Financial transactions, user profiles, and inventory levels require accuracy. Relational databases ensure data integrity through constraints like primary and foreign keys. SQL allows powerful filtering, joining, and analysis. ACID properties (Atomic, Consistent, Isolated, Durable) guarantee transaction correctness. Use relational databases when consistency matters.
+
+### How Relational Databases Work
+
+Data organizes into tables. Relationships between tables are defined through keys. Tables are basic building blocks representing entities like Users or Orders. Columns define data types (name, email, order\\_date). Rows hold actual data.
+
+Primary keys uniquely identify each row. Every user has a unique user\\_id. Foreign keys reference primary keys in other tables, creating relationships. An order\\_id in Orders might reference user\\_id in Users.
+
+Three relationship types exist: one-to-one (each record in Table A links to exactly one in Table B, like user profiles and settings), one-to-many (one record in Table A links to many in Table B, like users and orders), and many-to-many (many records in both tables link together through a junction table, like students and classes).
+
+Interviews may ask about entity relationships and schemas, including tables and keys. For depth, see [relational database fundamentals](/fundamentals/sql-database) and [database partitioning](/fundamentals/database-partitioning).
+
+### Common Implementations
+
+PostgreSQL is an open-source database known for robustness and advanced features. It supports complex queries and custom extensions. It excels at analytical workloads alongside traditional transactional uses. Use it for projects needing flexibility, reliability, and open-source licensing.
+
+MySQL is another widely-used open-source database. It runs fast and efficiently for read-heavy workloads with strong hosting platform support. Use it for reliable, easy-to-deploy databases.
+
+SQLite is a lightweight, serverless database not typically used for large-scale applications. It embeds directly into applications with zero setup as a single file. Use it for mobile apps, small projects, or prototypes where simplicity matters.
+
+NoSQL Databases
+---------------
+
+### The Problem
+
+Not all data fits neatly into spreadsheet-like rows. Messy, dynamic data doesn't fit well into relational table structures. NoSQL databases handle unstructured or semi-structured data and scale horizontally for massive volumes.
+
+Social media platforms demonstrate this need. Users post photos, write comments, add hashtags, and store metadata like geolocations and device types. Forcing this varied data into rigid tables creates problems. NoSQL databases provide flexibility without predefined schemas.
+
+Use NoSQL when schemas change frequently or remain unknown ahead of time. Use it when massive traffic and data volumes require handling. Use it when complex relationships between data aren't needed.
+
+Justify NoSQL over relational databases by explaining the trade-off. NoSQL sacrifices strict structure and complex querying for flexibility and scalability. Many NoSQL databases distribute by design, handling massive datasets and high traffic by spreading load across servers. See [NoSQL fundamentals](/fundamentals/nosql-database) and [distributed database concepts](/fundamentals/distributed-database-cap-and-pacelc-theorem).
+
+### How NoSQL Databases Work
+
+NoSQL has multiple categories based on storage and organization methods.
+
+**Key-value stores** are the simplest form. Data stores as key-value pairs like a dictionary. The key `user_123` might map to `{\"name\": \"John Doe\", \"email\": \"john@example.com\"}`. This easily maps attributes without table structures. Use key-value stores for caching, session management, or user preferences.
+
+**Document databases** store data in documents, typically JSON format. Each document contains key-value pairs and can nest data, making it flexible and self-contained. A user profile might look like:
+
+    {
+      \"user_id\": \"123\",
+      \"name\": \"John Doe\",
+      \"email\": \"john@example.com\",
+      \"posts\": [
+        {\"post_id\": \"1\", \"content\": \"Hello World!\"},
+        {\"post_id\": \"2\", \"content\": \"I love SystemDesignSchool!\"}
+      ]
+    }
+    
+
+Use document databases for content management, user profiles, or applications with dynamic, hierarchical data.
+
+**Column-family stores** use rows and columns but group columns into families. This design optimizes querying large datasets. A user analytics table might store one row per user with hundreds of metric columns. Use column-family stores for time-series data, logs, or analytics.
+
+**Graph databases** represent data as nodes (entities) and edges (relationships). This models highly interconnected data. Social networks store users as nodes and friendships as edges. Use graph databases for social networks, recommendation systems, or fraud detection.
+
+### Common Implementations
+
+MongoDB is a popular document-based database. It offers flexible schemas (add or remove fields without downtime) and rich querying (filter, sort, aggregate easily). Use it for apps with dynamic data structures like e-commerce and social media.
+
+Redis is an in-memory key-value store designed for speed. It processes data with microsecond latency and supports advanced data structures (lists, sets, sorted sets). Use it for caching, session storage, and real-time leaderboards.
+
+Apache Cassandra is a distributed column-family database optimized for high availability and scalability. It has no single point of failure and handles massive datasets efficiently. Use it for high write-throughput applications like logs or large-scale analytics.
+
+Amazon DynamoDB is a fully managed, serverless NoSQL database from AWS. It auto-scales throughput to match traffic demand and provides low-latency performance. Use it for serverless architectures or apps with unpredictable traffic like e-commerce during sales.
+
+Object Storage
+--------------
+
+### The Problem
+
+Applications generate large amounts of unstructured data: images, videos, backups, logs. Traditional storage solutions like file systems or databases struggle with the scalability and flexibility needed for massive datasets. Object storage solves this.
+
+![Object Storage Systems](/fundamentals/blob-object-storage/object-storage-system.png)![](/search.svg)
+
+Object storage organizes data as objects rather than files or blocks. Each object includes the data itself (image or video), metadata (size, content type, access permissions), and a unique identifier (globally unique key for retrieval).
+
+This design makes object storage highly scalable, cost-effective, and ideal for unstructured data. Unlike hierarchical file systems, object storage is flat with no directories. Store and retrieve objects using unique keys.
+
+Use object storage for static asset hosting (websites serving images, videos, documents), backups and archives (long-term storage without frequent updates), and big data and analytics (storing large datasets for machine learning).
+
+### How Object Storage Works
+
+Each file stores as an object including binary data, descriptive metadata, and a unique key. There are no folders or hierarchies. Objects live in buckets or containers accessed using unique keys.
+
+Object storage systems use RESTful APIs for storing, retrieving, or deleting objects. The systems scale horizontally by adding servers and distributing objects automatically. They handle massive data volumes.
+
+Data replicates across multiple servers or regions, ensuring high durability even when nodes fail. Object storage sacrifices low-latency operations (like databases or file systems) for scalability and cost-efficiency. It's perfect for data not requiring frequent updates.
+
+Interviews may ask about versioning (keeping multiple versions to protect against deletions or overwrites), lifecycle policies (automatically transitioning objects to cheaper storage tiers based on age or access patterns), and consistency models (eventual versus strong consistency).
+
+### Common Implementations
+
+Amazon S3 (Simple Storage Service) is scalable, secure, and durable object storage from AWS. It's the most widely used object storage in the industry.
+
+Google Cloud Storage is flexible, fully managed object storage from Google Cloud.
+
+Azure Blob Storage is Microsoft's object storage solution in Azure.
+
+These implementations offer similar features. Choosing between them depends on developer familiarity more than technical differences.
+
+Cache
+-----
+
+### The Problem
+
+Fetching data from databases takes time and compute resources. Each request might only take milliseconds, but at scale with millions of users, this creates significant problems: high latency (slow responses frustrate users), reduced availability (request floods overwhelm databases leading to downtime), and poor efficiency (repeatedly fetching identical data wastes compute resources).
+
+Many systems are high-read, low-write. Users spend most time reading content, rarely creating it. Social media users read posts far more than they write them. E-commerce platforms show products millions of times but rarely update product details.
+
+Constantly fetching unchanged data from databases is redundant. Why travel to the database every time when we can store data closer after the first fetch?
+
+Caches solve this.
+
+### How Caches Work
+
+A request arrives. Before hitting the database or API, the system checks the cache. If data exists in the cache (cache hit), it serves immediately without bothering the database. If data doesn't exist (cache miss), the system fetches from the database as usual, then saves a copy in the cache for next time.
+
+![cache-aside](/concepts/caching/cache-aside.png)![](/search.svg)
+
+Keeping frequently-used data close at hand reduces response time and lessens backend load. This improves latency, boosts availability, and optimizes efficiency, making apps more scalable and responsive.
+
+Interviews expect you to explain eviction policies (rules determining which data to remove when cache reaches capacity). Least Recently Used (LRU) removes least recently used items first. First In First Out (FIFO) removes items in order added. Least Frequently Used (LFU) removes least frequently used items first.
+
+Invalidation strategies determine how cached data is marked stale or removed to maintain consistency with source data. Time-To-Live (TTL) removes data after preset expiration. Event-Based Invalidation clears or updates cache when underlying data changes. Manual Invalidation explicitly removes or refreshes cache entries.
+
+Write strategies determine how data writes to cache. Write-Through writes to cache and database simultaneously, keeping them synchronized. Write-Behind writes to cache first, then asynchronously to database, improving write performance. Write-Around writes directly to database, adding to cache only when read, reducing cache pollution for infrequently accessed data.
+
+### Common Implementations
+
+**In-memory versus disk-based caches** differ by storage location.
+
+In-memory caches store data in RAM, providing extremely fast access with low latency (microseconds to milliseconds). Storage is volatile: data is lost on restart unless persistence is enabled. Use in-memory caches for real-time applications requiring high-speed access like session management, leaderboards, or frequent database queries. Examples: Redis, Memcached.
+
+Disk-based caches store data on persistent storage like hard drives or SSDs. Data persists through restarts, ideal for long-term cacheable data storage. They're slower than in-memory caches due to disk I/O latency. Use disk-based caches for large datasets or static assets where persistence matters more than speed. Examples: Varnish Cache, browser caches.
+
+**Client-side versus server-side caches** differ by location in architecture.
+
+Client-side caches store data on user devices (browsers or apps). They reduce server communication by caching locally and are specific to individual users, enabling faster responses for repeated requests. Use client-side caches for static assets (images, CSS, JavaScript) or user-specific data in offline-capable applications. Examples: Browser Cache, LocalStorage, IndexedDB.
+
+Server-side caches store data on or near servers, shared across all users and requests. They reduce load on backend systems like databases and APIs and optimize performance for high-traffic applications serving shared data quickly. Use server-side caches for frequently accessed data consistent across users like API responses, product pages, or popular posts. Examples: Redis, CDNs, NGINX Cache.
+
+CDN (Content Delivery Network)
+------------------------------
+
+### The Problem
+
+Some websites load almost instantly despite heavy images, videos, or assets. CDNs make this possible. A CDN is a distributed network of servers delivering content quickly and efficiently by storing cached copies of static assets closer to users' locations.
+
+![cdn](/fundamentals/caching/with-cdn.png)![](/search.svg)
+
+CDNs solve high latency (users far from servers experience delays as requests and responses travel), bandwidth overload (traffic surges overwhelm origin servers causing slowdowns or crashes), and global scalability (hosting assets in one location makes serving worldwide users difficult without performance issues).
+
+Static assets like images, videos, JavaScript files, and API responses cache across multiple global servers. Users get content from physically closer servers. This reduces latency, distributes traffic evenly, and prevents origin server overload.
+
+### How CDNs Work
+
+When you deploy your app, static files (images, CSS, videos) upload to your CDN provider. The CDN copies files to edge servers located globally.
+
+When a user visits your site, their request routes to the nearest CDN server. If the requested file is cached there (cache hit), the server delivers it immediately. If not cached (cache miss), the CDN fetches it from the origin server, caches it locally, then serves it to the user.
+
+CDNs use caching policies like TTL to determine how long files store before refreshing from the origin server.
+
+### Common Implementations
+
+Cloudflare is popular for ease of use and strong security. It offers a global network with low latency, built-in DDoS protection and Web Application Firewall. Use it for web applications needing speed and security with minimal configuration.
+
+AWS CloudFront is Amazon's fully managed CDN integrated with AWS services. It provides seamless integration with AWS storage (S3) and compute (Lambda) and supports dynamic and static content delivery. Use it for applications already hosted in AWS or requiring custom edge logic.
+
+Akamai is one of the oldest and most robust CDNs, typically used by enterprises. It offers an industry-leading global server network for ultra-low latency and advanced customization and analytics tools. Use it for enterprise applications with high traffic and advanced delivery requirements.
+
+Message Queues
+--------------
+
+### The Problem
+
+Distributed systems need reliable communication between services while sending and processing large task or data volumes. Directly connecting services creates tight coupling (services become dependent, making systems harder to scale or modify), overloading (one service generating more tasks than another can handle leads to failures or bottlenecks), and task management issues (without tracking, it's easy to lose or duplicate data when services crash or restart).
+
+An e-commerce system demonstrates this. The order service must notify inventory, payment, and shipping services. If all interactions happen directly, any failure or delay breaks the entire system.
+
+Message queues solve these problems by acting as intermediaries. Services send messages without worrying whether receiving services are ready to process them. This makes systems more reliable, decoupled, and scalable.
+
+![producer-and-consumers-in-message-queue](/concepts/message-queue-overview/producer-and-consumers-in-message-queue.png)![](/search.svg)
+
+### How Message Queues Work
+
+Producers send messages (tasks or data) to the queue. A producer could be any service generating work, like an order service in e-commerce.
+
+The queue temporarily stores messages until processed. Messages store in arrival order.
+
+Consumers retrieve messages from the queue and process them. A payment service might consume a message about a new order to initiate payment.
+
+This pattern works because it decouples producers and consumers. Producers don't wait for consumers to process tasks. They send messages and move on. Consumers process messages at their own pace, making systems more resilient to load spikes or partial failures.
+
+Interviews expect you to explain acknowledgements (consumers send acknowledgment after successfully processing messages; without acknowledgment, messages can be re-delivered ensuring reliability), dead letter queues (messages failing repeated processing send to separate queues for debugging or manual handling), and message ordering (some queues ensure FIFO delivery while others allow out-of-order processing for higher throughput).
+
+### Common Implementations
+
+**Point-to-Point (P2P)** queues have a single consumer processing each message. Use for processing user orders in e-commerce. Tools: RabbitMQ, AWS SQS.
+
+**Publisher-Subscriber (Pub/Sub)** queues allow multiple consumers to subscribe to topics and receive messages. Use for sending order updates to inventory, payment, and shipping services simultaneously. Tools: Apache Kafka, Google Pub/Sub.
+
+RabbitMQ is a widely-used message broker supporting both P2P and Pub/Sub models. Use it for traditional queueing with complex routing and acknowledgment features.
+
+Apache Kafka is a distributed event streaming platform designed for high-throughput use cases. Use it for Pub/Sub scenarios and real-time analytics.
+
+AWS SQS (Simple Queue Service) is a fully managed, scalable message queue service. Use it for cloud-based systems needing P2P messaging with minimal setup.
+
+API Gateway
+-----------
+
+### The Problem
+
+Managing how clients interact with backends becomes critical in distributed systems using microservices. APIs bridge clients (web browsers, mobile apps) to backend services. Exposing dozens or hundreds of microservices directly to clients creates inconsistent interfaces (different services have varying API standards making seamless client interaction difficult), increased latency (clients make multiple calls to different services slowing responses), security concerns (exposing all services directly increases attack surface making consistent security enforcement harder), and traffic spikes (sudden request influxes overwhelm backend services causing potential downtime).
+
+API Gateways solve these issues by acting as single entry points for all API requests. They route requests to appropriate services, handle cross-cutting concerns like authentication, and optimize performance with caching and rate limiting. Think of them as traffic cops directing and controlling request flow.
+
+### How API Gateways Work
+
+Clients send API requests to the gateway instead of directly to backend services. The gateway inspects requests and determines which backend service to forward them to.
+
+While processing requests, the gateway performs authentication (ensures requests come from valid users or systems), rate limiting (caps request numbers in specific timeframes protecting backend services), caching (serves frequent requests from cache instead of hitting backend services reducing latency), and logging and monitoring (tracks request details for debugging or usage analytics).
+
+For some use cases, the gateway fetches data from multiple backend services and combines responses into single payloads for clients.
+
+API Gateways simplify client-backend interactions while centralizing security, traffic control, and monitoring management, making systems easier to scale and maintain.
+
+Interviews may ask about authentication and authorization (how gateways handle tokens like OAuth or JWT ensuring secure access), rate limiting (preventing abuse or overload by capping request rates), and load balancing (distributing incoming requests across multiple instances optimizing performance and reliability).
+
+### Common Implementations
+
+AWS API Gateway is a fully managed gateway from AWS. It integrates seamlessly with AWS services like Lambda and DynamoDB with built-in support for caching, authorization, and throttling. Use it for serverless or cloud-native architectures requiring minimal setup.
+
+Kong Gateway is an open-source, extensible gateway. It offers plugin architecture for custom features and high-performance routing and load balancing. Use it when flexibility and open-source tooling are needed.
+
+NGINX API Gateway is lightweight and high-performance based on NGINX. It combines API gateway functionality with reverse proxy and load balancing. Use it for high-throughput, low-latency applications requiring minimal overhead.
+
+Interview Step-by-Step
+----------------------
+
+Success in system design interviews requires structured approaches. This section demonstrates the process by solving Design Twitter, a popular system design problem.
+
+Functional Requirements
+-----------------------
+
+Defining core functional requirements is the first step. This stage takes only a few minutes.
+
+Think of requirements as \"Users can do...\". For Spotify, users can listen to songs, make playlists, and upload their own songs. These are core functional requirements.
+
+Interviews last 45-60 minutes. Cover core or most important actions users can take. Don't try covering every single requirement.
+
+For Twitter, users can post tweets, view individual tweets, view feeds, follow other users, like tweets, and comment on tweets.
+
+Non-Functional Requirements
+---------------------------
+
+After defining functional requirements, define non-functional requirements. This stage also takes a few minutes.
+
+Functional requirements outline what users can do. Non-functional requirements outline what systems should do or have to support functional requirements.
+
+Common considerations include performance (response speed, acceptable latency thresholds), availability (system accessibility, uptime through redundancy and monitoring), scalability (handling increasing users, data, or traffic without performance degradation through vertical or horizontal scaling), reliability (handling failures through fault tolerance), consistency (data accuracy across all users and operations), durability (safe data storage preventing loss from hardware failures or power outages), and security (protection against unauthorized access or attacks).
+
+For Twitter, we need low latency (users post tweets and view feeds quickly for smooth experiences), high availability (maintain near 100% uptime ensuring platform accessibility), scalability (support horizontal scaling handling user base growth and increased traffic), and data durability (store tweets, likes, and comments in distributed, fault-tolerant systems preventing data loss).
+
+API Design
+----------
+
+After defining requirements, design APIs. This stage takes a few minutes.
+
+Many people overcomplicate this. Turn functional requirements into API endpoints. One endpoint per functional requirement.
+
+Interviewers look for readable paths (easily understandable names like /tweet not /item), data types (know what data sends and receives with each API), and HTTP methods (POST for creating, GET for fetching).
+
+For Twitter:
+
+Users post tweets:
+
+    POST /tweet
+    Request
+    {
+      \"user_id\": \"string\",
+      \"content\": \"string\"
+    }
+    Response
+    {
+      \"tweet_id\": \"string\",
+      \"status\": \"string\"
+    }
+    
+
+Users view individual tweets:
+
+    GET /tweet/<id>
+    Response
+    {
+      \"tweet_id\": \"string\",
+      \"user_id\": \"string\",
+      \"content\": \"string\",
+      \"likes\": \"integer\",
+      \"comments\": \"integer\"
+    }
+    
+
+Users view feeds:
+
+    GET /feed
+    Response
+    [
+      {
+        \"tweet_id\": \"string\",
+        \"user_id\": \"string\",
+        \"content\": \"string\",
+        \"likes\": \"integer\",
+        \"comments\": \"integer\"
+      }
+    ]
+    
+
+Users follow other users:
+
+    POST /follow
+    Request
+    {
+      \"follower_id\": \"string\",
+      \"followee_id\": \"string\"
+    }
+    Response
+    {
+      \"status\": \"string\"
+    }
+    
+
+Users like tweets:
+
+    POST /tweet/like
+    Request
+    {
+      \"tweet_id\": \"string\",
+      \"user_id\": \"string\"
+    }
+    Response
+    {
+      \"status\": \"string\"
+    }
+    
+
+Users comment on tweets:
+
+    POST /tweet/comment
+    Request
+    {
+      \"tweet_id\": \"string\",
+      \"user_id\": \"string\",
+      \"comment\": \"string\"
+    }
+    Response
+    {
+      \"comment_id\": \"string\",
+      \"status\": \"string\"
+    }
+    
+
+High-Level Design
+-----------------
+
+High-level design is the bulk of the interview. Combine work from earlier parts with system design knowledge. This takes around 15-20 minutes but varies by level. Juniors spend more time here. Seniors move to deep dives more quickly.
+
+Start by addressing functional requirements in the most basic way possible. After having a feasible solution, address non-functional requirements by making it more robust.
+
+### Functional Requirements
+
+Take API endpoints and map data flow with services. Show methodical, structured thinking. Start simple without complicated parts. This way, if you make mistakes, interviewers can correct them early.
+
+For microservices approaches, see [Microservices and Monolithic Architecture](/fundamentals/microservices).
+
+For Twitter:
+
+Users post tweets: ![High-Level Design Diagram 1](/primer-high-level-design/hld1.jpeg)![](/search.svg)
+
+Users view individual tweets: ![High-Level Design Diagram 2](/primer-high-level-design/hld2.jpeg)![](/search.svg)
+
+Users follow other users: ![High-Level Design Diagram 3](/primer-high-level-design/hld3.jpeg)![](/search.svg)
+
+Users view feeds: ![High-Level Design Diagram 4](/primer-high-level-design/hld4.jpeg)![](/search.svg)
+
+Users like tweets: ![High-Level Design Diagram 5](/primer-high-level-design/hld5.jpeg)![](/search.svg)
+
+Users comment on tweets: ![High-Level Design Diagram 6](/primer-high-level-design/hld6.jpeg)![](/search.svg)
+
+This creates many services. Even though separation of concerns matters, avoid turning everything into microservices. Consider combining services. Likes and comments are logically similar. Both are ways of engaging with tweets. Both are types of counters on tweets with different data. This similarity suggests merging them into a single Engagement Service and Engagement Database.
+
+![High-Level Design Diagram 7](/primer-high-level-design/hld7.jpeg)![](/search.svg)
+
+With multiple services, add an API gateway (see Main Components section above).
+
+![High-Level Design Diagram 8](/primer-high-level-design/hld8.jpeg)![](/search.svg)
+
+### Non-Functional Requirements
+
+We now have a structured system feasible for solving functional requirements. However, this system has significant challenges at scale and doesn't show advanced system design knowledge. Build for non-functional requirements.
+
+Address each non-functional requirement one at a time. The biggest candidate mistake is not tying recommendations back to earlier non-functional requirements.
+
+Start with **scalability**. This is relatively straightforward to address. Our goal is supporting horizontal scaling to handle user base growth and increased traffic seamlessly. Horizontal scaling adds more service instances to handle higher loads, ensuring consistent performance as demand increases.
+
+![High-Level Design Diagram 9](/primer-high-level-design/hld9.jpeg)![](/search.svg)
+
+Deploy multiple instances of each service: Tweet Service, Feed Service, Follow Service, and Engagement Service. These instances operate independently, handling requests in parallel. To distribute traffic efficiently across instances, add a load balancer.
+
+![High-Level Design Diagram 10](/primer-high-level-design/hld10.jpeg)![](/search.svg)
+
+A load balancer ensures incoming requests distribute evenly across available service instances. It performs health checks monitoring each instance's status and reroutes traffic away from unhealthy instances, ensuring high availability. This addresses another non-functional requirement and is a bonus from the load balancer. Scale each service dynamically based on traffic patterns. During peak hours, spin up more Feed Service instances to handle request surges, then scale back during lower activity to optimize resource usage.
+
+Move to another core non-functional requirement: low latency. With few users posting tweets, servers run fast. Each user's feed fetches a handful of tweets. As we scale to millions of users and billions of tweets, accessing the database for every feed request becomes exponentially slow. Users writing tweets to the database, then feeds re-pulling these from the database each time is redundant.
+
+Caches solve this.
+
+![High-Level Design Diagram 14](/primer-high-level-design/hld14.jpeg)![](/search.svg)
+
+A cache is high-speed data storage storing frequently accessed data closer to applications. The Feed Service could leverage distributed caching like Redis or Memcached to store recent tweets for each user.
+
+When users post tweets, the Feed Service doesn't just update followers' feeds in the database. It also pushes new tweets to cache, storing them as part of precomputed feeds for followers. When followers log in, the Feed Service fetches feed data directly from cache instead of querying the database or relying on real-time aggregation.
+
+Caches are ideal for storing hot data: data accessed frequently, like latest tweets for user feeds. Since caches operate in memory, they deliver data in milliseconds, reducing response times and improving user experiences.
+
+By offloading repeated reads to cache, we reduce database load. This makes systems more scalable and ensures databases are available for other critical write operations.
+
+To ensure cache stays fresh, set expiry times for cached items or use event-driven update models. When new tweets post, events trigger cache updates, ensuring followers see latest tweets without delays.
+
+When adding load balancers earlier, we touched on how health checks help maintain high availability. But what else maintains **high availability**? Consider a situation where we might not have availability with the current system. A user posts a tweet at 1:02pm. At 1:03pm, the tweet service goes down. At 1:04pm, their followers log onto the app. Are followers going to see this tweet in their feed? No. Another scenario: millions of active users publish tweets simultaneously. Trying to process them all simultaneously would overload servers. Message queues solve this.
+
+![High-Level Design Diagram 15](/primer-high-level-design/hld15.jpeg)![](/search.svg)
+
+A message queue acts as a buffer between services, decoupling dependencies and ensuring messages (like new tweets) aren't lost even if services experience downtime. When users post tweets, the Tweet Service doesn't directly communicate with the Feed Service. Instead, it places tweets in a queue. Consumers process the queue and add to both database and cache. The Feed Service, which processes tweets to update user feeds, reads from this cache. Even if the Tweet Service goes offline, messages (tweets) are safely stored in the queue and processed by consumers. The Feed Service can still update followers' feeds when they log in.
+
+Incorporating message queues ensures eventual consistency and high availability during partial system failures. In our scenario, followers would still see tweets in feeds thanks to queues ensuring no message loss. Decoupling services also helps scalability. Queues handle varying workloads and traffic spikes without overwhelming downstream services. Message queues like RabbitMQ, Kafka, or AWS SQS are built for durability and reliability, making them perfect for our use case.
+
+We've addressed service non-functional requirements. One last critical requirement remains: data durability. In systems handling billions of tweets, likes, and follows, ensuring data is never lost is essential. Once lost, we cannot recover it. How do we prevent this? Use distributed databases.
+
+![High-Level Design Diagram 16](/primer-high-level-design/hld16.jpeg)![](/search.svg)
+
+Distributed databases replicate and store data across multiple cluster nodes. Distributed databases like Amazon DynamoDB, Google Cloud Spanner, or Cassandra automatically replicate data across multiple nodes. Even if one node goes down, data remains accessible from other replicas. Additionally, distributed databases provide built-in mechanisms for point-in-time recovery and automated backups. Regular snapshots of Tweet DB, Follow DB, and Engagement DB can be taken and stored in separate backup systems. If complete failure occurs, data can be restored to its last consistent state.
+
+Deep Dives
+----------
+
+Deep dives are the last step of system design interviews. They focus on addressing higher-level, more specific challenges or edge cases in your system. They go beyond high-level architecture to test understanding of advanced features, domain-specific scenarios, and trade-offs.
+
+### How would you handle the Celebrity Problem?
+
+The celebrity problem arises when users with millions of followers post tweets, creating massive fan-out as their tweets need adding to millions of follower feeds. This can overwhelm systems leading to latency and high write amplification.
+
+Modify existing architecture to handle this efficiently. For normal users with manageable follower numbers, continue with standard fan-out-on-write. Tweets push to followers' feeds as soon as posted.
+
+For users with large follower counts (more than 10,000), switch to fan-out-on-read. Celebrity tweets store in Tweet Database and Tweet Cache but aren't precomputed into individual follower feeds. When followers open feeds, the Feed Service dynamically fetches celebrity latest tweets from cache or database and merges them into user timelines.
+
+Implement thresholds (follower count or engagement volume) to dynamically decide between fan-out-on-write or fan-out-on-read for given users.
+
+### How would you efficiently support Trends and Hashtags?
+
+Twitter trends and hashtags involve aggregating data across billions of tweets in real-time to identify popular topics. How can we compute and update trends efficiently?
+
+Enhance existing architecture. Each region or data center computes local trends by aggregating hashtags and keywords using sliding window algorithms (the past 15 minutes). Local results send to global aggregation services, which combine them to generate global trends.
+
+Modify the Tweet Service to index hashtags upon tweet creation. Maintain inverted indexes where hashtags are keys and associated tweet IDs are values. Use distributed search engines like Elasticsearch or Solr to store and query hashtag indexes efficiently.
+
+Trends calculate periodically (every minute) and cache in distributed caches like Redis for low-latency access. TTL (time-to-live) ensures trends refresh frequently without overwhelming systems.
+
+### How would you handle Tweet Search at Scale?
+
+Search is a core Twitter feature, allowing users to search tweets, hashtags, and profiles. How can we support scalable, real-time search systems?
+
+Incorporate distributed search architecture. Modify the Tweet Service to send newly created tweets to search indexing services via message queues. Indexing services process tweets and update search indexes in distributed search engines like Elasticsearch or Apache Solr.
+
+Partition search indexes by time (daily indices) or hashtags to distribute load across multiple nodes. Older indices can store on slower storage systems to save costs while keeping recent indices on faster nodes.
+
+Use inverted indexing for efficient keyword and hashtag search. Employ ranking algorithms (BM25 or ML-based) to surface most relevant tweets based on user engagement, recency, or other factors.
+
+Cache popular search queries and results to reduce load on search engines.
+
+Core Design Challenges
+----------------------
+
+Now that we understand how to solve system design problems, examine the most common challenges. Like solutions assembled from reusable building blocks, these challenges have repeatable patterns.
+
+### Challenge 1: Too Many Concurrent Users
+
+Large user bases introduce many problems. The most common and intuitive is that single machines or databases have RPS/QPS limits. In all single-server demo apps from web dev tutorials, server performance degenerates fast once limits are exceeded.
+
+The solution is repetition. Repeat the same assets and assign users randomly to each replication. When replicated assets are server logic, it's called load balancing. When replicated assets are data, it's called database replicas.
+
+![challenge 1.1](/fundamentals/core-challenges-in-web-scale-app/Untitled.png)![](/search.svg)
+
+![challenge 1.2](/fundamentals/core-challenges-in-web-scale-app/Untitled%201.png)![](/search.svg)
+
+### Challenge 2: Too Much Data to Move Around
+
+The twin challenge of too many users is too much data. Data becomes big when it's no longer possible to hold everything on one machine. Examples: Google index, all tweets on Twitter, all Netflix movies.
+
+The solution is sharding: partitioning data by logic. Sharding logic groups data together. If we shard by user\\_id in Twitter, all tweets from one user store on the same machine.
+
+![challenge 2](/fundamentals/core-challenges-in-web-scale-app/Untitled%202.png)![](/search.svg)
+
+### Challenge 3: The System Should be Fast and Responsive
+
+User-facing apps must be quick. Response time should be under 500ms. Over 1 second creates poor user experiences.
+
+Reading is usually fast after we have replication. Read requests typically implement as queries to in-memory key-value dictionaries beside HTTP protocols. For many simple apps, latency is mostly network round time.
+
+Writing is where the challenge lies. Most typical writing processes involve many data queries and updates, lasting far longer than the 1-second limit. The solution is asynchrony: write requests return immediately after servers receive data and put it in queues. Actual processing continues in backends. After receiving server responses, client-side logic has wiggle room for speedy user experiences. It can show UI before redirecting users to read results. This usually takes 1-2 seconds, enough for backend processing of actual write requests.
+
+This implements through message queues like Kafka.
+
+![challenge 3](/fundamentals/core-challenges-in-web-scale-app/Untitled%203.png)![](/search.svg)
+
+### Challenge 4: Inconsistent (outdated) States
+
+This challenge results from solving Challenge 1 and Challenge 2. With data replication and asynchronous data updates, read requests can easily see inconsistent data. Inconsistency usually means outdated: users won't see random wrong data, but old versions or deleted data.
+
+The solution is more application-level than system-level. Outdated reads from replication and asynchronous updates eventually disappear when servers catch up. Build user experiences where seeing outdated data briefly is acceptable. This is eventual consistency.
+
+Most apps tolerate eventual consistency well, especially compared with alternatives: losing data forever or being very slow. Exceptions are banking or payment-related apps. Any inconsistency is unacceptable, so apps must wait for all processing to finish before returning anything to users. That's why such apps feel much slower than Google Search.
+
+![challenge 4](/fundamentals/core-challenges-in-web-scale-app/Untitled%204.png)![](/search.svg)
+
+Designing for Scale
+-------------------
+
+Scaling systems effectively is one of the most critical aspects of satisfying non-functional requirements. Scalability is often a top priority. Below are various strategies to achieve scalable system architecture.
+
+### Decomposition
+
+Decomposition breaks down requirements into microservices. The key principle is dividing systems into smaller, independent services based on specific business capabilities or requirements. Each microservice should focus on single responsibilities to enhance scalability and maintainability.
+
+![Functional Decomposition](/fundamentals/scaling/decomposition.png)![](/search.svg)
+
+### Vertical Scaling
+
+Vertical scaling represents the brute force approach to scaling. Scale up by using more powerful machines. Thanks to cloud computing advancements, this approach has become much more feasible. In the past, organizations waited for new machines to be built and shipped. Today they spin up new instances in seconds.
+
+![Vertical Scaling](/fundamentals/scaling/vertical-scaling.png)![](/search.svg)
+
+Modern cloud providers offer impressive vertical scaling options. AWS provides Amazon EC2 High Memory instances with up to 24 TB of memory. Google Cloud offers Tau T2D instances specifically optimized for compute-intensive workloads.
+
+### Horizontal Scaling
+
+Horizontal scaling focuses on scaling out by running multiple identical instances of stateless services. The stateless nature of these services enables seamless distribution of requests across instances using load balancers.
+
+![Horizontal Scaling](/fundamentals/scaling/horizontal-scaling.png)![](/search.svg)
+
+### Partitioning
+
+Partitioning splits requests and data into shards and distributes them across services or databases. This can be accomplished by partitioning data based on user ID, geographical location, or another logical key. Many systems implement consistent hashing to ensure balanced partitioning.
+
+![Partitioning](/fundamentals/scaling/partitioning.png)![](/search.svg)
+
+See [Database Partitioning](/concepts/database-partitioning) for details.
+
+### Caching
+
+Caching improves query read performance by storing frequently accessed data in faster memory storage, such as in-memory caches. Popular tools like Redis or Memcached effectively store hot data to reduce database load.
+
+![Caching](/concepts/caching/what-is-caching.png)![](/search.svg)
+
+See [Caching](/fundamentals/caching) for details.
+
+### Buffer with Message Queues
+
+High-concurrency scenarios often encounter write-intensive operations. Frequent database writes can overload systems due to disk I/O bottlenecks. Message queues buffer write requests, changing synchronous operations into asynchronous ones, thereby limiting database write requests to manageable levels and preventing system crashes.
+
+![Buffer Requests with Message Queue](/fundamentals/scaling/message-queue.png)![](/search.svg)
+
+See [Message Queues](/fundamentals/message-queue) for details.
+
+### Separating Read and Write
+
+Whether systems are read-heavy or write-heavy depends on business requirements. Social media platforms are read-heavy because users read more than they write. IoT systems are write-heavy because users write more than they read. This is why we separate read and write operations to treat them differently.
+
+Read and write separation typically involves two main strategies. First, replication implements leader-follower architecture where writes occur on the leader and followers provide read replicas.
+
+![Separating Read and Write with Leader-Replica](/fundamentals/scaling/replication.png)![](/search.svg)
+
+Second, the CQRS (Command Query Responsibility Segregation) pattern takes read-write separation further by using completely different models for reading and writing data. In CQRS, systems split into two parts: the command side (write side) handles all write operations (create, update, delete) using data models optimized for writes, and the query side (read side) handles all read operations using denormalized data models optimized for reads.
+
+Changes from the command side asynchronously propagate to the query side.
+
+![CQRS](/fundamentals/scaling/cqrs.png)![](/search.svg)
+
+For example, systems might use MySQL as source-of-truth databases while employing Elasticsearch for full-text search or analytical queries, and asynchronously sync changes from MySQL to Elasticsearch using MySQL binlog Change Data Capture (CDC).
+
+### Combining Techniques
+
+Effective scaling usually requires multi-faceted approaches combining several techniques. Start with decomposition to break down monolithic services for independent scaling. Then, partitioning and caching work together to distribute load efficiently while enhancing performance. Read/write separation ensures fast reads and reliable writes through leader-replica setups. Finally, business logic adjustments help design strategies that mitigate operational bottlenecks without compromising user experience.
+
+### Adapting to Changing Business Requirements
+
+Adapting business requirements offers practical ways to handle large traffic loads. While not strictly technical approaches, understanding these strategies demonstrates valuable experience and critical thinking skills in interview settings.
+
+Consider weekly sales event scenarios. Instead of running all sales simultaneously for all users, distribute load by allocating specific days for different product categories for specific regions. Baby products might feature on Day 1, followed by electronics on Day 2. This approach ensures more predictable traffic patterns and enables better resource allocation such as pre-loading cache for upcoming days and scaling out read replicas for specific regions.
+
+Another example involves handling consistency challenges during high-stakes events like eBay auctions. By temporarily displaying bid success messages on frontends, systems can provide seamless user experiences while backends resolve consistency issues asynchronously. Users eventually see correct bid status after auctions end.
+
+While not technical solutions, bringing these up in interviews demonstrates your ability to think through problems and provide practical solutions.
+
+Master Template
+---------------
+
+Here is the common template to design scalable services and solve many system design problems:
+
+![design-diagram](/concepts/design-template/design-diagram.png)![](/search.svg)
+
+High-level takeaway: write to message queue and have consumers/workers update database and cache. Read from cache.
+
+### Component Breakdown
+
+**Stateless Services** are scalable and can be expanded by adding new machines and integrating them through load balancers. Write Service receives client requests and forwards them to message queues. Read Service handles read requests from clients by accessing caches.
+
+**Databases** serve as cold storage and source of truth. We do not normally read directly from databases since it can be slow when request volume is high.
+
+**Message Queues** buffer between writer services and data storage. Producers (comprised of write services) send data changes to queues. Consumers update both databases and caches. Database Updater (asynchronous workers) updates databases by retrieving jobs from message queues. Cache Updater (asynchronous workers) refreshes caches by fetching jobs from message queues.
+
+**Caches** facilitate fast and efficient read operations.
+
+### Dataflow Path
+
+Almost all applications break down into read requests and write requests. Because read and write have completely different implications (read doesn't mutate; write mutates database), we discuss write path and read path separately.
+
+**Read path**: For modern large-scale applications with millions of daily users, we almost always read from cache instead of from databases directly. Databases act as permanent storage solutions. Asynchronous jobs frequently transfer data from databases to caches.
+
+**Write path**: Write requests push into message queues, allowing backend workers to manage writing processes. This approach balances processing speeds of different system components, offering responsive user experiences.
+
+**Message queues** are essential to scaling out systems to handle write requests. Producers insert messages into queues. Consumers retrieve and process messages asynchronously.
+
+The necessity of message queues arises from varying processing rates (producers and consumers handle data at different speeds, necessitating buffers) and fault tolerance (they ensure persistence of messages, preventing data loss during failures)."

@@ -1,0 +1,108 @@
+{
+  "cards": [
+    {
+      "front": "Why does system design knowledge matter?",
+      "back": "System design knowledge is crucial for two reasons: it is tested in interviews, especially at senior levels, and it distinguishes competent engineers from exceptional ones. While writing code is essential, designing robust and scalable systems requires deeper expertise."
+    },
+    {
+      "front": "What is system design?",
+      "back": "System design is the process of creating a blueprint for applications that can handle billions of users and terabytes of data efficiently. It involves combining various components like databases, APIs, caching layers, load balancers, and distributed queues to deliver smooth user experiences."
+    },
+    {
+      "front": "What are the key challenges in system design?",
+      "back": "Key challenges in system design include balancing competing priorities such as speed versus cost, consistency versus availability, and simplicity versus flexibility. The goal is to find the right trade-offs for specific use cases."
+    },
+    {
+      "front": "What do system design interviews assess?",
+      "back": "System design interviews assess a candidate's ability to break down vague problems into solvable parts, understand component interactions, design scalable and reliable systems, and communicate design decisions effectively."
+    },
+    {
+      "front": "What should candidates focus on to prepare for system design interviews?",
+      "back": "Candidates should focus on understanding system design concepts, learning the interview framework, and mastering core design challenges and scaling techniques."
+    },
+    {
+      "front": "What are the main components of system design?",
+      "back": "Main components of system design include microservices, relational databases, NoSQL databases, object storage, caching, CDNs, message queues, and API gateways."
+    },
+    {
+      "front": "What are microservices?",
+      "back": "Microservices are an architectural style that structures applications as a collection of small, independent services, each handling specific business functions. They allow for independent scaling and deployment."
+    },
+    {
+      "front": "What are the advantages of microservices over monolithic architecture?",
+      "back": "Microservices allow for independent scaling, easier updates, and better fault isolation. In contrast, monolithic architecture can lead to challenges like redeploying the entire application for small changes and difficulty in understanding large codebases."
+    },
+    {
+      "front": "What is the role of relational databases in system design?",
+      "back": "Relational databases organize structured data into tables with relationships, ensuring data integrity and consistency through constraints like primary and foreign keys. They are ideal for applications requiring accurate and interrelated data."
+    },
+    {
+      "front": "What are the common implementations of relational databases?",
+      "back": "Common implementations of relational databases include PostgreSQL, known for robustness and advanced features; MySQL, efficient for read-heavy workloads; and SQLite, a lightweight option for small projects."
+    },
+    {
+      "front": "What is NoSQL and when should it be used?",
+      "back": "NoSQL databases handle unstructured or semi-structured data and are suitable for applications with dynamic schemas or massive data volumes. They provide flexibility and scalability at the cost of strict structure and complex querying."
+    },
+    {
+      "front": "What are the different types of NoSQL databases?",
+      "back": "Types of NoSQL databases include key-value stores, document databases, column-family stores, and graph databases, each suited for different data organization and retrieval needs."
+    },
+    {
+      "front": "What is object storage and its use cases?",
+      "back": "Object storage organizes data as objects, making it highly scalable and cost-effective for unstructured data like images and videos. It is used for static asset hosting, backups, and big data analytics."
+    },
+    {
+      "front": "What is the purpose of caching in system design?",
+      "back": "Caching reduces latency and improves efficiency by storing frequently accessed data closer to applications, minimizing the need to fetch data from slower databases."
+    },
+    {
+      "front": "What are common implementations of caching?",
+      "back": "Common implementations of caching include in-memory caches like Redis and Memcached for fast access, and disk-based caches for persistent storage."
+    },
+    {
+      "front": "What is a CDN and how does it work?",
+      "back": "A Content Delivery Network (CDN) is a distributed network of servers that caches static assets closer to users, reducing latency and preventing overload on origin servers."
+    },
+    {
+      "front": "What are message queues and their benefits?",
+      "back": "Message queues act as intermediaries for communication between services, decoupling them and ensuring reliable message delivery, which enhances scalability and fault tolerance."
+    },
+    {
+      "front": "What is the API Gateway's role in system design?",
+      "back": "API Gateways serve as single entry points for API requests, routing them to appropriate services, handling authentication, rate limiting, and caching to optimize performance."
+    },
+    {
+      "front": "What are functional requirements in system design?",
+      "back": "Functional requirements define what users can do within a system, such as posting tweets, viewing feeds, or following other users."
+    },
+    {
+      "front": "What are non-functional requirements in system design?",
+      "back": "Non-functional requirements outline how a system should perform, including considerations for performance, availability, scalability, reliability, consistency, durability, and security."
+    },
+    {
+      "front": "What is the importance of high-level design in system design interviews?",
+      "back": "High-level design combines functional and non-functional requirements, demonstrating a candidate's ability to create a structured and scalable system architecture."
+    },
+    {
+      "front": "What is the significance of deep dives in system design interviews?",
+      "back": "Deep dives focus on addressing specific challenges or edge cases in the system, testing a candidate's understanding of advanced features and trade-offs."
+    },
+    {
+      "front": "What are common challenges in designing for scale?",
+      "back": "Common challenges include handling too many concurrent users, managing large data volumes, ensuring fast and responsive systems, and maintaining consistent states."
+    },
+    {
+      "front": "What strategies can be used for effective scaling?",
+      "back": "Effective scaling strategies include decomposition into microservices, vertical and horizontal scaling, partitioning data, caching, using message queues, and separating read and write operations."
+    },
+    {
+      "front": "What is the Master Template for system design?",
+      "back": "The Master Template outlines a common approach to designing scalable services: write to a message queue, have consumers update the database and cache, and read from the cache."
+    },
+    {
+      "front": "How can business requirements adapt to handle large traffic loads?",
+      "back": "Adapting business requirements can involve distributing load by scheduling events or handling consistency challenges during high-stakes events to ensure smooth user experiences."
+    }
+  ]
+}

@@ -12,25 +12,13 @@ import type {
   UserNoteJobRecord,
   UserNoteRecord,
 } from "../../shared/types";
-import { chunkArticleContent } from "../../shared/noteChunker";
-
-interface GenerationDebugContext {
-  jobId?: string;
-}
-
-interface ChunkDebugOptions extends GenerationDebugContext {
-  chunkIndex: number;
-  totalChunks: number;
-  chunkChars: number;
-}
+import {
+  generateOpenAiStack,
+  type FlashcardStackResponse,
+} from "../../shared/openAiNotes";
 
 const jobsTableName = process.env.GENERAL_NOTE_JOBS_TABLE_NAME;
 const userNotesTableName = process.env.USER_NOTES_TABLE_NAME;
-const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
-const deepseekApiUrl =
-  process.env.DEEPSEEK_API_URL ?? "https://api.deepseek.com/chat/completions";
-const deepseekModel = process.env.DEEPSEEK_MODEL ?? "deepseek-chat";
-const DEEPSEEK_MAX_TOKENS = 8000;
 
 if (!jobsTableName) {
   throw new Error("GENERAL_NOTE_JOBS_TABLE_NAME env var must be set");
@@ -38,22 +26,6 @@ if (!jobsTableName) {
 
 if (!userNotesTableName) {
   throw new Error("USER_NOTES_TABLE_NAME env var must be set");
-}
-
-if (!deepseekApiKey) {
-  throw new Error("DEEPSEEK_API_KEY env var must be set");
-}
-
-interface StackResponse {
-  topic: string;
-  summary: string | null;
-  cards: UserNoteCardRecord[];
-}
-
-interface FlashcardAnchor {
-  front: string;
-  back: string;
-  extra?: string | null;
 }
 
 interface ProcessorInput {
@@ -81,6 +53,8 @@ export const handler: DynamoDBStreamHandler = async (event) => {
 };
 
 async function processJob({ jobId }: ProcessorInput) {
+  const startTime = Date.now();
+
   const jobRecord = await loadJob(jobId);
   if (!jobRecord) {
     console.error("[general-note-job] Job not found", { jobId });
@@ -95,160 +69,244 @@ async function processJob({ jobId }: ProcessorInput) {
     return;
   }
 
+  console.info("[general-note-job] Starting job processing", {
+    jobId,
+    url: jobRecord.url,
+    userId: jobRecord.userId,
+  });
+
   await updateJobStatus(jobId, "processing");
 
   try {
-    const existingNote = await findExistingNote(
+    let noteToProcess: UserNoteRecord | null = await findExistingNote(
       jobRecord.userId,
       jobRecord.url
     );
-    const existingAnchor = buildAnchorFromCard(
-      existingNote?.cards?.[existingNote.cards.length - 1]
-    );
-    const stack = await generateCompleteStack(
-      {
-        url: jobRecord.url,
-        content: jobRecord.requestPayload.content,
-        topic: jobRecord.requestPayload.topic ?? jobRecord.topic ?? null,
-        requirements:
-          jobRecord.requestPayload.requirements ?? jobRecord.requirements ?? null,
-        initialAnchor: existingAnchor,
-      },
-      { jobId }
-    );
-    const newCardsCount = stack.cards.length;
-    const now = new Date().toISOString();
-    let noteId = existingNote?.noteId ?? crypto.randomUUID();
-    let totalCards = stack.cards.length;
-    let responseTopic = stack.topic;
-    let responseSummary = stack.summary ?? null;
-    let createdAt = now;
-    let lastReviewedAt: string | null = null;
-    let lastReviewStatus: string | null = null;
-    let reviewIntervalSeconds: number | null = null;
-    let reviewEaseFactor: number | null = null;
-    let reviewRepetitions: number | null = null;
-    let nextReviewDate: string | null = null;
 
-    if (existingNote) {
-      noteId = existingNote.noteId;
-      const existingCards = existingNote.cards ?? [];
-      const updatedCards =
-        newCardsCount > 0 ? [...existingCards, ...stack.cards] : existingCards;
-      totalCards = updatedCards.length;
-      responseTopic = existingNote.topic ?? stack.topic;
-      responseSummary = existingNote.summary ?? stack.summary ?? null;
-      createdAt = existingNote.createdAt;
-      lastReviewedAt = existingNote.lastReviewedAt ?? null;
-      lastReviewStatus = existingNote.lastReviewStatus ?? null;
-      reviewIntervalSeconds = existingNote.reviewIntervalSeconds ?? null;
-      reviewEaseFactor = existingNote.reviewEaseFactor ?? null;
-      reviewRepetitions = existingNote.reviewRepetitions ?? null;
-      nextReviewDate = existingNote.nextReviewDate ?? null;
-
-      if (newCardsCount > 0) {
-        const updateParts = ["cards = :cards", "updatedAt = :updatedAt"];
-        const names: Record<string, string> = {};
-        const values: Record<string, unknown> = {
-          ":cards": updatedCards,
-          ":updatedAt": now,
-        };
-        if (responseSummary) {
-          updateParts.push("#summary = :summary");
-          names["#summary"] = "summary";
-          values[":summary"] = responseSummary;
-        }
-        try {
-          await docClient.send(
-            new UpdateCommand({
-              TableName: userNotesTableName,
-              Key: { userId: jobRecord.userId, noteId: existingNote.noteId },
-              UpdateExpression: `SET ${updateParts.join(", ")}`,
-              ExpressionAttributeNames:
-                Object.keys(names).length > 0 ? names : undefined,
-              ExpressionAttributeValues: values,
-            })
-          );
-        } catch (error) {
-          console.error("Failed to append cards to existing note", error);
-          throw error;
-        }
-      }
-    } else {
-      const noteRecord: UserNoteRecord = {
+    if (noteToProcess === null || noteToProcess === undefined) {
+      noteToProcess = {
         userId: jobRecord.userId,
-        noteId,
         sourceUrl: jobRecord.url,
-        topic: stack.topic,
-        summary: stack.summary ?? undefined,
-        requestPayload: {
-          url: jobRecord.url,
-          payload: jobRecord.requestPayload.content,
-          topic: jobRecord.requestPayload.topic ?? null,
-          requirements: jobRecord.requestPayload.requirements ?? null,
-        },
-        cards: stack.cards,
-        createdAt: now,
-        updatedAt: now,
-        lastReviewedAt: null,
-        lastReviewStatus: null,
-        reviewIntervalSeconds: undefined,
-        reviewEaseFactor: undefined,
-        reviewRepetitions: undefined,
-        nextReviewDate: null,
+        noteId: null,
+        cards: [],
       };
-
-      await docClient.send(
-        new PutCommand({
-          TableName: userNotesTableName,
-          Item: noteRecord,
-        })
-      );
     }
 
-    await docClient.send(
-      new UpdateCommand({
-        TableName: jobsTableName,
-        Key: { jobId },
-        UpdateExpression:
-          "SET #status = :status, resultNoteId = :noteId, resultTopic = :topic, resultSummary = :summary, resultCards = :cards, resultNewCards = :newCards, updatedAt = :updatedAt, errorMessage = :error",
-        ExpressionAttributeNames: {
-          "#status": "status",
-        },
-        ExpressionAttributeValues: {
-          ":status": "completed",
-          ":noteId": noteId,
-          ":topic": responseTopic,
-          ":summary": responseSummary,
-          ":cards": stack.cards,
-          ":newCards": newCardsCount,
-          ":updatedAt": new Date().toISOString(),
-          ":error": null,
-        },
-      })
-    );
+    // Initialize retry variables
+    let stack: FlashcardStackResponse;
+    let retryCount = 0;
+    const maxRetries = 10;
+    let lastError: Error | null = null;
+
+    // Retry logic: keep generating until we have cards or max retries reached
+    do {
+      const existingCards = noteToProcess.cards;
+      try {
+        console.info("[general-note-job] Generation attempt", {
+          jobId,
+          attempt: retryCount + 1,
+          maxRetries,
+          existingCardsCount: noteToProcess.cards.length,
+        });
+
+        let lastCards: UserNoteCardRecord[] = [];
+        const length = existingCards.length;
+        if (length > 2) {
+          lastCards = [existingCards[length - 2], existingCards[length - 1]];
+        } else if (length > 1) {
+          lastCards = [existingCards[length - 1]];
+        }
+
+        const newCards = await generateOpenAiStack(
+          jobRecord.requestPayload.content,
+          lastCards
+        );
+        console.log(
+          "==== last card for generate note",
+          lastCards,
+          newCards?.length > 0 ? newCards[newCards.length - 1] : []
+        );
+
+        // Check if we generated new cards
+        const newCardsCount = newCards.length;
+
+        if (newCardsCount > 0) {
+          // Success - we have new cards
+          console.info("[general-note-job] Generated new cards", {
+            jobId,
+            attempt: retryCount + 1,
+            newCardsCount,
+          });
+
+          // Save progress after each successful generation
+          try {
+            const allCards = [...noteToProcess.cards, ...newCards];
+            if (noteToProcess && noteToProcess.noteId) {
+              // Update existing note with new cards only
+              await updateNoteCards(
+                jobRecord.userId,
+                noteToProcess.noteId,
+                allCards
+              );
+              noteToProcess.cards = allCards;
+            } else {
+              // Create new note
+              await persistNewNoteWithFlashCards({
+                jobRecord,
+                noteToProcess: noteToProcess,
+                newCards,
+              });
+              // Get the actual noteId from the database
+              const createdNote = await findExistingNote(
+                jobRecord.userId,
+                jobRecord.url
+              );
+              console.log("==== created note ", createdNote?.noteId);
+              if (createdNote) {
+                noteToProcess = createdNote;
+              } else {
+                console.log(
+                  "====== error in finding new note after saving, createdNote is null"
+                );
+              }
+            }
+            updateJobProgress(jobId, noteToProcess.cards.length);
+          } catch (saveError) {
+            console.error("[general-note-job] Failed to save progress", {
+              jobId,
+              attempt: retryCount + 1,
+              saveError,
+            });
+            // Continue with retry even if save failed, but log the error
+          }
+
+          // If this was the last attempt or we have enough cards, break
+          if (retryCount >= maxRetries - 1 || newCardsCount === 0) {
+            console.info(
+              "[general-note-job] Generation completed, total retry",
+              retryCount,
+              "total cards",
+              noteToProcess.cards.length,
+              "reason",
+              retryCount >= maxRetries - 1
+                ? "max retries reached"
+                : "no new cards generated"
+            );
+            break;
+          }
+
+          // Continue to next retry to get more cards
+          retryCount++;
+
+          console.info(
+            "[general-note-job] Continuing to generate more cards",
+            retryCount,
+            noteToProcess.cards.length,
+            jobId
+          );
+          // Delay before next retry
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
+        }
+      } catch (error) {
+        lastError =
+          error instanceof Error
+            ? error
+            : new Error("Unknown error during generation");
+        console.error("[general-note-job] Generation attempt failed", {
+          jobId,
+          attempt: retryCount + 1,
+          error: lastError.message,
+        });
+
+        retryCount++;
+
+        // Don't retry on certain errors (like authentication)
+        if (
+          lastError.message.includes("OPENAI_API_KEY") ||
+          lastError.message.includes("authentication") ||
+          lastError.message.includes("401")
+        ) {
+          console.error(
+            "[general-note-job] Authentication error, not retrying",
+            {
+              jobId,
+              error: lastError.message,
+            }
+          );
+          break;
+        }
+
+        // Add delay before retry
+        if (retryCount < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
+    } while (retryCount < maxRetries);
+
+    await updateJobStatus(jobId, "completed");
   } catch (error) {
     console.error("[general-note-job] Processor failed", error);
-    await docClient.send(
-      new UpdateCommand({
-        TableName: jobsTableName,
-        Key: { jobId },
-        UpdateExpression:
-          "SET #status = :status, errorMessage = :error, updatedAt = :updatedAt",
-        ExpressionAttributeNames: {
-          "#status": "status",
-        },
-        ExpressionAttributeValues: {
-          ":status": "failed",
-          ":error":
-            error instanceof Error && error.message
-              ? error.message
-              : "Failed to generate review cards",
-          ":updatedAt": new Date().toISOString(),
-        },
-      })
-    );
+    await markJobFailed(jobId, error);
   }
+}
+
+async function persistNewNoteWithFlashCards({
+  jobRecord,
+  noteToProcess,
+  newCards,
+}: {
+  jobRecord: UserNoteJobRecord;
+  noteToProcess: UserNoteRecord;
+  newCards: UserNoteCardRecord[];
+}) {
+  const now = new Date().toISOString();
+
+  const noteRecord: UserNoteRecord = {
+    userId: jobRecord.userId,
+    noteId: crypto.randomUUID(),
+    sourceUrl: jobRecord.url,
+    topic: noteToProcess.topic,
+    summary: noteToProcess.summary ?? undefined,
+    cards: newCards,
+    createdAt: now,
+    updatedAt: now,
+    lastReviewedAt: null,
+    lastReviewStatus: null,
+    reviewIntervalSeconds: undefined,
+    reviewEaseFactor: undefined,
+    reviewRepetitions: undefined,
+    nextReviewDate: null,
+  };
+
+  await docClient.send(
+    new PutCommand({
+      TableName: userNotesTableName,
+      Item: noteRecord,
+    })
+  );
+}
+
+async function markJobFailed(jobId: string, error: unknown) {
+  await docClient.send(
+    new UpdateCommand({
+      TableName: jobsTableName,
+      Key: { jobId },
+      UpdateExpression:
+        "SET #status = :status, errorMessage = :error, updatedAt = :updatedAt",
+      ExpressionAttributeNames: {
+        "#status": "status",
+      },
+      ExpressionAttributeValues: {
+        ":status": "failed",
+        ":error":
+          error instanceof Error && error.message
+            ? error.message
+            : "Failed to generate review cards",
+        ":updatedAt": new Date().toISOString(),
+      },
+    })
+  );
 }
 
 async function loadJob(jobId: string): Promise<UserNoteJobRecord | null> {
@@ -278,267 +336,21 @@ async function updateJobStatus(jobId: string, status: string) {
   );
 }
 
-async function generateCompleteStack(
-  input: {
-    url: string;
-    content: string;
-    topic: string | null;
-    requirements: string | null;
-    initialAnchor?: FlashcardAnchor | null;
-  },
-  debugContext?: GenerationDebugContext
-): Promise<StackResponse> {
-  const aggregated: UserNoteCardRecord[] = [];
-  let derivedTopic: string | null = null;
-  const chunkStart = Date.now();
-  const segments = chunkArticleContent(input.content, {
-    anchor: input.initialAnchor ?? undefined,
-    targetSize: 500,
-    overlapBlocks: 2,
-  });
-  const chunks = segments.length > 0 ? segments : [input.content];
-  const chunkDurationMs = Date.now() - chunkStart;
-  console.info("[general-note-job] Completed chunking", {
-    jobId: debugContext?.jobId,
-    chunks: chunks.length,
-    durationMs: chunkDurationMs,
-    totalChars: input.content.length,
-  });
-  const formatCardForLog = (card?: UserNoteCardRecord) => {
-    if (!card) {
-      return "n/a";
-    }
-    const front = card.front.replace(/\s+/g, " ").slice(0, 80);
-    const back = card.back.replace(/\s+/g, " ").slice(0, 80);
-    return `Front: ${front || "(empty)"} | Back: ${back || "(empty)"}`;
-  };
-
-  for (let index = 0; index < chunks.length; index += 1) {
-    const chunkContent = chunks[index];
-    console.info("[general-note-job] Prepared chunk", {
-      jobId: debugContext?.jobId,
-      chunkIndex: index + 1,
-      totalChunks: chunks.length,
-      chars: chunkContent.length,
-      topic: input.topic,
-      requirements: input.requirements,
-    });
-    const chunk = await generateAnkiStack(
-      {
-        ...input,
-        content: chunkContent,
-        anchorCard: null,
+async function updateJobProgress(jobId: string, cards: number) {
+  await docClient.send(
+    new UpdateCommand({
+      TableName: jobsTableName,
+      Key: { jobId },
+      UpdateExpression: "SET #status = :status, resultCards = :cards",
+      ExpressionAttributeNames: {
+        "#status": "status",
       },
-      {
-        chunkIndex: index + 1,
-        totalChunks: chunks.length,
-        chunkChars: chunkContent.length,
-        jobId: debugContext?.jobId,
-      }
-    );
-    if (!derivedTopic && chunk.topic) {
-      derivedTopic = chunk.topic;
-    }
-    if (!chunk.cards.length) {
-      console.info(
-        "[general-note-job] Chunk %d returned 0 cards; continuing.",
-        index + 1
-      );
-      continue;
-    }
-    aggregated.push(...chunk.cards);
-    console.info(
-      "[general-note-job] Chunk %d produced %d cards (total=%d). First=%s, Last=%s",
-      index + 1,
-      chunk.cards.length,
-      aggregated.length,
-      formatCardForLog(chunk.cards[0]),
-      formatCardForLog(chunk.cards[chunk.cards.length - 1])
-    );
-  }
-
-  return {
-    topic: derivedTopic ?? input.topic ?? "Interview study stack",
-    summary: null,
-    cards: aggregated,
-  };
-}
-
-async function generateAnkiStack(
-  input: {
-    url: string;
-    content: string;
-    topic: string | null;
-    requirements: string | null;
-    anchorCard?: FlashcardAnchor | null;
-  },
-  debugInfo?: ChunkDebugOptions
-): Promise<StackResponse> {
-  const systemPrompt =
-    "You are a tutor specialised to help the candidate pass technical interviews at companies like Facebook or Google. Interviews span system design and behavioural rounds. Your job is to analyse the provided material and craft the best plan for the candidate to master the knowledge.";
-
-  const userPromptSegments = [
-    `Analyze the content from url ${input.url}.`,
-    input.topic ? `Treat the topic as: ${input.topic}.` : null,
-    input.requirements
-      ? `Respect these additional requirements: ${input.requirements}.`
-      : null,
-    "Turn the content into Anki-style stack cards so I can review them repeatedly.",
-    input.anchorCard
-      ? [
-          "Resume from the text immediately after the last saved flashcard.",
-          `Previous front: ${input.anchorCard.front}`,
-          `Previous back: ${input.anchorCard.back}`,
-          input.anchorCard.extra
-            ? `Previous extra: ${input.anchorCard.extra}`
-            : null,
-          "Locate where that flashcard content lives within the provided text, skip it, then continue generating cards right after that section.",
-        ].join("\n")
-      : "Start from the beginning of the provided content.",
-    "Break the material into logical sections (headings, paragraphs, phases) and create at least one card per important idea.",
-    "Add summary cards that capture the most critical takeaways for each major section before diving into supporting details.",
-    "Generate as many cards as needed to cover the entire source material—avoid arbitrary limits like 10 cards; long-form content should typically yield dozens of cards.",
-    "Try to process as many content as possible in one run, dont stop processing prematurely.",
-    "Do not be overly concise—cover every important insight from the provided material.",
-    "If there is no remaining content after the previous flashcard, return the JSON payload with an empty cards array.",
-    'Respond strictly in JSON using this structure: {"title": "Meaningful title", "tags": ["SystemDesign"], "cards": [{"front": "question", "back": "detailed answer", "extra"?: "tips"}]}.',
-    'Each tag in the payload must be one of the following enum values: "SystemDesign", "Behaviour", "Algo", "Other".',
-    "Don't add ```json\n",
-    "Here is the raw content, bounded by triple quotes:",
-    '"""',
-    input.content,
-    '"""',
-  ].filter(Boolean);
-
-  const userPrompt = userPromptSegments.join("\n");
-
-  const requestPayload = {
-    model: deepseekModel,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    max_tokens: DEEPSEEK_MAX_TOKENS,
-  };
-  console.info("[general-note-job] Calling DeepSeek", {
-    jobId: debugInfo?.jobId,
-    chunkIndex: debugInfo?.chunkIndex,
-    totalChunks: debugInfo?.totalChunks,
-    chunkChars: debugInfo?.chunkChars,
-  });
-  const apiStart = Date.now();
-  const response = await fetch(deepseekApiUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${deepseekApiKey}`,
-    },
-    body: JSON.stringify(requestPayload),
-  });
-
-  const body = await safeReadJson(response);
-  if (!response.ok) {
-    console.error("DeepSeek API error", response.status, body, {
-      jobId: debugInfo?.jobId,
-      chunkIndex: debugInfo?.chunkIndex,
-    });
-    throw new Error("DeepSeek generation failed");
-  }
-
-  const aiContent = body?.choices?.[0]?.message?.content;
-  if (typeof aiContent !== "string") {
-    console.error(
-      "==== error in deepseek response aiContent body",
-      JSON.stringify(body)
-    );
-    throw new Error("DeepSeek response missing content");
-  }
-  const durationMs = Date.now() - apiStart;
-  console.info("[general-note-job] DeepSeek finished", {
-    jobId: debugInfo?.jobId,
-    chunkIndex: debugInfo?.chunkIndex,
-    totalChunks: debugInfo?.totalChunks,
-    durationMs,
-    status: response.status,
-  });
-
-  return parseStackPayload(aiContent, input.topic);
-}
-
-async function safeReadJson(response: Response): Promise<any> {
-  try {
-    return await response.json();
-  } catch (error) {
-    console.error("Failed to parse DeepSeek JSON response", error);
-    return null;
-  }
-}
-
-function parseStackPayload(
-  raw: string,
-  fallbackTopic: string | null
-): StackResponse {
-  const unwrapped = (() => {
-    const trimmed = raw.trim();
-    if (
-      (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
-      (trimmed.startsWith('"') && trimmed.endsWith('"'))
-    ) {
-      return trimmed.slice(1, -1);
-    }
-    return trimmed;
-  })();
-
-  const cleaned = unwrapped.replace(/```json|```/gi, "").trim();
-  let parsed: any;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch (error) {
-    console.error("Unable to parse DeepSeek payload", { raw });
-    throw error;
-  }
-
-  const topic =
-    optionalText(parsed?.title) ?? fallbackTopic ?? "Interview study stack";
-  const cardsInput: unknown[] = Array.isArray(parsed?.cards)
-    ? parsed.cards
-    : [];
-  const cards: UserNoteCardRecord[] = cardsInput
-    .map((card: any) => normalizeCard(card))
-    .filter((card): card is UserNoteCardRecord => Boolean(card));
-
-  return { topic, summary: null, cards };
-}
-
-function normalizeCard(card: any): UserNoteCardRecord | null {
-  const front = optionalText(card?.front);
-  const back = optionalText(card?.back);
-  if (!front || !back) {
-    return null;
-  }
-
-  const extra = optionalText(card?.extra);
-  const tags = Array.isArray(card?.tags)
-    ? card.tags
-        .map((tag: unknown) => (typeof tag === "string" ? tag.trim() : ""))
-        .filter((tag: string) => Boolean(tag))
-    : undefined;
-
-  return {
-    id: crypto.randomUUID(),
-    front,
-    back,
-    extra: extra ?? undefined,
-    tags: tags && tags.length > 0 ? tags : undefined,
-  };
-}
-
-function optionalText(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
+      ExpressionAttributeValues: {
+        ":status": "processing",
+        ":cards": cards,
+      },
+    })
+  );
 }
 
 async function findExistingNote(
@@ -566,20 +378,25 @@ async function findExistingNote(
   }
 }
 
-function buildAnchorFromCard(
-  card?: UserNoteCardRecord
-): FlashcardAnchor | null {
-  if (!card) {
-    return null;
-  }
-  return {
-    front: card.front,
-    back: card.back,
-    extra: card.extra ?? null,
-  };
+async function updateNoteCards(
+  userId: string,
+  noteId: string,
+  cards: UserNoteCardRecord[]
+): Promise<void> {
+  const now = new Date().toISOString();
+  await docClient.send(
+    new UpdateCommand({
+      TableName: userNotesTableName,
+      Key: { userId, noteId },
+      UpdateExpression: "SET cards = :cards, updatedAt = :updatedAt",
+      ExpressionAttributeValues: {
+        ":cards": cards,
+        ":updatedAt": now,
+      },
+    })
+  );
 }
 
 export const __testHelpers = {
-  generateCompleteStack,
-  generateAnkiStack,
+  generateOpenAiStack,
 };

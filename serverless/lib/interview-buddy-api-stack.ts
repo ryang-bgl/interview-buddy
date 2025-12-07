@@ -102,6 +102,24 @@ export class InterviewBuddyApiStack extends Stack {
       default: "deepseek-chat",
     });
 
+    const openaiApiKey = new CfnParameter(this, "OpenaiApiKey", {
+      type: "String",
+      description: "API key for OpenAI chat completions.",
+      noEcho: true,
+    });
+
+    const openaiApiUrl = new CfnParameter(this, "OpenAiApiUrl", {
+      type: "String",
+      description: "OpenAI chat completions endpoint.",
+      default: "https://api.openai.com/v1/chat/completions",
+    });
+
+    const openaiModel = new CfnParameter(this, "OpenAiModel", {
+      type: "String",
+      description: "Model identifier to request from OpenAI.",
+      default: "gpt-4o-mini",
+    });
+
     const apiCustomDomainArn = new CfnParameter(this, "HttpApiCertificateArn", {
       type: "String",
       description:
@@ -323,9 +341,9 @@ export class InterviewBuddyApiStack extends Stack {
         environment: {
           GENERAL_NOTE_JOBS_TABLE_NAME: generalNoteJobsTable.tableName,
           USER_NOTES_TABLE_NAME: userNotesTable.tableName,
-          DEEPSEEK_API_KEY: deepseekApiKey.valueAsString,
-          DEEPSEEK_API_URL: deepseekApiUrl.valueAsString,
-          DEEPSEEK_MODEL: deepseekModel.valueAsString,
+          OPENAI_API_KEY: openaiApiKey.valueAsString,
+          OPENAI_API_URL: openaiApiUrl.valueAsString,
+          OPENAI_MODEL: openaiModel.valueAsString,
         },
       }
     );
@@ -354,7 +372,6 @@ export class InterviewBuddyApiStack extends Stack {
         environment: {
           ...commonLambdaEnv,
           GENERAL_NOTE_JOBS_TABLE_NAME: generalNoteJobsTable.tableName,
-          GENERAL_NOTE_MAX_CONTENT: "8000",
         },
       }
     );

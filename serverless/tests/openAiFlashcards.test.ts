@@ -3,7 +3,11 @@ import path from "node:path";
 import { describe, it, expect } from "vitest";
 import OpenAI from "openai";
 
-const fixturePath = path.resolve(__dirname, "fixtures", "system-design.txt");
+const fixturePath = path.resolve(
+  __dirname,
+  "fixtures",
+  "system-design-primer.txt"
+);
 const fallbackContent = `# Design Brief\nOutline a log ingestion service that scales to millions of events per second while keeping behavioral insights actionable.`;
 
 let testContent = fallbackContent;
@@ -21,7 +25,7 @@ describe("OpenAI flashcard exploration", () => {
     ? (name: string, fn: () => Promise<void>) => it(name, fn, 60_000)
     : it.skip;
 
-  testFn("streams chunks through ChatGPT", async () => {
+  testFn("converts entire text with ChatGPT", async () => {
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     console.log("[openai-test] Sending text", {
       length: testContent.length,

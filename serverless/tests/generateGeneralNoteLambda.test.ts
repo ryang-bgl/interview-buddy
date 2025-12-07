@@ -2,26 +2,26 @@ import { describe, it, expect } from "vitest";
 
 const SAMPLE_CONTENT = `### Service Blueprint\n- Capture the product vision, target users, and primary success metrics.\n- Identify core system components (data ingestion, processing, delivery).\n- Highlight trade-offs in availability, latency, and cost.\n- Document operational runbooks for incidents and on-call.`;
 
-describe("manual DeepSeek prompt exploration", () => {
-  const testFn = process.env.DEEPSEEK_API_KEY ? it : it.skip;
+describe("manual OpenAI prompt exploration", () => {
+  const testFn = process.env.OPENAI_API_KEY ? it : it.skip;
 
   testFn("generates flashcards from a sample note", async () => {
     process.env.USER_NOTES_TABLE_NAME =
       process.env.USER_NOTES_TABLE_NAME ?? "manual-test-user-notes";
-    process.env.DEEPSEEK_API_URL =
-      process.env.DEEPSEEK_API_URL ?? "https://api.deepseek.com/chat/completions";
-    process.env.DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL ?? "deepseek-chat";
+    process.env.OPENAI_API_URL =
+      process.env.OPENAI_API_URL ?? "https://api.openai.com/v1/chat/completions";
+    process.env.OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
     const module = await import(
       "../src/functions/notes/createGeneralNoteAnkiStack"
     );
     const helpers = module.__testHelpers as {
-      generateCompleteStack: (input: {
+      generateOpenAiStack: (input: {
         url: string;
         content: string;
         topic: string | null;
         requirements: string | null;
-        initialAnchor?: unknown;
+        metadata?: Record<string, unknown>;
       }) => Promise<{
         topic: string;
         summary: string | null;
@@ -41,11 +41,12 @@ describe("manual DeepSeek prompt exploration", () => {
     const content =
       process.env.GENERAL_NOTE_TEST_CONTENT ?? SAMPLE_CONTENT;
 
-    const stack = await helpers.generateCompleteStack({
+    const stack = await helpers.generateOpenAiStack({
       url,
       content,
       topic,
       requirements,
+      metadata: { source: "lambda-test" },
     });
 
     console.log("Generated topic:", stack.topic);

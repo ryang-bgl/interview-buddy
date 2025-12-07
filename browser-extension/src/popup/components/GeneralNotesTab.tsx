@@ -57,6 +57,7 @@ export default function GeneralNotesTab() {
         title: string | null;
         text: string;
         html?: string | null;
+        markdown?: string | null;
       }
     | null
   >(null);
@@ -78,7 +79,10 @@ export default function GeneralNotesTab() {
       return "Generating Markdown preview in console...";
     }
     if (generationState === "generating") {
-      return "Queuing AI to study this page...";
+      if (selectedSource?.markdown || selectedSource?.html) {
+        return "Converting selected section to Markdown and generating cards...";
+      }
+      return "Converting page body to Markdown and generating cards...";
     }
     if (generationState === "error" && errorMessage) {
       return errorMessage;
@@ -185,8 +189,47 @@ export default function GeneralNotesTab() {
       }
 
       const snapshot = await captureActivePageContent(tabId);
-      const rawPayload = selectionToUse?.text ?? snapshot?.text ?? "";
-      const payload = rawPayload.trim();
+
+      // Use markdown if available from selected element, otherwise try to convert page HTML to markdown
+      let payload: string;
+      if (selectionToUse?.markdown) {
+        // Use markdown from selected element
+        payload = selectionToUse.markdown.trim();
+      } else if (selectionToUse?.html) {
+        // Convert selected element HTML to markdown if not already converted
+        try {
+          const turndown = new TurndownService({
+            headingStyle: 'atx' // Use # for headings instead of underlines
+          });
+          payload = turndown.turndown(selectionToUse.html).trim();
+        } catch (error) {
+          console.warn("[leetstack] Failed to convert selected HTML to markdown, falling back to text", error);
+          payload = selectionToUse.text.trim();
+        }
+      } else {
+        // Try to get page HTML, extract body, and convert to markdown
+        try {
+          const pageHtmlSnapshot = await captureActivePageHtml(tabId);
+          if (pageHtmlSnapshot?.html) {
+            // Extract only the body content
+            const bodyMatch = pageHtmlSnapshot.html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+            const bodyContent = bodyMatch ? bodyMatch[1] : pageHtmlSnapshot.html;
+
+            const turndown = new TurndownService({
+              headingStyle: 'atx' // Use # for headings instead of underlines
+            });
+            const pageMarkdown = turndown.turndown(bodyContent);
+            payload = pageMarkdown.trim();
+          } else {
+            // Fallback to page text
+            payload = (snapshot?.text ?? "").trim();
+          }
+        } catch (error) {
+          console.warn("[leetstack] Failed to convert page body HTML to markdown, using text content", error);
+          payload = (snapshot?.text ?? "").trim();
+        }
+      }
+
       if (!payload) {
         throw new Error(
           "Couldn't read the current page. Refresh it and try again."
@@ -229,10 +272,13 @@ export default function GeneralNotesTab() {
         return;
       }
 
+      let markdown: string | undefined;
       if (selection.html) {
         try {
-          const turndown = new TurndownService();
-          const markdown = turndown.turndown(selection.html);
+          const turndown = new TurndownService({
+            headingStyle: 'atx' // Use # for headings instead of underlines
+          });
+          markdown = turndown.turndown(selection.html);
           console.log("[leetstack] Selected element markdown", {
             url: tabUrl,
             title: selection.title ?? tab.title ?? null,
@@ -251,6 +297,7 @@ export default function GeneralNotesTab() {
         title: selection.title ?? tab.title ?? null,
         text: normalized,
         html: selection.html ?? null,
+        markdown: markdown ?? null,
       });
     } catch (error) {
       const message =
@@ -282,7 +329,9 @@ export default function GeneralNotesTab() {
       if (!snapshot?.html) {
         throw new Error("Unable to read the page HTML. Refresh and try again.");
       }
-      const turndown = new TurndownService();
+      const turndown = new TurndownService({
+        headingStyle: 'atx' // Use # for headings instead of underlines
+      });
       const markdown = turndown.turndown(snapshot.html);
       console.log("[leetstack] Page Markdown", {
         url: tabUrl,

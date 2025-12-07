@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
-import { chunkArticleContent } from "../src/shared/noteChunker";
 
 const fixturePath = path.resolve(__dirname, "fixtures", "system-design.txt");
 const fallbackContent = `# Behavior Questions\nTell me about a time you had to drive consensus across teams.\n\n# System Design Overview\nDesign a globally distributed log ingestion pipeline.\n\n## Requirements\n- Handle bursty writes.\n- Deliver updates near real-time.\n\n## Trade-offs\nLatency vs durability discussion.\n\n# Incident Response\nDocument the playbook for paging the on-call engineer.\n`;
@@ -16,33 +15,31 @@ try {
   );
 }
 
-describe("processGeneralNoteJob.generateCompleteStack", () => {
-  const testFn = process.env.DEEPSEEK_API_KEY
-    ? (name: string, fn: () => Promise<void>) => it(name, fn, 30000_000)
+describe("processGeneralNoteJob.generateOpenAiStack", () => {
+  const testFn = process.env.OPENAI_API_KEY
+    ? (name: string, fn: () => Promise<void>) => it(name, fn, 60_000)
     : it.skip;
 
-  testFn("logs chunk metadata and DeepSeek timings", async () => {
+  testFn("requests flashcards from OpenAI", async () => {
     process.env.GENERAL_NOTE_JOBS_TABLE_NAME =
       process.env.GENERAL_NOTE_JOBS_TABLE_NAME ?? "test-jobs";
     process.env.USER_NOTES_TABLE_NAME =
       process.env.USER_NOTES_TABLE_NAME ?? "test-notes";
-    process.env.DEEPSEEK_API_URL =
-      process.env.DEEPSEEK_API_URL ??
-      "https://api.deepseek.com/chat/completions";
-    process.env.DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL ?? "deepseek-chat";
+    process.env.OPENAI_API_URL =
+      process.env.OPENAI_API_URL ?? "https://api.openai.com/v1/chat/completions";
+    process.env.OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
     const module = await import("../src/functions/notes/processGeneralNoteJob");
     const helpers = module.__testHelpers as {
-      generateCompleteStack: (
-        input: {
-          url: string;
-          content: string;
-          topic: string | null;
-          requirements: string | null;
-          initialAnchor?: unknown;
-        },
-        debugContext?: { jobId?: string }
-      ) => Promise<{
+      generateOpenAiStack: (input: {
+        url: string;
+        content: string;
+        topic: string | null;
+        requirements: string | null;
+        metadata?: Record<string, unknown>;
+        existingCards?: Array<{ front: string; back: string; extra?: string }>;
+        retryCount?: number;
+      }) => Promise<{
         topic: string;
         summary: string | null;
         cards: Array<{ front: string; back: string; extra?: string }>;
@@ -50,48 +47,90 @@ describe("processGeneralNoteJob.generateCompleteStack", () => {
     };
 
     const jobId = `debug-${Date.now()}`;
-    const chunkStart = Date.now();
-    const chunks = chunkArticleContent(testContent, {
-      targetSize: 500,
-      overlapBlocks: 2,
+    const stack = await helpers.generateOpenAiStack({
+      url: "https://example.com/system-design-guide",
+      content: testContent,
+      topic: "System design & behavior study plan",
+      requirements: "Prioritize consensus-building tactics and failure handling",
+      metadata: { jobId },
     });
-    const chunkDurationMs = Date.now() - chunkStart;
-    console.log("[test] Chunk summary", {
-      jobId,
-      chunks: chunks.length,
-      durationMs: chunkDurationMs,
-    });
-
-    const outputRoot = path.resolve(__dirname, "output", "chunks", jobId);
-    fs.mkdirSync(outputRoot, { recursive: true });
-    chunks.forEach((chunk, index) => {
-      const filePath = path.join(
-        outputRoot,
-        `chunk-${String(index + 1).padStart(3, "0")}.txt`
-      );
-      fs.writeFileSync(filePath, chunk, "utf8");
-      console.log("[test] Chunk saved", {
-        jobId,
-        chunkIndex: index + 1,
-        chars: chunk.length,
-        filePath,
-      });
-    });
-
-    const stack = await helpers.generateCompleteStack(
-      {
-        url: "https://example.com/system-design-guide",
-        content: testContent,
-        topic: "System design & behavior study plan",
-        requirements:
-          "Prioritize consensus-building tactics and failure handling",
-      },
-      { jobId }
-    );
 
     console.log("[test] Generated topic:", stack.topic);
     console.log("[test] Cards returned:", stack.cards.length);
-    stack.cards.slice(0, 2).forEach((card, index) => {
+    stack.cards.slice(0, 3).forEach((card, index) => {
+      console.log(`-- Card ${index + 1} front:`, card.front);
+      console.log(`   back:`, card.back);
+      if (card.extra) {
+        console.log(`   extra:`, card.extra);
+      }
+    });
+
+    const outputRoot = path.resolve(__dirname, "output", "jobs");
+    fs.mkdirSync(outputRoot, { recursive: true });
+    const filePath = path.join(
+      outputRoot,
+      `generated-cards-${jobId}.json`
+    );
+    fs.writeFileSync(
+      filePath,
+      JSON.stringify({ cards: stack.cards }, null, 2),
+      "utf8"
+    );
+    console.log("[test] Cards saved", { filePath });
+
+    expect(Array.isArray(stack.cards)).toBe(true);
+  });
+
+  testFn("supports retry with existing cards", async () => {
+    process.env.GENERAL_NOTE_JOBS_TABLE_NAME =
+      process.env.GENERAL_NOTE_JOBS_TABLE_NAME ?? "test-jobs";
+    process.env.USER_NOTES_TABLE_NAME =
+      process.env.USER_NOTES_TABLE_NAME ?? "test-notes";
+    process.env.OPENAI_API_URL =
+      process.env.OPENAI_API_URL ?? "https://api.openai.com/v1/chat/completions";
+    process.env.OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+
+    const module = await import("../src/functions/notes/processGeneralNoteJob");
+    const helpers = module.__testHelpers as {
+      generateOpenAiStack: (input: {
+        url: string;
+        content: string;
+        topic: string | null;
+        requirements: string | null;
+        metadata?: Record<string, unknown>;
+        existingCards?: Array<{ front: string; back: string; extra?: string }>;
+        retryCount?: number;
+      }) => Promise<{
+        topic: string;
+        summary: string | null;
+        cards: Array<{ front: string; back: string; extra?: string }>;
+      }>;
+    };
+
+    const jobId = `retry-test-${Date.now()}`;
+    const existingCards = [
+      {
+        front: "What is system design?",
+        back: "System design is the process of defining the architecture, components, modules, interfaces, and data for a system to satisfy specified requirements.",
+        extra: "Key skill for technical interviews"
+      }
+    ];
+
+    const stack = await helpers.generateOpenAiStack({
+      url: "https://example.com/system-design-guide",
+      content: testContent,
+      topic: "System design & behavior study plan",
+      requirements: "Prioritize consensus-building tactics and failure handling",
+      metadata: { jobId },
+      existingCards,
+      retryCount: 1,
+    });
+
+    console.log("[test] Generated topic:", stack.topic);
+    console.log("[test] Total cards returned:", stack.cards.length);
+    console.log("[test] New cards added:", stack.cards.length - existingCards.length);
+
+    stack.cards.slice(0, 3).forEach((card, index) => {
       console.log(`-- Card ${index + 1} front:`, card.front);
       console.log(`   back:`, card.back);
       if (card.extra) {
@@ -100,5 +139,12 @@ describe("processGeneralNoteJob.generateCompleteStack", () => {
     });
 
     expect(Array.isArray(stack.cards)).toBe(true);
+    expect(stack.cards.length).toBeGreaterThan(existingCards.length);
+
+    // Verify existing cards are preserved
+    const foundExistingCard = stack.cards.some(
+      card => card.front === existingCards[0].front
+    );
+    expect(foundExistingCard).toBe(true);
   });
 });

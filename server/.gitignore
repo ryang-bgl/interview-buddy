@@ -1,8 +1,0 @@
-.gradle
-build/
-target
-.idea/
-env
-env.nas
-env.production
-bin/

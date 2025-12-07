@@ -19,12 +19,12 @@
     "@aws-sdk/lib-dynamodb": "^3.540.0",
     "constructs": "^10.3.0",
     "jose": "^5.10.0",
-    "openai": "^4.73.1",
     "source-map-support": "^0.5.21"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.134",
     "@types/node": "^20.12.7",
+    "openai": "^4.73.1",
     "aws-cdk-lib": "^2.130.0",
     "cdk": "2.1031.2",
     "esbuild": "^0.20.2",
