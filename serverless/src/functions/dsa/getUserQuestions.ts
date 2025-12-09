@@ -5,6 +5,7 @@ import { docClient } from '../../shared/dynamodb';
 import { authenticateRequest, UnauthorizedError } from '../../shared/supabaseAuth';
 import { internalError, jsonResponse, unauthorized } from '../../shared/http';
 import { UserDsaQuestionRecord } from '../../shared/types';
+import { getAllDsaQuestions } from '../../shared/dsaQuestions';
 
 const userDsaTableName = process.env.USER_DSA_TABLE_NAME;
 
@@ -44,8 +45,16 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
 
   try {
     const { Items } = await docClient.send(queryCommand);
+    const allDsaQuestions = await getAllDsaQuestions();
+
+    // Create a map of question index to question data
+    const questionMap = new Map<number, any>();
+    allDsaQuestions.forEach(q => {
+      questionMap.set(q.index, q);
+    });
+
     const questions = (Items ?? []).map((record) =>
-      mapQuestion(record as UserDsaQuestionRecord)
+      mapQuestion(record as UserDsaQuestionRecord, questionMap)
     );
     return jsonResponse(200, questions);
   } catch (error) {
@@ -54,8 +63,13 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   }
 };
 
-function mapQuestion(record: UserDsaQuestionRecord) {
+function mapQuestion(record: UserDsaQuestionRecord, questionMap: Map<number, any>) {
   const questionIndex = record.questionIndex ?? (record as unknown as { index?: string }).index;
+  const questionIndexNum = parseInt(questionIndex, 10);
+
+  // Get additional data from the CSV
+  const csvQuestion = questionMap.get(questionIndexNum);
+
   return {
     id: record.questionId,
     userId: record.userId,
@@ -76,5 +90,8 @@ function mapQuestion(record: UserDsaQuestionRecord) {
     nextReviewDate: record.nextReviewDate ?? null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
+    // Add fields from CSV
+    tags: csvQuestion?.tags || [],
+    relatedQuestions: csvQuestion?.relatedQuestions || []
   };
 }
