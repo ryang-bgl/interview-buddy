@@ -543,13 +543,13 @@ export default function GeneralNotesTab() {
         !isLoadingExisting &&
         generationState !== "completed" && (
           <section className="space-y-4">
-            <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4 text-sm text-purple-900">
+            <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4 text-base text-purple-900">
               <p>
-                <span className="font-semibold">
+                <span className="font-semibold text-lg">
                   Generate flashcards from any content:
                 </span>
               </p>
-              <ol className="mt-2 list-decimal list-inside space-y-1 text-xs text-purple-700">
+              <ol className="mt-3 list-decimal list-inside space-y-2 text-sm text-purple-700 leading-relaxed">
                 <li>
                   Click "Select element" and highlight content on the page
                 </li>
@@ -558,7 +558,7 @@ export default function GeneralNotesTab() {
                 </li>
                 <li>AI will create flashcards from your selected content</li>
               </ol>
-              <p className="mt-2 text-xs text-purple-700 italic">
+              <p className="mt-3 text-sm text-purple-700 italic">
                 Note: You must select an element before generating cards.
               </p>
             </div>
@@ -646,39 +646,48 @@ export default function GeneralNotesTab() {
               ) : null}
 
               {/* Show generation progress after selected content */}
-              {isGenerating && generatedCardsCount > 0 && (
-                <div className="flex justify-center">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm text-blue-700 border border-blue-200">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                    </span>
-                    <span className="font-medium">
-                      <span className="inline-flex">
-                        {generatedCardsCount}
-                        <span className="mx-1">cards</span>
-                        <span className="inline-flex">
-                          <span>g</span>
-                          <span>e</span>
-                          <span>n</span>
-                          <span>e</span>
-                          <span>r</span>
-                          <span>a</span>
-                          <span>t</span>
-                          <span>e</span>
-                          <span>d</span>
+              {isGenerating && (
+                <div className="flex flex-col items-center space-y-2">
+                  <div className="relative">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-200">
+                      <svg
+                        className="h-6 w-6 animate-spin text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="absolute -inset-1 rounded-full bg-blue-400 opacity-20 animate-ping"></div>
+                  </div>
+                  <div className="text-center">
+                    <div className="inline-flex items-center gap-1 text-lg font-bold text-blue-600">
+                      <span className="relative">
+                        <span className="text-2xl transition-all duration-300 ease-out">
+                          {generatedCardsCount}
+                        </span>
+                        <span className="absolute -top-1 -right-2 text-xs font-medium text-blue-500 bg-blue-50 rounded-full px-1.5 py-0.5 animate-pulse">
+                          +1
                         </span>
                       </span>
-                    </span>
-                    <span className="inline-flex">
-                      <span>s</span>
-                      <span>o</span>
-                      <span> </span>
-                      <span>f</span>
-                      <span>a</span>
-                      <span>r</span>
-                      <span>...</span>
-                    </span>
+                      <span className="text-blue-500">card</span>
+                      {generatedCardsCount !== 1 && <span className="text-blue-500">s</span>}
+                    </div>
+                    <p className="text-xs text-blue-500 mt-1 animate-pulse">
+                      Generating flashcards...
+                    </p>
                   </div>
                 </div>
               )}

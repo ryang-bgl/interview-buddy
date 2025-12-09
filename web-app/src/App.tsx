@@ -73,7 +73,7 @@ const ProtectedShell = observer(() => {
           "hidden flex-col border-r px-6 py-8 lg:flex",
           theme === "dark"
             ? "border-[#1f2a40] bg-[#1c2640]"
-            : "border-slate-200 bg-white"
+            : "border-slate-200"
         )}
       >
         <div className="space-y-1">

@@ -20,6 +20,6 @@ export default defineManifest({
   side_panel: {
     default_path: "src/popup/index.html",
   },
-  permissions: ["scripting", "activeTab", "tabs", "storage", "sidePanel"],
+  permissions: ["scripting", "activeTab", "storage", "sidePanel"],
   host_permissions: ["<all_urls>"],
 });
