@@ -3,48 +3,24 @@ import { observer } from "mobx-react-lite";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
-  CheckCircle2,
   Mail,
-  NotebookPen,
-  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import { useStores } from "@/stores/StoreProvider";
+import { useTheme } from "@/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-
-const featureHighlights = [
-  {
-    icon: NotebookPen,
-    title: "Unified notebook",
-    description: "Capture prompts, notes, and code in one feed.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Secure by default",
-    description: "Passwordless auth + RLS for every note.",
-  },
-  {
-    icon: CheckCircle2,
-    title: "Signals you trust",
-    description: "Track patterns, difficulty, readiness.",
-  },
-];
 
 const LoginView = observer(() => {
   const { loginStore } = useStores();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const {
     viewState,
     email,
@@ -91,183 +67,127 @@ const LoginView = observer(() => {
   const awaitingOtp = viewState === "awaitingOtp";
 
   return (
-    <div className="grid min-h-screen grid-cols-1 bg-background lg:grid-cols-[1.05fr_0.95fr]">
-      <aside className="relative hidden overflow-hidden bg-slate-950 text-white lg:flex">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(148,_163,_255,_0.25),_transparent_55%)]" />
-        <div className="absolute inset-0 bg-[conic-gradient(at_top,_#312e81,_#0f172a,_#020617)] opacity-70" />
-        <div className="relative z-10 flex w-full flex-col justify-between p-12">
-          <div className="space-y-6">
-            <Badge
-              variant="secondary"
-              className="border-white/30 bg-white/10 text-white"
-            >
-              Private beta · Spring Playlists
-            </Badge>
-            <div className="space-y-3">
-              <h1 className="text-4xl font-semibold tracking-tight">
-                Move faster on interviews.
-              </h1>
-              <p className="text-base text-white/70">
-                Capture in Chrome, review on the go with Mobile and Web.
-              </p>
-            </div>
-            <div className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-              {featureHighlights.map((feature) => (
-                <div key={feature.title} className="flex gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/5 text-white">
-                    <feature.icon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">{feature.title}</p>
-                    <p className="text-sm text-white/70">
-                      {feature.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-white/80 backdrop-blur">
-            <p className="font-medium">Realtime sync</p>
-            <p className="text-white/60">Chrome extension • Notebook API</p>
-          </div>
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-2 text-foreground">
+            LeetStack
+          </h1>
+          <p className="text-muted-foreground">
+            {awaitingOtp ? "Check your inbox" : "Passwordless login"}
+          </p>
         </div>
-      </aside>
 
-      <main className="flex items-center justify-center px-6 py-12 sm:px-10">
-        <div className="w-full max-w-lg">
-          <div className="mb-8 flex flex-col gap-3 text-center lg:text-left">
-            <Badge
-              variant="secondary"
-              className="w-fit bg-muted text-muted-foreground"
-            >
-              Secure access
-            </Badge>
-            <div>
-              <p className="text-sm text-muted-foreground">
-                Sign in to LeetStack
-              </p>
-              <h2 className="text-3xl font-semibold tracking-tight text-foreground">
-                {awaitingOtp ? "Check your inbox" : "Welcome back"}
+        {/* Login Card */}
+        <Card className="shadow-xl">
+          <CardContent className="p-6 space-y-6">
+            {/* Icon and Title */}
+            <div className="text-center space-y-3">
+              <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto">
+                <Mail className="h-6 w-6 text-blue-500" />
+              </div>
+              <h2 className="text-xl font-semibold text-foreground">
+                {awaitingOtp ? "Enter your code" : "Sign in with email"}
               </h2>
               <p className="text-sm text-muted-foreground">
                 {awaitingOtp
-                  ? "Enter the 8 digit passcode we sent."
-                  : "Passwordless login. Start with your work email."}
+                  ? "We sent a code to your email"
+                  : "Use your work email to get started"
+                }
               </p>
             </div>
-          </div>
 
-          <Card className="border-border/60 shadow-xl">
-            <CardHeader className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4" />
-                Secure one-time code
+            {/* Error Message */}
+            {error ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {error}
               </div>
-              <CardTitle className="text-2xl">
-                {awaitingOtp
-                  ? "We emailed you a code"
-                  : "Request a code with email"}
-              </CardTitle>
-              <CardDescription>
-                {awaitingOtp
-                  ? "Use the code to unlock your notebook."
-                  : "Use the same email as your Chrome extension."}
-              </CardDescription>
-            </CardHeader>
+            ) : null}
 
-            <CardContent className="space-y-6">
-              {error ? (
-                <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                  {error}
+            {/* Forms */}
+            {!awaitingOtp ? (
+              <form className="space-y-4" onSubmit={handleEmailSubmit}>
+                <div>
+                  <Label htmlFor="email" className="text-sm font-medium">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    autoFocus
+                    placeholder="you@company.com"
+                    disabled={isSubmitting}
+                  />
                 </div>
-              ) : null}
-
-              {!awaitingOtp ? (
-                <form className="space-y-5" onSubmit={handleEmailSubmit}>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      autoFocus
-                      placeholder="you@company.com"
-                      disabled={isSubmitting}
-                    />
-                  </div>
+                <Button
+                  type="submit"
+                  className="w-full font-medium transition-all duration-200 hover:scale-[1.02] bg-blue-500 hover:bg-blue-400 text-white"
+                  disabled={isSubmitting || !email.trim()}
+                >
+                  {isSubmitting ? "Sending code…" : "Email me a login code"}
+                </Button>
+              </form>
+            ) : (
+              <form className="space-y-4" onSubmit={handleOtpSubmit}>
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+                  Code sent to <span className="font-medium text-foreground">{email}</span>
+                </div>
+                <div>
+                  <Label htmlFor="otp" className="text-sm font-medium">
+                    Verification code
+                  </Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    inputMode="numeric"
+                    value={otp}
+                    onChange={(event) => setOtp(event.target.value)}
+                    placeholder="12345678"
+                    className="tracking-[0.35em] text-center text-base font-semibold"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div className="flex gap-3">
                   <Button
                     type="submit"
-                    className="w-full"
-                    disabled={isSubmitting || !email.trim()}
+                    className="flex-1 font-medium transition-all duration-200 bg-blue-500 hover:bg-blue-400 text-white"
+                    disabled={isSubmitting || !otp.trim()}
                   >
-                    {isSubmitting ? "Sending code…" : "Email me a login code"}
+                    {isSubmitting ? "Verifying…" : "Verify code"}
                   </Button>
-                </form>
-              ) : (
-                <form className="space-y-5" onSubmit={handleOtpSubmit}>
-                  <div className="space-y-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
-                    Code sent to{" "}
-                    <span className="font-medium text-foreground">{email}</span>
-                    .
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="otp">Verification code</Label>
-                    <Input
-                      id="otp"
-                      type="text"
-                      inputMode="numeric"
-                      value={otp}
-                      onChange={(event) => setOtp(event.target.value)}
-                      placeholder="12345678"
-                      className="tracking-[0.35em] text-center text-base font-semibold"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-3 sm:flex-row">
-                    <Button
-                      type="submit"
-                      className="flex-1"
-                      disabled={isSubmitting || !otp.trim()}
-                    >
-                      {isSubmitting ? "Verifying…" : "Verify code"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => resetPendingFlow()}
-                    >
-                      Start over
-                    </Button>
-                  </div>
-                </form>
-              )}
-
-              <Separator className="bg-border" />
-
-              <div className="flex items-start gap-3 rounded-2xl border border-border/80 p-4 text-sm text-muted-foreground">
-                <Sparkles className="mt-0.5 h-4 w-4 text-primary" />
-                <div>
-                  Use the same email as the Chrome extension to sync all your
-                  notes.
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => resetPendingFlow()}
+                  >
+                    Start over
+                  </Button>
                 </div>
-              </div>
-            </CardContent>
+              </form>
+            )}
 
-            <CardFooter className="flex flex-col gap-4 border-t border-border/60 bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-muted-foreground">
-                Need help? leetstack.app@gmail.com
-              </p>
-              <Button variant="ghost" size="sm" className="group">
+            {/* Help Text */}
+            <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+              <Sparkles className="h-4 w-4 text-blue-500" />
+              <span>Use the same email as your Chrome extension</span>
+            </div>
+          </CardContent>
+
+          {/* Footer */}
+          <div className="border-t px-6 py-4">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Need help? leetstack.app@gmail.com</span>
+              <Button variant="ghost" size="sm" className="p-0 h-auto">
                 View release notes
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="h-3 w-3 ml-1 text-blue-500" />
               </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      </main>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 });

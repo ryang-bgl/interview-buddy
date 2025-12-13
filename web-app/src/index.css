@@ -11,8 +11,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #0f172a;
-  color: #0f172a;
+  /* Theme colors are applied via CSS variables in @layer base below */
 }
 
 button {
@@ -29,13 +28,13 @@ button {
     --card-foreground: 15 15% 20%;
     --popover: 90 30% 99%;
     --popover-foreground: 15 15% 20%;
-    --primary: 45 100% 62%; /* Solarized blue */
+    --primary: 200 80% 40%; /* Solarized blue */
     --primary-foreground: 44 13% 93%;
     --secondary: 14 90% 70%; /* Solarized cyan */
     --secondary-foreground: 44 13% 93%;
     --muted: 44 13% 90%; /* Solarized base1 */
     --muted-foreground: 15 15% 30%;
-    --accent: 9 100% 64%; /* Solarized orange */
+    --accent: 0 0% 65%; /* Blue accent color */
     --accent-foreground: 44 13% 93%;
     --destructive: 0 71% 71%; /* Solarized red */
     --destructive-foreground: 44 13% 93%;
@@ -44,7 +43,7 @@ button {
     --ring: 45 100% 62%; /* Solarized blue ring */
     --chart-1: 45 100% 62%; /* Solarized blue */
     --chart-2: 14 90% 70%; /* Solarized cyan */
-    --chart-3: 9 100% 64%; /* Solarized orange */
+    --chart-3: 217 91% 60%; /* Blue accent */
     --chart-4: 0 71% 71%; /* Solarized red */
     --chart-5: 20 80% 43%; /* Solarized magenta */
     --radius: 0.5rem;
@@ -62,7 +61,7 @@ button {
     --secondary-foreground: 0 0% 96%;
     --muted: 222 28% 18%;
     --muted-foreground: 220 15% 70%;
-    --accent: 248 76% 68%;
+    --accent: 217 91% 55%;
     --accent-foreground: 0 0% 0%;
     --destructive: 0 85% 60%;
     --destructive-foreground: 0 0% 96%;
@@ -71,7 +70,7 @@ button {
     --ring: 257 90% 70%;
     --chart-1: 262 83% 70%;
     --chart-2: 199 89% 55%;
-    --chart-3: 41 100% 70%;
+    --chart-3: 217 91% 55%;
     --chart-4: 152 61% 52%;
     --chart-5: 343 82% 67%;
   }
