@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Play } from "lucide-react";
 import { useStores } from "@/stores/StoreProvider";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -16,32 +17,54 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 const NotesView = observer(() => {
   const { notebookStore } = useStores();
-  const { filteredNotes, noteTagFilters, noteTags } = notebookStore;
+  const navigate = useNavigate();
+  const { filteredNotes, noteTagFilters, noteTags, dueNoteCount } = notebookStore;
+
   useEffect(() => {
     notebookStore.ensureNotesLoaded();
   }, [notebookStore]);
   const loading = notebookStore.isLoadingNotes && !notebookStore.hasLoadedNotes;
 
+  const handleStartNotesReview = () => {
+    // Set review source to notes only and navigate
+    notebookStore.setReviewSource("notes");
+    navigate("/review");
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">General notes</p>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Notes & Flashcards
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Every snippet from Text → Flashcards shows up here for editing.
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">General notes</p>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              Notes & Flashcards
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Every snippet from Text → Flashcards shows up here for editing.
+            </p>
+          </div>
+          {dueNoteCount > 0 && (
+            <Button
+              onClick={handleStartNotesReview}
+              className="gap-2"
+            >
+              <Play className="h-4 w-4" />
+              Review {dueNoteCount} Note{dueNoteCount > 1 ? "s" : ""}
+            </Button>
+          )}
         </div>
-        <Input
-          placeholder="Search notes"
-          value={notebookStore.noteSearchQuery}
-          onChange={(event) =>
-            notebookStore.setNoteSearchQuery(event.target.value)
-          }
-          className="lg:w-72"
-        />
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div></div>
+          <Input
+            placeholder="Search notes"
+            value={notebookStore.noteSearchQuery}
+            onChange={(event) =>
+              notebookStore.setNoteSearchQuery(event.target.value)
+            }
+            className="lg:w-72"
+          />
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">

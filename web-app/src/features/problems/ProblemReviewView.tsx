@@ -34,6 +34,20 @@ const ProblemReviewView = observer(() => {
   const prevProblemId = currentIndex > 0 ? problems[currentIndex - 1]?.id : null
   const nextProblemId = currentIndex >= 0 && currentIndex < problems.length - 1 ? problems[currentIndex + 1]?.id : null
   const card = problem ? notebookStore.getProblemReviewCard(problem.id) : null
+
+  const handleGradeAndNext = (grade: "hard" | "good" | "easy") => {
+    notebookStore.gradeReviewCard(card.id, grade);
+    // Navigate to next problem after a short delay
+    setTimeout(() => {
+      if (nextProblemId) {
+        navigate(`/review/problems/${nextProblemId}`);
+      } else {
+        // No more problems, go back to problems list
+        navigate('/problems');
+      }
+    }, 300);
+  };
+
   const steps = [
     {
       label: 'Problem description',
@@ -162,21 +176,29 @@ const ProblemReviewView = observer(() => {
                   <Button
                     className="flex-1"
                     variant="outline"
-                    onClick={() => notebookStore.gradeReviewCard(card.id, 'hard')}
+                    onClick={() => handleGradeAndNext('hard')}
                   >
                     Hard
                   </Button>
                   <Button
                     className="flex-1"
                     variant="outline"
-                    onClick={() => notebookStore.gradeReviewCard(card.id, 'good')}
+                    onClick={() => handleGradeAndNext('good')}
                   >
                     Medium
                   </Button>
-                  <Button className="flex-1" onClick={() => notebookStore.gradeReviewCard(card.id, 'easy')}>
+                  <Button
+                    className="flex-1"
+                    onClick={() => handleGradeAndNext('easy')}
+                  >
                     Easy
                   </Button>
                 </div>
+                {nextProblemId && (
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Next: {notebookStore.getProblemById(nextProblemId)?.title}
+                  </p>
+                )}
               </div>
             )}
           </div>

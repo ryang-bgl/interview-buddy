@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   BookOpen,
@@ -8,6 +8,8 @@ import {
   Flame,
   NotebookPen,
   PlayCircle,
+  Code,
+  FileText,
 } from "lucide-react";
 import { useStores } from "@/stores/StoreProvider";
 import {
@@ -23,10 +25,38 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 const DashboardView = observer(() => {
   const { notebookStore } = useStores();
+  const navigate = useNavigate();
+
   useEffect(() => {
     notebookStore.ensureProblemsLoaded();
     notebookStore.ensureNotesLoaded();
   }, [notebookStore]);
+
+  const handleStartProblemsReview = () => {
+    // Get all due problems and sort by due date (oldest first)
+    const now = Date.now();
+    const dueProblems = notebookStore.reviewCardList
+      .filter(
+        (card) =>
+          card.sourceType === "problem" && new Date(card.due).getTime() <= now
+      )
+      .sort((a, b) => new Date(a.due).getTime() - new Date(b.due).getTime());
+
+    if (dueProblems.length > 0) {
+      // Navigate to the first problem's detailed review view
+      navigate(`/review/problems/${dueProblems[0].sourceId}`);
+    } else {
+      // Fallback to the regular review page with problems filter
+      notebookStore.setReviewSource("problems");
+      navigate("/review");
+    }
+  };
+
+  const handleStartNotesReview = () => {
+    // Set review source to notes only and navigate
+    notebookStore.setReviewSource("notes");
+    navigate("/review");
+  };
 
   const stats = notebookStore.getStats();
   const loadingProblems =
@@ -138,26 +168,65 @@ const DashboardView = observer(() => {
         ))}
       </section>
 
-      <section className="rounded-3xl border border-dashed border-rose-200 bg-gradient-to-r from-rose-50 to-orange-50 p-6 shadow-sm dark:border-rose-400/30 dark:from-[#2b1f3b] dark:to-[#3a1f2a]">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-rose-600">
-              Ready for review
-            </p>
-            <p className="text-sm text-slate-600">
-              You have <span className="font-semibold">{totalDue}</span> items
-              waiting ({dueProblemCount} problems · {dueNoteCount} notes)
-            </p>
+      <section className="space-y-4">
+        <div className="rounded-3xl border border-dashed border-rose-200 bg-gradient-to-r from-rose-50 to-orange-50 p-6 shadow-sm dark:border-rose-400/30 dark:from-[#2b1f3b] dark:to-[#3a1f2a]">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-rose-600">
+                Ready for review
+              </p>
+              <p className="text-sm text-slate-600">
+                You have <span className="font-semibold">{totalDue}</span> items
+                waiting ({dueProblemCount} problems · {dueNoteCount} notes)
+              </p>
+            </div>
           </div>
-          <Button
-            size="lg"
-            className="bg-gradient-to-r from-rose-500 to-orange-400 text-white"
-            asChild
-          >
-            <Link to="/review">
-              <PlayCircle className="mr-2 h-4 w-4" /> Start review session
-            </Link>
-          </Button>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="border-blue-200 bg-blue-50 dark:border-blue-400/30 dark:bg-blue-950/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                <Code className="h-5 w-5" />
+                DSA Problems
+              </CardTitle>
+              <CardDescription className="text-blue-600 dark:text-blue-400">
+                {dueProblemCount} problem{dueProblemCount !== 1 ? 's' : ''} due for review
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <Button
+                className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                onClick={handleStartProblemsReview}
+                disabled={dueProblemCount === 0}
+              >
+                <PlayCircle className="mr-2 h-4 w-4" />
+                Review Problems
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-green-200 bg-green-50 dark:border-green-400/30 dark:bg-green-950/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                <FileText className="h-5 w-5" />
+                Notes
+              </CardTitle>
+              <CardDescription className="text-green-600 dark:text-green-400">
+                {dueNoteCount} note{dueNoteCount !== 1 ? 's' : ''} due for review
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <Button
+                className="w-full bg-green-600 text-white hover:bg-green-700"
+                onClick={handleStartNotesReview}
+                disabled={dueNoteCount === 0}
+              >
+                <PlayCircle className="mr-2 h-4 w-4" />
+                Review Notes
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
