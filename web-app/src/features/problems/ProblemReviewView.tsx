@@ -44,12 +44,12 @@ const ProblemReviewView = observer(() => {
       content: problem?.solution ?? 'Capture your solution from Chrome to sync it here.',
     },
     {
-      label: 'Personal notes',
-      content: problem?.note ?? 'Add reminders or edge cases in the detail view.',
+      label: 'AI solution',
+      content: problem?.idealSolutionCode ?? 'AI solution coming soon.',
     },
     {
-      label: 'AI analysis',
-      content: problem?.idealSolutionCode ?? 'AI solution coming soon.',
+      label: 'Personal notes',
+      content: problem?.note ?? 'Add reminders or edge cases in the detail view.',
     },
   ]
 
@@ -97,73 +97,95 @@ const ProblemReviewView = observer(() => {
       <Card className="border-border/80">
         <CardHeader className="flex items-center justify-between">
           <div>
-            <CardTitle>Anki steps</CardTitle>
-            <CardDescription>{`Step ${stepIndex + 1} of ${steps.length}`}</CardDescription>
+            <CardTitle>Problem Review</CardTitle>
+            <CardDescription>{`Step ${stepIndex + 1} of ${steps.length} · ${steps[stepIndex].label}`}</CardDescription>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-semibold">{steps[stepIndex].label}</span>
+          <div className="flex items-center gap-2">
+            <Badge variant={problem.difficulty === 'Easy' ? 'secondary' : problem.difficulty === 'Medium' ? 'default' : 'destructive'}>
+              {problem.difficulty}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-3xl border border-dashed border-border/80 bg-white p-6 shadow-sm">
-            <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
-              {steps[stepIndex].label}
-            </p>
-            <Separator className="my-4" />
-            <p className="text-lg text-slate-900 whitespace-pre-line">
-              {steps[stepIndex].content}
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button
-              variant="outline"
-              className="flex-1"
-              disabled={stepIndex === 0}
-              onClick={() => setStepIndex((index) => Math.max(0, index - 1))}
-            >
-              Previous
-            </Button>
-            {stepIndex < steps.length - 1 ? (
-              <Button
-                className="flex-1"
-                onClick={() => setStepIndex((index) => Math.min(steps.length - 1, index + 1))}
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                className="flex-1"
-                onClick={() => setStepIndex(0)}
-              >
-                Restart steps
-              </Button>
+          <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+            <div className="rounded-3xl border border-dashed border-border/80 bg-white p-6 shadow-sm">
+              {stepIndex === 0 && (
+                <>
+                  <p className="text-2xl font-bold text-foreground mb-4">
+                    {problem.questionIndex} · {problem.title}
+                  </p>
+                  <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground mb-2">
+                    Problem description
+                  </p>
+                </>
+              )}
+              {stepIndex > 0 && (
+                <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+                  {steps[stepIndex].label}
+                </p>
+              )}
+              <Separator className={stepIndex === 0 ? 'my-4' : 'my-4'} />
+              <p className="text-lg text-slate-900 whitespace-pre-line">
+                {steps[stepIndex].content}
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {stepIndex > 0 && (
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setStepIndex((index) => Math.max(0, index - 1))}
+                >
+                  Previous
+                </Button>
+              )}
+              {stepIndex < steps.length - 1 ? (
+                <Button
+                  className={`${stepIndex > 0 ? 'flex-1' : 'w-full'}`}
+                  onClick={() => setStepIndex((index) => Math.min(steps.length - 1, index + 1))}
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  className={`${stepIndex > 0 ? 'flex-1' : 'w-full'}`}
+                  onClick={() => setStepIndex(0)}
+                >
+                  Restart review
+                </Button>
+              )}
+            </div>
+            {stepIndex === steps.length - 1 && (
+              <div className="space-y-3 pt-4 border-t">
+                <p className="text-sm text-muted-foreground text-center">How difficult was this problem?</p>
+                <div className="flex flex-col gap-3 sm:flex-row animate-in slide-in-from-bottom-2 duration-300">
+                  <Button
+                    className="flex-1"
+                    variant="outline"
+                    onClick={() => notebookStore.gradeReviewCard(card.id, 'hard')}
+                  >
+                    Hard
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    variant="outline"
+                    onClick={() => notebookStore.gradeReviewCard(card.id, 'good')}
+                  >
+                    Medium
+                  </Button>
+                  <Button className="flex-1" onClick={() => notebookStore.gradeReviewCard(card.id, 'easy')}>
+                    Easy
+                  </Button>
+                </div>
+              </div>
             )}
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button
-              className="flex-1"
-              variant="outline"
-              onClick={() => notebookStore.gradeReviewCard(card.id, 'hard')}
-            >
-              Hard
-            </Button>
-            <Button
-              className="flex-1"
-              variant="outline"
-              onClick={() => notebookStore.gradeReviewCard(card.id, 'good')}
-            >
-              Good
-            </Button>
-            <Button className="flex-1" onClick={() => notebookStore.gradeReviewCard(card.id, 'easy')}>
-              Easy
-            </Button>
           </div>
         </CardContent>
       </Card>
 
       <Card className="border-border/80">
         <CardHeader>
-          <CardTitle>Card tags</CardTitle>
+          <CardTitle>Card Details</CardTitle>
           <CardDescription>
             {`Due ${new Date(card.due).toLocaleString()} · streak ${card.streak}`}
           </CardDescription>
@@ -182,9 +204,9 @@ const ProblemReviewView = observer(() => {
       <div className="flex flex-wrap gap-3">
         <Button
           variant="outline"
-          onClick={() => navigate(`/review/problems/${problem.id}`)}
+          onClick={() => setStepIndex(0)}
         >
-          Replay card
+          Restart current problem
         </Button>
         <Button
           variant="outline"

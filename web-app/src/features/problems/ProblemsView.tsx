@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
-import { Link } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, Play } from "lucide-react";
 import { useStores } from "@/stores/StoreProvider";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 const difficultyStyles: Record<string, string> = {
@@ -21,20 +22,53 @@ const formatDate = (value?: string | null) => {
 
 const ProblemsView = observer(() => {
   const { notebookStore } = useStores();
+  const navigate = useNavigate();
   useEffect(() => {
     notebookStore.ensureProblemsLoaded();
   }, [notebookStore]);
   const loading =
     notebookStore.isLoadingProblems && !notebookStore.hasLoadedProblems;
   const problems = notebookStore.filteredProblems;
+  const dueProblemCount = notebookStore.dueProblemCount;
+
+  const handleStartReview = () => {
+    // Get all due problems and sort by due date (oldest first)
+    const now = Date.now();
+    const dueProblems = notebookStore.reviewCardList
+      .filter(
+        (card) =>
+          card.sourceType === "problem" && new Date(card.due).getTime() <= now
+      )
+      .sort((a, b) => new Date(a.due).getTime() - new Date(b.due).getTime());
+
+    if (dueProblems.length > 0) {
+      // Navigate to the first problem's detailed review view
+      navigate(`/review/problems/${dueProblems[0].sourceId}`);
+    } else {
+      // Fallback to the regular review page if no due problems
+      notebookStore.setReviewSource("problems");
+      navigate("/review");
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
-            DSA Problems
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
+              DSA Problems
+            </h1>
+            {dueProblemCount > 0 && (
+              <Button
+                onClick={handleStartReview}
+                className="gap-2"
+              >
+                <Play className="h-4 w-4" />
+                Review {dueProblemCount} Due Problem{dueProblemCount > 1 ? "s" : ""}
+              </Button>
+            )}
+          </div>
         </div>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="relative flex-1">
