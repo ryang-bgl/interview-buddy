@@ -86,13 +86,13 @@ export async function findLeetCodeProblemDetailsInActivePage(
             if (!normalized) {
               return undefined;
             }
-            if (normalized.includes("easy")) {
+            if (normalized.includes("easy") || normalized.includes("difficulty-easy")) {
               return "Easy";
             }
-            if (normalized.includes("good")) {
-              return "Good";
+            if (normalized.includes("medium") || normalized.includes("difficulty-medium")) {
+              return "Medium";
             }
-            if (normalized.includes("hard")) {
+            if (normalized.includes("hard") || normalized.includes("difficulty-hard")) {
               return "Hard";
             }
             return undefined;
@@ -138,13 +138,13 @@ export async function findLeetCodeProblemDetailsInActivePage(
               if (!sibling) {
                 continue;
               }
-              const directText = normalizeDifficulty(sibling.textContent);
-              if (directText) {
-                return directText;
-              }
               const nested = inspectNode(sibling);
               if (nested) {
                 return nested;
+              }
+              const directText = normalizeDifficulty(sibling.textContent);
+              if (directText) {
+                return directText;
               }
             }
 

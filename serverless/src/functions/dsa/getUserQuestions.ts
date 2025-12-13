@@ -45,7 +45,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
 
   try {
     const { Items } = await docClient.send(queryCommand);
-    const allDsaQuestions = await getAllDsaQuestions();
+    const allDsaQuestions = getAllDsaQuestions(); // Now synchronous
 
     // Create a map of question index to question data
     const questionMap = new Map<number, any>();

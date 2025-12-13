@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "npm run compress:data && tsc -p tsconfig.json",
+    "compress:data": "jq -c '.' src/shared/dsaQuestionsData.json > src/shared/dsaQuestionsData.json.tmp && mv src/shared/dsaQuestionsData.json.tmp src/shared/dsaQuestionsData.json",
     "synth": "cdk synth",
     "deploy": "cdk deploy",
     "deploy:dev": "cdk deploy InterviewBuddyApiStack-dev -c stage=dev",
