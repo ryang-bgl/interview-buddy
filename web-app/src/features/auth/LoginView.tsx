@@ -51,6 +51,8 @@ const LoginView = observer(() => {
     verifyLoginCode();
   };
 
+  const awaitingOtp = viewState === "awaitingOtp";
+
   if (viewState === "checking") {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -67,8 +69,6 @@ const LoginView = observer(() => {
       </div>
     );
   }
-
-  const awaitingOtp = viewState === "awaitingOtp";
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-background via-background to-muted/20">

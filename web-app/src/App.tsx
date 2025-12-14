@@ -39,14 +39,16 @@ const ProtectedShell = observer(() => {
   const { loginStore, notebookStore } = useStores();
   const { theme, toggleTheme } = useTheme();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  if (!loginStore.isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+
   useEffect(() => {
     if (loginStore.isAuthenticated) {
       void notebookStore.refreshAll();
     }
   }, [loginStore.isAuthenticated, notebookStore]);
+
+  if (!loginStore.isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
   const closeMobileNav = () => setMobileNavOpen(false);
   const userLabel = loginStore.user?.email ?? loginStore.email;
   const dueTotal = notebookStore.dueProblemCount + notebookStore.dueNoteCount;
