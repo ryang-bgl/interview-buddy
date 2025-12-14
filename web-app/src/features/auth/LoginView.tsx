@@ -194,10 +194,22 @@ const LoginView = observer(() => {
               </div>
             )}
 
-            <div className="pt-4 border-t text-xs text-muted-foreground">
+            <div className="pt-4 border-t space-y-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Shield className="h-3 w-3" />
                 <span>Use the same email as your Chrome extension</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>Don't have the extension?</span>
+                <a
+                  href="https://chromewebstore.google.com/detail/leetstack/npflknpllcpnddnhpdkmdjnlomfgmjph"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline font-medium"
+                >
+                  Get LeetStack Extension
+                </a>
+                <img src="/assets/chrome.svg" alt="Chrome Web Store" className="h-4 w-4" />
               </div>
             </div>
           </CardContent>

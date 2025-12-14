@@ -37,9 +37,8 @@ export function JoinWaitlist() {
         <div className="flex flex-col items-center gap-3 text-center">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-purple-200">
-              Chrome Extension + Mobile beta
+              Chrome Extension + Web beta
             </p>
-            <h3 className="text-2xl font-semibold">Join the wait list</h3>
           </div>
           {submitState === "success" && (
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-100/10 px-3 py-1 text-xs font-semibold text-emerald-200">

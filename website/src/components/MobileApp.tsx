@@ -79,8 +79,9 @@ export function MobileApp() {
               <Smartphone className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-purple-600">Section</p>
-              <p className="text-xl font-semibold text-slate-900">Mobile Review App</p>
+              <p className="text-xl font-semibold text-slate-900">
+                Mobile Review App
+              </p>
             </div>
             <span className="rounded-full border border-purple-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-purple-600">
               Coming soon

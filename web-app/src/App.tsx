@@ -23,6 +23,7 @@ import {
   Settings,
   StickyNote,
   Workflow,
+  ExternalLink,
 } from "lucide-react";
 import { useTheme } from "@/theme/ThemeProvider";
 
@@ -119,6 +120,25 @@ const ProtectedShell = observer(() => {
             <Menu className="h-4 w-4" />
           </button>
           <div className="ml-auto flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full border-slate-300 text-slate-600 dark:border-slate-700 dark:text-slate-200"
+              aria-label="Install Chrome Extension"
+              onClick={() =>
+                window.open(
+                  "https://chromewebstore.google.com/detail/leetstack/npflknpllcpnddnhpdkmdjnlomfgmjph",
+                  "_blank"
+                )
+              }
+              title="Install Chrome Extension"
+            >
+              <img
+                src="/assets/chrome.svg"
+                alt="Chrome Web Store"
+                className="h-8 w-9"
+              />
+            </Button>
             <Button
               variant="outline"
               size="icon"

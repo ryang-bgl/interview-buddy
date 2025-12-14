@@ -1,5 +1,4 @@
 import {
-  Chrome,
   Smartphone,
   Zap,
   Sparkles,
@@ -46,8 +45,43 @@ export function Hero() {
             </span>
           </h1>
 
-          <div className="mb-12">
-            <JoinWaitlist />
+          <div className="mb-12 flex flex-col gap-6 sm:flex-row sm:justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <a
+                href="https://chromewebstore.google.com/detail/leetstack/npflknpllcpnddnhpdkmdjnlomfgmjph"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group w-full min-w-[200px] px-6 py-5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105"
+              >
+                <img
+                  src="/assets/chrome.svg"
+                  alt="Chrome Web Store"
+                  className="w-5 h-5"
+                />
+                <span className="font-medium">Install Chrome Extension</span>
+                <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+              </a>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <a
+                href="https://web.leetstack.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full min-w-[200px] px-6 py-5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:shadow-2xl hover:shadow-green-500/50 transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105"
+              >
+                <BookOpen className="w-5 h-5" />
+                <span className="font-medium">Review In Web</span>
+              </a>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <button className="w-full min-w-[200px] px-6 py-5 bg-white/10 backdrop-blur-lg text-white border border-white/20 rounded-xl hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105">
+                <Smartphone className="w-5 h-5" />
+                <span className="font-medium">Download Mobile App</span>
+              </button>
+              <span className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+                Coming soon
+              </span>
+            </div>
           </div>
 
           <p className="max-w-3xl mx-auto text-xl text-gray-300 mb-12 leading-relaxed">
@@ -69,27 +103,6 @@ export function Hero() {
             </span>
           </p>
 
-          <div className="mb-12 flex flex-col gap-6 sm:flex-row sm:justify-center">
-            <div className="flex flex-col items-center gap-2">
-              <button className="group w-full min-w-[220px] px-8 py-5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105">
-                <Chrome className="w-5 h-5" />
-                <span className="font-medium">Install Chrome Extension</span>
-                <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-              </button>
-              <span className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
-                Coming soon
-              </span>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <button className="w-full min-w-[220px] px-8 py-5 bg-white/10 backdrop-blur-lg text-white border border-white/20 rounded-xl hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105">
-                <Smartphone className="w-5 h-5" />
-                <span className="font-medium">Download Mobile App</span>
-              </button>
-              <span className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
-                Coming soon
-              </span>
-            </div>
-          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 max-w-5xl mx-auto mb-16">
             <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-lg p-8 rounded-2xl border border-green-500/20 hover:border-green-500/40 transition-all hover:shadow-xl hover:shadow-green-500/20 hover:-translate-y-1">
               <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">

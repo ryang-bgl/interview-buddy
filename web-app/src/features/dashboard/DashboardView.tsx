@@ -259,7 +259,8 @@ const DashboardView = observer(() => {
           </Card>
         ))}
       </section>
-    </div>
+
+      </div>
   );
 });
 

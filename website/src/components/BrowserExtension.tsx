@@ -50,16 +50,14 @@ export function BrowserExtension() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex justify-center mb-10">
           <div className="flex items-center gap-4 rounded-2xl border border-emerald-200 bg-white/90 px-6 py-4 shadow-xl shadow-emerald-100">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 text-white">
-              <Chrome className="h-6 w-6" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-b text-white">
+              <img src="/assets/chrome.svg" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Section</p>
-              <p className="text-xl font-semibold text-slate-900">Browser Extension</p>
+              <p className="text-xl font-semibold text-slate-900">
+                Browser Extension
+              </p>
             </div>
-            <span className="rounded-full border border-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-600">
-              Coming soon
-            </span>
           </div>
         </div>
 
