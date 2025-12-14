@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyStateSplash } from "@/components/dashboard/EmptyStateSplash";
 
 const DashboardView = observer(() => {
   const { notebookStore } = useStores();
@@ -64,6 +65,18 @@ const DashboardView = observer(() => {
   const dueProblemCount = notebookStore.dueProblemCount;
   const dueNoteCount = notebookStore.dueNoteCount;
   const totalDue = dueProblemCount + dueNoteCount;
+
+  // Check if both DSA questions and notes are empty/null
+  const hasData =
+    notebookStore.hasLoadedProblems && notebookStore.hasLoadedNotes;
+  const hasNoContent =
+    hasData &&
+    notebookStore.problems.length === 0 &&
+    notebookStore.notes.length === 0;
+
+  const handleRefreshData = () => {
+    notebookStore.refreshAll(true);
+  };
 
   const metricCards = [
     {
@@ -112,6 +125,11 @@ const DashboardView = observer(() => {
       icon: NotebookPen,
     },
   ];
+
+  // Show splash screen if both DSA questions and notes are empty/null
+  if (hasNoContent) {
+    return <EmptyStateSplash onGetStarted={handleRefreshData} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -259,8 +277,7 @@ const DashboardView = observer(() => {
           </Card>
         ))}
       </section>
-
-      </div>
+    </div>
   );
 });
 
