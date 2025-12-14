@@ -23,7 +23,6 @@ import {
   Settings,
   StickyNote,
   Workflow,
-  ExternalLink,
 } from "lucide-react";
 import { useTheme } from "@/theme/ThemeProvider";
 
