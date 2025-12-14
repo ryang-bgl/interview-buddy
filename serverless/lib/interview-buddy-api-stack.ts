@@ -582,10 +582,18 @@ export class InterviewBuddyApiStack extends Stack {
     aiSolutionTable.grantReadWriteData(generateAiSolutionFn);
 
     const cors: CorsPreflightOptions = {
-      allowHeaders: ["Content-Type", "x-api-key", "authorization"],
+      allowHeaders: [
+        "Content-Type",
+        "x-api-key",
+        "authorization",
+        "Accept",
+        "Accept-Language",
+        "Content-Language"
+      ],
       allowMethods: [CorsHttpMethod.ANY],
       allowOrigins: ["*"],
-      maxAge: Duration.days(10),
+      maxAge: Duration.days(30), // Cache preflight for 30 days
+      allowCredentials: false, // Since we use Authorization header
     };
 
     const httpApi = new HttpApi(this, "InterviewBuddyHttpApi", {

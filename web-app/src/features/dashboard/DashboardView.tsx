@@ -1,19 +1,15 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
-  ArrowRight,
   BookOpen,
-  ClipboardList,
-  Flame,
   NotebookPen,
   PlayCircle,
   Code,
   FileText,
   Activity,
-  Zap,
   TrendingUp,
-  Terminal,
+  ArrowRight,
 } from "lucide-react";
 import { useStores } from "@/stores/StoreProvider";
 import {
@@ -24,8 +20,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 const DashboardView = observer(() => {
   const { notebookStore } = useStores();

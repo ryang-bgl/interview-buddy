@@ -36,6 +36,7 @@ const ProblemReviewView = observer(() => {
   const card = problem ? notebookStore.getProblemReviewCard(problem.id) : null
 
   const handleGradeAndNext = (grade: "hard" | "good" | "easy") => {
+    if (!card) return;
     notebookStore.gradeReviewCard(card.id, grade);
     // Navigate to next problem after a short delay
     setTimeout(() => {

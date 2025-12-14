@@ -5,6 +5,7 @@ import { docClient } from '../../shared/dynamodb';
 import { authenticateRequest, UnauthorizedError } from '../../shared/supabaseAuth';
 import { badRequest, internalError, jsonResponse, unauthorized } from '../../shared/http';
 import { UserDsaQuestionRecord } from '../../shared/types';
+import { getAllDsaQuestions } from '../../shared/dsaQuestions';
 
 const userDsaTableName = process.env.USER_DSA_TABLE_NAME;
 
@@ -58,12 +59,19 @@ export const handler: APIGatewayProxyHandlerV2 = async event => {
     ReturnValues: 'ALL_NEW',
   });
 
+  // Load all DSA questions to use as fallback for difficulty
+  const allDsaQuestions = getAllDsaQuestions();
+  const questionMap = new Map<number, any>();
+  allDsaQuestions.forEach(q => {
+    questionMap.set(q.index, q);
+  });
+
   try {
     const { Attributes } = await docClient.send(command);
     if (!Attributes) {
       return internalError();
     }
-    return jsonResponse(200, mapQuestion(Attributes as UserDsaQuestionRecord));
+    return jsonResponse(200, mapQuestion(Attributes as UserDsaQuestionRecord, questionMap));
   } catch (error: any) {
     if (error?.name === 'ConditionalCheckFailedException') {
       return badRequest('Question not found');
@@ -124,8 +132,18 @@ function parseNumeric(value: unknown): number | null {
   return null
 }
 
-function mapQuestion(record: UserDsaQuestionRecord) {
+function mapQuestion(record: UserDsaQuestionRecord, questionMap: Map<number, any>) {
   const questionIndex = record.questionIndex ?? (record as unknown as { index?: string }).index;
+  const questionIndexNum = parseInt(questionIndex, 10);
+
+  // Get additional data from the CSV
+  const csvQuestion = questionMap.get(questionIndexNum);
+
+  // Use saved difficulty, but fallback to CSV data if it's "Unknown" or missing
+  const difficulty = record.difficulty === 'Unknown' || !record.difficulty
+    ? csvQuestion?.difficulty || 'Unknown'
+    : record.difficulty;
+
   return {
     id: record.questionId,
     userId: record.userId,
@@ -133,7 +151,7 @@ function mapQuestion(record: UserDsaQuestionRecord) {
     index: questionIndex,
     title: record.title,
     titleSlug: record.titleSlug,
-    difficulty: record.difficulty,
+    difficulty: difficulty,
     description: record.description,
     solution: record.solution ?? null,
     idealSolutionCode: record.idealSolutionCode ?? null,
@@ -146,5 +164,8 @@ function mapQuestion(record: UserDsaQuestionRecord) {
     nextReviewDate: record.nextReviewDate ?? null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
+    // Add fields from CSV
+    tags: csvQuestion?.tags || [],
+    relatedQuestions: csvQuestion?.relatedQuestions || []
   };
 }

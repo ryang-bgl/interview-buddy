@@ -18,7 +18,6 @@ import {
   BookMarked,
   Moon,
   Sun,
-  Flame,
   LayoutDashboard,
   Menu,
   Settings,
@@ -51,16 +50,6 @@ const ProtectedShell = observer(() => {
   }
   const closeMobileNav = () => setMobileNavOpen(false);
   const userLabel = loginStore.user?.email ?? loginStore.email;
-  const dueTotal = notebookStore.dueProblemCount + notebookStore.dueNoteCount;
-  const today = new Date();
-  const dueToday = notebookStore.reviewCardList.filter((card) => {
-    const date = new Date(card.due);
-    return (
-      date.getFullYear() === today.getFullYear() &&
-      date.getMonth() === today.getMonth() &&
-      date.getDate() === today.getDate()
-    );
-  }).length;
   return (
     <div
       className={cn(

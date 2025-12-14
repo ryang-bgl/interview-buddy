@@ -70,6 +70,11 @@ function mapQuestion(record: UserDsaQuestionRecord, questionMap: Map<number, any
   // Get additional data from the CSV
   const csvQuestion = questionMap.get(questionIndexNum);
 
+  // Use saved difficulty, but fallback to CSV data if it's "Unknown" or missing
+  const difficulty = record.difficulty === 'Unknown' || !record.difficulty
+    ? csvQuestion?.difficulty || 'Unknown'
+    : record.difficulty;
+
   return {
     id: record.questionId,
     userId: record.userId,
@@ -77,7 +82,7 @@ function mapQuestion(record: UserDsaQuestionRecord, questionMap: Map<number, any
     index: questionIndex,
     title: record.title,
     titleSlug: record.titleSlug,
-    difficulty: record.difficulty,
+    difficulty: difficulty,
     description: record.description,
     solution: record.solution ?? null,
     idealSolutionCode: record.idealSolutionCode ?? null,

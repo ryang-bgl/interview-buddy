@@ -1,16 +1,14 @@
 import { type FormEvent, useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Mail, Shield, Cpu, Terminal, Zap } from "lucide-react";
+import { Mail, Shield, Terminal } from "lucide-react";
 import { useStores } from "@/stores/StoreProvider";
-import { useTheme } from "@/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -18,7 +16,6 @@ import {
 const LoginView = observer(() => {
   const { loginStore } = useStores();
   const navigate = useNavigate();
-  const { theme } = useTheme();
   const {
     viewState,
     email,
@@ -114,6 +111,12 @@ const LoginView = observer(() => {
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleEmailSubmit(event as any);
+                      }
+                    }}
                     autoFocus
                     placeholder="Enter your email"
                     disabled={isSubmitting}
@@ -153,6 +156,12 @@ const LoginView = observer(() => {
                     inputMode="numeric"
                     value={otp}
                     onChange={(event) => setOtp(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleOtpSubmit(event as any);
+                      }
+                    }}
                     placeholder="8-digit code"
                     disabled={isSubmitting}
                     maxLength={8}

@@ -20,8 +20,11 @@ const getPageUrl = () => {
 export function FeedbackWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [category, setCategory] = useState<SubmitFeedbackPayload["category"]>("idea");
-  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [category, setCategory] =
+    useState<SubmitFeedbackPayload["category"]>("idea");
+  const [status, setStatus] = useState<
+    "idle" | "sending" | "success" | "error"
+  >("idle");
   const [error, setError] = useState<string | null>(null);
 
   const isDisabled = status === "sending";
@@ -68,14 +71,15 @@ export function FeedbackWidget() {
         resetForm();
       }, 1200);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to send feedback";
+      const message =
+        err instanceof Error ? err.message : "Failed to send feedback";
       setError(message);
       setStatus("error");
     }
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end space-y-3">
+    <div className="fixed bottom-6 right-2 z-50 flex flex-col items-end space-y-3">
       {isOpen ? (
         <div className="mb-2 w-80 rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-[#0f172a]">
           <div className="mb-3 flex items-center justify-between">
@@ -105,15 +109,19 @@ export function FeedbackWidget() {
                 className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 value={category}
                 disabled={isDisabled}
-                onChange={(event) => setCategory(event.target.value as SubmitFeedbackPayload["category"])}
+                onChange={(event) =>
+                  setCategory(
+                    event.target.value as SubmitFeedbackPayload["category"]
+                  )
+                }
               >
                 {categories.map((value) => (
                   <option key={value} value={value}>
                     {value === "idea"
                       ? "Idea / Request"
                       : value === "bug"
-                        ? "Bug"
-                        : "Other"}
+                      ? "Bug"
+                      : "Other"}
                   </option>
                 ))}
               </select>
@@ -130,9 +138,7 @@ export function FeedbackWidget() {
                 onChange={(event) => setMessage(event.target.value)}
               />
             </div>
-            {error ? (
-              <p className="text-xs text-rose-500">{error}</p>
-            ) : null}
+            {error ? <p className="text-xs text-rose-500">{error}</p> : null}
             <Button
               type="submit"
               disabled={isDisabled}
@@ -147,7 +153,7 @@ export function FeedbackWidget() {
       <Button
         type="button"
         variant="secondary"
-        className="h-12 w-12 rounded-full shadow-lg"
+        className="h-12 w-12 rounded-full shadow-lg bg-blue-300"
         onClick={handleToggle}
         aria-label="Send feedback"
       >

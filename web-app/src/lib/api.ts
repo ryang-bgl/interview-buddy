@@ -24,17 +24,25 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   const url = `${serverOrigin}${path}`;
   const headers = new Headers(init.headers);
-  if (!headers.has("Content-Type") && init.body) {
+
+  // Only set Content-Type for requests with a body
+  if (!headers.has("Content-Type") && init.body && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
-  if (!headers.has("Authorization")) {
-    const authHeader = await getAuthHeader();
-    if (authHeader) {
-      headers.set("Authorization", authHeader);
-    }
+
+  // Always add Authorization if available (this is a simple header)
+  const authHeader = await getAuthHeader();
+  if (authHeader && !headers.has("Authorization")) {
+    headers.set("Authorization", authHeader);
   }
 
-  const response = await fetch(url, { ...init, headers });
+  // Use mode: 'cors' explicitly for better browser behavior
+  const response = await fetch(url, {
+    ...init,
+    headers,
+    mode: 'cors',
+    credentials: 'omit' // We're sending auth via header, not cookies
+  });
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
     try {
@@ -69,7 +77,7 @@ export interface DsaQuestion {
   questionIndex: string;
   title: string;
   titleSlug: string;
-  difficulty: "Easy" | "Good" | "Hard";
+  difficulty: "Easy" | "Medium" | "Hard";
   description: string;
   solution: string | null;
   idealSolutionCode: string | null;
