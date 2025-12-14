@@ -128,14 +128,6 @@ const ProtectedShell = observer(() => {
             <Menu className="h-4 w-4" />
           </button>
           <div className="ml-auto flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm text-orange-600 dark:bg-orange-500/20 dark:text-orange-200">
-              <Flame className="h-4 w-4" />
-              {dueTotal}
-            </div>
-            <div className="flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-sm text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-200">
-              <span className="text-xs font-semibold">Today</span>
-              {dueToday}
-            </div>
             <Button
               variant="outline"
               size="icon"

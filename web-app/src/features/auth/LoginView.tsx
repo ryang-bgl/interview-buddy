@@ -1,11 +1,7 @@
 import { type FormEvent, useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowRight,
-  Mail,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Mail, Shield, Cpu, Terminal, Zap } from "lucide-react";
 import { useStores } from "@/stores/StoreProvider";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
@@ -15,6 +11,8 @@ import {
   Card,
   CardContent,
   CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 
 const LoginView = observer(() => {
@@ -41,13 +39,13 @@ const LoginView = observer(() => {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleEmailSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleEmailSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (!email.trim() || isSubmitting) return;
     sendLoginCode();
   };
 
-  const handleOtpSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleOtpSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (!otp.trim() || isSubmitting) return;
     verifyLoginCode();
@@ -55,10 +53,16 @@ const LoginView = observer(() => {
 
   if (viewState === "checking") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-        <div className="flex items-center gap-3 rounded-full border bg-background/80 px-5 py-2 text-sm text-muted-foreground shadow-sm">
-          <Sparkles className="h-4 w-4 text-primary" />
-          Preparing your workspace…
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="p-8 fade-in">
+          <div className="flex items-center gap-4">
+            <Terminal className="h-6 w-6 text-primary" />
+            <span className="font-mono text-primary">Initializing...</span>
+            <div className="loading"></div>
+          </div>
+          <div className="mt-4 space-y-2 font-mono text-sm text-muted-foreground">
+            <div>Loading workspace...</div>
+          </div>
         </div>
       </div>
     );
@@ -67,125 +71,127 @@ const LoginView = observer(() => {
   const awaitingOtp = viewState === "awaitingOtp";
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-background via-background to-muted/20">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-foreground">
+        {/* Clean Logo */}
+        <div className="text-center mb-8 fade-in">
+          <h1 className="font-display text-4xl font-bold text-foreground mb-2">
             LeetStack
           </h1>
-          <p className="text-muted-foreground">
-            {awaitingOtp ? "Check your inbox" : "Passwordless login"}
+          <p className="text-sm text-muted-foreground">
+            {awaitingOtp
+              ? "Enter your verification code"
+              : "Sign in to continue"}
           </p>
         </div>
 
         {/* Login Card */}
-        <Card className="shadow-xl">
-          <CardContent className="p-6 space-y-6">
-            {/* Icon and Title */}
-            <div className="text-center space-y-3">
-              <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto">
-                <Mail className="h-6 w-6 text-blue-500" />
+        <Card className="fade-in">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <Shield className="h-5 w-5 text-primary" />
+              {awaitingOtp ? "Verification Required" : "Secure Sign In"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Error Display */}
+            {error && (
+              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                <div className="flex items-center gap-2">
+                  <Terminal className="h-4 w-4" />
+                  <span className="font-medium">Authentication failed</span>
+                </div>
+                <div className="text-xs mt-1">{error}</div>
               </div>
-              <h2 className="text-xl font-semibold text-foreground">
-                {awaitingOtp ? "Enter your code" : "Sign in with email"}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {awaitingOtp
-                  ? "We sent a code to your email"
-                  : "Use your work email to get started"
-                }
-              </p>
-            </div>
+            )}
 
-            {/* Error Message */}
-            {error ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {error}
-              </div>
-            ) : null}
-
-            {/* Forms */}
             {!awaitingOtp ? (
-              <form className="space-y-4" onSubmit={handleEmailSubmit}>
+              <div className="space-y-4">
                 <div>
-                  <Label htmlFor="email" className="text-sm font-medium">
-                    Email
-                  </Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     autoFocus
-                    placeholder="you@company.com"
+                    placeholder="Enter your email"
                     disabled={isSubmitting}
+                    className="font-mono"
                   />
                 </div>
                 <Button
-                  type="submit"
-                  className="w-full font-medium transition-all duration-200 hover:scale-[1.02] bg-blue-500 hover:bg-blue-400 text-white"
+                  onClick={handleEmailSubmit}
+                  className="w-full interactive-hover"
                   disabled={isSubmitting || !email.trim()}
                 >
-                  {isSubmitting ? "Sending code…" : "Email me a login code"}
+                  {isSubmitting ? (
+                    <>
+                      <div className="loading mr-2"></div>
+                      Sending code...
+                    </>
+                  ) : (
+                    "Send verification code"
+                  )}
                 </Button>
-              </form>
+              </div>
             ) : (
-              <form className="space-y-4" onSubmit={handleOtpSubmit}>
-                <div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-                  Code sent to <span className="font-medium text-foreground">{email}</span>
+              <div className="space-y-4">
+                <div className="p-3 rounded-lg bg-success/10 text-success-foreground text-sm">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    <span>
+                      Code sent to <span className="font-mono">{email}</span>
+                    </span>
+                  </div>
                 </div>
                 <div>
-                  <Label htmlFor="otp" className="text-sm font-medium">
-                    Verification code
-                  </Label>
+                  <Label htmlFor="otp">Verification Code</Label>
                   <Input
                     id="otp"
                     type="text"
                     inputMode="numeric"
                     value={otp}
                     onChange={(event) => setOtp(event.target.value)}
-                    placeholder="12345678"
-                    className="tracking-[0.35em] text-center text-base font-semibold"
+                    placeholder="8-digit code"
                     disabled={isSubmitting}
+                    maxLength={8}
+                    className="font-mono text-center text-lg tracking-widest"
                   />
                 </div>
                 <div className="flex gap-3">
                   <Button
-                    type="submit"
-                    className="flex-1 font-medium transition-all duration-200 bg-blue-500 hover:bg-blue-400 text-white"
+                    onClick={handleOtpSubmit}
+                    className="flex-1 interactive-hover"
                     disabled={isSubmitting || !otp.trim()}
                   >
-                    {isSubmitting ? "Verifying…" : "Verify code"}
+                    {isSubmitting ? (
+                      <>
+                        <div className="loading mr-2"></div>
+                        Verifying...
+                      </>
+                    ) : (
+                      "Sign In"
+                    )}
                   </Button>
                   <Button
-                    type="button"
                     variant="outline"
                     onClick={() => resetPendingFlow()}
+                    disabled={isSubmitting}
                   >
-                    Start over
+                    Back
                   </Button>
                 </div>
-              </form>
+              </div>
             )}
 
-            {/* Help Text */}
-            <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-              <Sparkles className="h-4 w-4 text-blue-500" />
-              <span>Use the same email as your Chrome extension</span>
+            <div className="pt-4 border-t text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Shield className="h-3 w-3" />
+                <span>Use the same email as your Chrome extension</span>
+              </div>
             </div>
           </CardContent>
-
-          {/* Footer */}
-          <div className="border-t px-6 py-4">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Need help? leetstack.app@gmail.com</span>
-              <Button variant="ghost" size="sm" className="p-0 h-auto">
-                View release notes
-                <ArrowRight className="h-3 w-3 ml-1 text-blue-500" />
-              </Button>
-            </div>
-          </div>
         </Card>
       </div>
     </div>
