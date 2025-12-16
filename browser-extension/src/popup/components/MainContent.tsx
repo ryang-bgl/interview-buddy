@@ -6,12 +6,15 @@ import {
 } from "@/lib/api";
 import FieldLabel from "./FieldLabel";
 import GeneralNotesTab from "./GeneralNotesTab";
+import EducationalMessage from "./EducationalMessage";
 import {
   extractSlugFromUrl,
   findLeetCodeProblemDetailsInActivePage,
   normalizeLeetCodeUrl,
   slugify,
   toPlainText,
+  isLeetCodeDomain,
+  isLeetStackDomain,
 } from "../utils/leetcode";
 import { getActiveTab } from "../utils/browser";
 import { readStoredMap, writeStoredMap } from "../utils/storage";
@@ -22,12 +25,7 @@ interface MainContentProps {
   onSignOut: () => void;
 }
 
-const MAIN_TABS = [
-  { id: "leetcode", label: "DSA Notebook" },
-  { id: "generalNotes", label: "Text -> Flashcards" },
-] as const;
-
-type MainTabId = (typeof MAIN_TABS)[number]["id"];
+type MainTabId = "leetcode" | "generalNotes";
 
 export default function MainContent({ user, onSignOut }: MainContentProps) {
   const [problemNumber, setProblemNumber] = useState("");
@@ -53,6 +51,20 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
   const isSaving = saveState === "saving";
   const userDisplayName = user.firstName || user.email || "LeetStack member";
 
+  // Determine available tabs based on current domain
+  const availableTabs =
+    isLeetCodeDomain(currentUrl) || isLeetStackDomain(currentUrl)
+      ? [
+          { id: "leetcode" as const, label: "DSA Notebook" },
+          { id: "generalNotes" as const, label: "Text -> Flashcards" },
+        ]
+      : [{ id: "generalNotes" as const, label: "Text -> Flashcards" }];
+
+  // Set active tab to first available if current is not available
+  const activeTabSafe = availableTabs.some((tab) => tab.id === activeTab)
+    ? activeTab
+    : availableTabs[0]?.id || "generalNotes";
+
   const applyFormState = useCallback((state: PopupFormState) => {
     setProblemNumber(state.problemNumber ?? "");
     setProblemLink(state.url ?? "");
@@ -64,6 +76,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     setDifficultyLabel(state.difficulty ?? "Unknown");
   }, []);
 
+  
   useEffect(() => {
     let cancelled = false;
 
@@ -196,12 +209,14 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     isInitialized,
   ]);
 
+  
   const handleClose = useCallback(() => {
     if (typeof window !== "undefined") {
       window.close();
     }
   }, []);
 
+  
   const handleGenerateIdealSolution = useCallback(async () => {
     if (isGeneratingIdealSolution) {
       return;
@@ -441,30 +456,36 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
         </header>
 
         <div className="mt-6 space-y-6">
-          <div className="rounded-3xl bg-slate-50 p-1 text-sm font-semibold text-slate-500">
-            <div className="grid grid-cols-2 gap-1">
-              {MAIN_TABS.map((tab) => {
-                const isActive = tab.id === activeTab;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`rounded-2xl px-4 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 ${
-                      isActive
-                        ? "bg-white text-slate-900 shadow-md shadow-purple-100 ring-1 ring-purple-200"
-                        : "text-slate-500 hover:bg-white/70 hover:text-slate-900"
-                    }`}
-                    aria-pressed={isActive}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
+          {availableTabs.length > 1 && (
+            <div className="rounded-3xl bg-slate-50 p-1 text-sm font-semibold text-slate-500">
+              <div
+                className={`grid gap-1 ${
+                  availableTabs.length === 2 ? "grid-cols-2" : "grid-cols-1"
+                }`}
+              >
+                {availableTabs.map((tab) => {
+                  const isActive = tab.id === activeTabSafe;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`rounded-2xl px-4 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 ${
+                        isActive
+                          ? "bg-white text-slate-900 shadow-md shadow-purple-100 ring-1 ring-purple-200"
+                          : "text-slate-500 hover:bg-white/70 hover:text-slate-900"
+                      }`}
+                      aria-pressed={isActive}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
-          {activeTab === "leetcode" ? (
+          {activeTabSafe === "leetcode" ? (
             <>
               <section className="space-y-5">
                 <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
@@ -602,6 +623,11 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
                 </div>
               </footer>
             </>
+          ) : // Show educational message on LeetCode/LeetStack domains, otherwise show GeneralNotesTab
+          isLeetCodeDomain(currentUrl) || isLeetStackDomain(currentUrl) ? (
+            <EducationalMessage
+              onSwitchToLeetcodeTab={() => setActiveTab("leetcode")}
+            />
           ) : (
             <GeneralNotesTab />
           )}

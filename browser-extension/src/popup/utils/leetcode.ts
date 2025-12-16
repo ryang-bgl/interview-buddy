@@ -359,3 +359,37 @@ export function slugify(value: string): string {
     .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+export function isLeetCodeDomain(url: string): boolean {
+  if (!url) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Check for leetcode.com, leetcode.cn, and their subdomains
+    return hostname.includes('leetcode.com') || hostname.includes('leetcode.cn');
+  } catch (error) {
+    console.warn("[leetstack] Failed to parse URL for domain check", error);
+    return false;
+  }
+}
+
+export function isLeetStackDomain(url: string): boolean {
+  if (!url) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Check for leetstack.com, leetstack.cn, and their subdomains
+    return hostname.includes('leetstack.com') || hostname.includes('leetstack.cn');
+  } catch (error) {
+    console.warn("[leetstack] Failed to parse URL for LeetStack domain check", error);
+    return false;
+  }
+}
