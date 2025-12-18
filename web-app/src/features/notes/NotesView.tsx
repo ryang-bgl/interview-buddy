@@ -93,34 +93,33 @@ const NotesView = observer(() => {
           </div>
         ) : null}
         {filteredNotes.map((note) => (
-          <Card key={note.noteId} className="border-border/70">
-            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle className="text-lg">
-                  {note.topic ?? note.summary ?? note.url}
-                </CardTitle>
-                <CardDescription>{note.url}</CardDescription>
-              </div>
-              <Badge variant="outline" className="border-dashed">
-                {note.cards.length} cards
-              </Badge>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {note.summary}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {note.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-              <Button size="sm" variant="outline" asChild>
-                <Link to={`/notes/${note.noteId}`}>Open note</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <Link key={note.noteId} to={`/notes/${note.noteId}`} className="block group">
+            <Card className="border-border/70 hover:border-border/90 hover:shadow-md transition-all duration-200 cursor-pointer">
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                    {note.topic ?? note.summary ?? note.url}
+                  </CardTitle>
+                  <CardDescription>{note.url}</CardDescription>
+                </div>
+                <Badge variant="outline" className="border-dashed">
+                  {note.cards.length} cards
+                </Badge>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {note.summary}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {note.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
         {!loading && filteredNotes.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border/80 bg-muted/40 p-8 text-center text-sm text-muted-foreground">

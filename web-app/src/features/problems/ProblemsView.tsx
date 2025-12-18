@@ -5,14 +5,9 @@ import { Search, Play } from "lucide-react";
 import { useStores } from "@/stores/StoreProvider";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-
-const difficultyStyles: Record<string, string> = {
-  Easy: "bg-emerald-50 text-emerald-700",
-  Medium: "bg-amber-50 text-amber-700",
-  Hard: "bg-rose-50 text-rose-700",
-};
 
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
@@ -128,14 +123,7 @@ const ProblemsView = observer(() => {
                       {problem.title}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <Badge
-                        className={
-                          difficultyStyles[problem.difficulty] ??
-                          "bg-slate-100 text-slate-600"
-                        }
-                      >
-                        {problem.difficulty}
-                      </Badge>
+                      <DifficultyBadge difficulty={problem.difficulty} />
                       {(problem.tags ?? []).slice(0, 4).map((tag) => (
                         <Badge
                           key={tag}

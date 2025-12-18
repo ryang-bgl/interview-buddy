@@ -8,6 +8,7 @@ import ProblemDetailView from "@/features/problems/ProblemDetailView";
 import ProblemReviewView from "@/features/problems/ProblemReviewView";
 import NotesView from "@/features/notes/NotesView";
 import NoteDetailView from "@/features/notes/NoteDetailView";
+import NoteReviewView from "@/features/notes/NoteReviewView";
 import ReviewView from "@/features/review/ReviewView";
 import SettingsView from "@/features/settings/SettingsView";
 import { FeedbackWidget } from "@/features/feedback/FeedbackWidget";
@@ -222,6 +223,10 @@ function App() {
         />
         <Route path="/notes" element={<NotesView />} />
         <Route path="/notes/:noteId" element={<NoteDetailView />} />
+        <Route
+          path="/review/notes/:noteId"
+          element={<NoteReviewView />}
+        />
         <Route path="/review" element={<ReviewView />} />
         <Route path="/settings" element={<SettingsView />} />
       </Route>

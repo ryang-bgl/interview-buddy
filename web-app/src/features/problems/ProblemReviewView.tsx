@@ -1,39 +1,48 @@
-import { useEffect, useMemo, useState } from 'react'
-import { observer } from 'mobx-react-lite'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useStores } from '@/stores/StoreProvider'
+import { useEffect, useMemo, useState } from "react";
+import { observer } from "mobx-react-lite";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useStores } from "@/stores/StoreProvider";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { LoadingIndicator } from '@/components/ui/loading-indicator'
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { DifficultyBadge } from "@/components/ui/difficulty-badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 const ProblemReviewView = observer(() => {
-  const { problemId } = useParams<{ problemId: string }>()
-  const { notebookStore } = useStores()
-  const navigate = useNavigate()
-  const [stepIndex, setStepIndex] = useState(0)
+  const { problemId } = useParams<{ problemId: string }>();
+  const { notebookStore } = useStores();
+  const navigate = useNavigate();
+  const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {
-    notebookStore.ensureProblemsLoaded()
-  }, [notebookStore])
+    notebookStore.ensureProblemsLoaded();
+  }, [notebookStore]);
 
-  const loading = notebookStore.isLoadingProblems && !notebookStore.hasLoadedProblems
-  const problem = problemId ? notebookStore.getProblemById(problemId) : null
+  const loading =
+    notebookStore.isLoadingProblems && !notebookStore.hasLoadedProblems;
+  const problem = problemId ? notebookStore.getProblemById(problemId) : null;
   useEffect(() => {
-    setStepIndex(0)
-  }, [problemId])
-  const problems = notebookStore.filteredProblems
-  const currentIndex = useMemo(() => problems.findIndex((p) => p.id === problem?.id), [problems, problem])
-  const prevProblemId = currentIndex > 0 ? problems[currentIndex - 1]?.id : null
-  const nextProblemId = currentIndex >= 0 && currentIndex < problems.length - 1 ? problems[currentIndex + 1]?.id : null
-  const card = problem ? notebookStore.getProblemReviewCard(problem.id) : null
+    setStepIndex(0);
+  }, [problemId]);
+  const problems = notebookStore.filteredProblems;
+  const currentIndex = useMemo(
+    () => problems.findIndex((p) => p.id === problem?.id),
+    [problems, problem]
+  );
+  const prevProblemId =
+    currentIndex > 0 ? problems[currentIndex - 1]?.id : null;
+  const nextProblemId =
+    currentIndex >= 0 && currentIndex < problems.length - 1
+      ? problems[currentIndex + 1]?.id
+      : null;
+  const card = problem ? notebookStore.getProblemReviewCard(problem.id) : null;
 
   const handleGradeAndNext = (grade: "hard" | "good" | "easy") => {
     if (!card) return;
@@ -44,36 +53,39 @@ const ProblemReviewView = observer(() => {
         navigate(`/review/problems/${nextProblemId}`);
       } else {
         // No more problems, go back to problems list
-        navigate('/problems');
+        navigate("/problems");
       }
     }, 300);
   };
 
   const steps = [
     {
-      label: 'Problem description',
-      content: problem?.description ?? '',
+      label: "Problem description",
+      content: problem?.description ?? "",
     },
     {
-      label: 'Your solution',
-      content: problem?.solution ?? 'Capture your solution from Chrome to sync it here.',
+      label: "Your solution",
+      content:
+        problem?.solution ??
+        "Capture your solution from Chrome to sync it here.",
     },
     {
-      label: 'AI solution',
-      content: problem?.idealSolutionCode ?? 'AI solution coming soon.',
+      label: "AI solution",
+      content: problem?.idealSolutionCode ?? "AI solution coming soon.",
     },
     {
-      label: 'Personal notes',
-      content: problem?.note ?? 'Add reminders or edge cases in the detail view.',
+      label: "Personal notes",
+      content:
+        problem?.note ?? "Add reminders or edge cases in the detail view.",
     },
-  ]
+  ];
 
   if (loading) {
     return (
       <div className="rounded-2xl border border-border/70 bg-muted/30 p-6">
         <LoadingIndicator label="Loading problem review…" />
       </div>
-    )
+    );
   }
 
   if (!problem || !card) {
@@ -86,7 +98,7 @@ const ProblemReviewView = observer(() => {
           <Link to="/problems">Back to problems</Link>
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -100,7 +112,7 @@ const ProblemReviewView = observer(() => {
           {problem.questionIndex} · {problem.title}
         </h1>
         <div className="flex flex-wrap gap-2">
-          <Badge variant="default">{problem.difficulty}</Badge>
+          <DifficultyBadge difficulty={problem.difficulty} />
           {(problem.tags ?? []).map((tag) => (
             <Badge key={tag} variant="secondary">
               {tag}
@@ -110,15 +122,45 @@ const ProblemReviewView = observer(() => {
       </div>
 
       <Card className="border-border/80">
-        <CardHeader className="flex items-center justify-between">
-          <div>
-            <CardTitle>Problem Review</CardTitle>
-            <CardDescription>{`Step ${stepIndex + 1} of ${steps.length} · ${steps[stepIndex].label}`}</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={problem.difficulty === 'Easy' ? 'secondary' : problem.difficulty === 'Medium' ? 'default' : 'destructive'}>
-              {problem.difficulty}
-            </Badge>
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle>Problem Review</CardTitle>
+              <CardDescription>{`Step ${stepIndex + 1} of ${steps.length} · ${
+                steps[stepIndex].label
+              }`}</CardDescription>
+            </div>
+            {stepIndex === steps.length - 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">How is the review:</span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 h-7 px-3"
+                    onClick={() => handleGradeAndNext("hard")}
+                  >
+                    Hard
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-yellow-700 border-yellow-400 hover:bg-yellow-100 hover:text-yellow-800 h-7 px-3"
+                    onClick={() => handleGradeAndNext("good")}
+                  >
+                    Medium
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 h-7 px-3"
+                    onClick={() => handleGradeAndNext("easy")}
+                  >
+                    Easy
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -139,7 +181,7 @@ const ProblemReviewView = observer(() => {
                   {steps[stepIndex].label}
                 </p>
               )}
-              <Separator className={stepIndex === 0 ? 'my-4' : 'my-4'} />
+              <Separator className={stepIndex === 0 ? "my-4" : "my-4"} />
               <p className="text-lg text-slate-900 whitespace-pre-line">
                 {steps[stepIndex].content}
               </p>
@@ -149,57 +191,38 @@ const ProblemReviewView = observer(() => {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => setStepIndex((index) => Math.max(0, index - 1))}
+                  onClick={() =>
+                    setStepIndex((index) => Math.max(0, index - 1))
+                  }
                 >
                   Previous
                 </Button>
               )}
               {stepIndex < steps.length - 1 ? (
                 <Button
-                  className={`${stepIndex > 0 ? 'flex-1' : 'w-full'}`}
-                  onClick={() => setStepIndex((index) => Math.min(steps.length - 1, index + 1))}
+                  className={`${stepIndex > 0 ? "flex-1" : "w-full"}`}
+                  onClick={() =>
+                    setStepIndex((index) =>
+                      Math.min(steps.length - 1, index + 1)
+                    )
+                  }
                 >
                   Next
                 </Button>
               ) : (
                 <Button
-                  className={`${stepIndex > 0 ? 'flex-1' : 'w-full'}`}
+                  className={`${stepIndex > 0 ? "flex-1" : "w-full"}`}
                   onClick={() => setStepIndex(0)}
                 >
                   Restart review
                 </Button>
               )}
             </div>
-            {stepIndex === steps.length - 1 && (
-              <div className="space-y-3 pt-4 border-t">
-                <p className="text-sm text-muted-foreground text-center">How difficult was this problem?</p>
-                <div className="flex flex-col gap-3 sm:flex-row animate-in slide-in-from-bottom-2 duration-300">
-                  <Button
-                    className="flex-1"
-                    variant="outline"
-                    onClick={() => handleGradeAndNext('hard')}
-                  >
-                    Hard
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    variant="outline"
-                    onClick={() => handleGradeAndNext('good')}
-                  >
-                    Medium
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    onClick={() => handleGradeAndNext('easy')}
-                  >
-                    Easy
-                  </Button>
-                </div>
-                {nextProblemId && (
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    Next: {notebookStore.getProblemById(nextProblemId)?.title}
-                  </p>
-                )}
+            {stepIndex === steps.length - 1 && nextProblemId && (
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">
+                  Next: {notebookStore.getProblemById(nextProblemId)?.title}
+                </p>
               </div>
             )}
           </div>
@@ -210,7 +233,9 @@ const ProblemReviewView = observer(() => {
         <CardHeader>
           <CardTitle>Card Details</CardTitle>
           <CardDescription>
-            {`Due ${new Date(card.due).toLocaleString()} · streak ${card.streak}`}
+            {`Due ${new Date(card.due).toLocaleString()} · streak ${
+              card.streak
+            }`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -225,23 +250,24 @@ const ProblemReviewView = observer(() => {
       </Card>
 
       <div className="flex flex-wrap gap-3">
-        <Button
-          variant="outline"
-          onClick={() => setStepIndex(0)}
-        >
+        <Button variant="outline" onClick={() => setStepIndex(0)}>
           Restart current problem
         </Button>
         <Button
           variant="outline"
           disabled={!prevProblemId}
-          onClick={() => prevProblemId && navigate(`/review/problems/${prevProblemId}`)}
+          onClick={() =>
+            prevProblemId && navigate(`/review/problems/${prevProblemId}`)
+          }
         >
           Previous problem
         </Button>
         <Button
           variant="outline"
           disabled={!nextProblemId}
-          onClick={() => nextProblemId && navigate(`/review/problems/${nextProblemId}`)}
+          onClick={() =>
+            nextProblemId && navigate(`/review/problems/${nextProblemId}`)
+          }
         >
           Next problem
         </Button>
@@ -250,7 +276,7 @@ const ProblemReviewView = observer(() => {
         </Button>
       </div>
     </div>
-  )
-})
+  );
+});
 
-export default ProblemReviewView
+export default ProblemReviewView;

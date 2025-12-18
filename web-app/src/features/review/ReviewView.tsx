@@ -75,14 +75,49 @@ const ReviewView = observer(() => {
 
       <Card className="border-border/70">
         <CardHeader>
-          <CardTitle>Current card</CardTitle>
-          <CardDescription>
-            {card
-              ? `From ${card.sourceTitle} · due ${new Date(card.due).toLocaleString()}`
-              : loading
-                ? 'Loading cards…'
-                : 'No cards match your filters.'}
-          </CardDescription>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle>Current card</CardTitle>
+              <CardDescription>
+                {card
+                  ? `From ${card.sourceTitle} · due ${new Date(card.due).toLocaleString()}`
+                  : loading
+                    ? 'Loading cards…'
+                    : 'No cards match your filters.'}
+              </CardDescription>
+            </div>
+            {card && isAnswerRevealed && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">How is the review:</span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 h-7 px-3"
+                    onClick={() => notebookStore.gradeReviewCard(card.id, 'hard')}
+                  >
+                    Hard
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-yellow-700 border-yellow-400 hover:bg-yellow-100 hover:text-yellow-800 h-7 px-3"
+                    onClick={() => notebookStore.gradeReviewCard(card.id, 'good')}
+                  >
+                    Good
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 h-7 px-3"
+                    onClick={() => notebookStore.gradeReviewCard(card.id, 'easy')}
+                  >
+                    Easy
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -123,27 +158,6 @@ const ReviewView = observer(() => {
                 ))}
                 <Badge variant="outline">{card.sourceType === 'problem' ? 'Problem' : 'Note'}</Badge>
               </div>
-              {isAnswerRevealed && (
-                <div className="flex flex-col gap-3 sm:flex-row animate-in slide-in-from-bottom-2 duration-300">
-                  <Button
-                    className="flex-1"
-                    variant="outline"
-                    onClick={() => notebookStore.gradeReviewCard(card.id, 'hard')}
-                  >
-                    Hard
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    variant="outline"
-                    onClick={() => notebookStore.gradeReviewCard(card.id, 'good')}
-                  >
-                    Good
-                  </Button>
-                  <Button className="flex-1" onClick={() => notebookStore.gradeReviewCard(card.id, 'easy')}>
-                    Easy
-                  </Button>
-                </div>
-              )}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-border/80 bg-muted/40 p-8 text-center text-sm text-muted-foreground">

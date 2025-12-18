@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useStores } from "@/stores/StoreProvider";
 import {
   Card,
@@ -10,13 +10,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { PlayCircle } from "lucide-react";
 
 const ProblemDetailView = observer(() => {
   const { problemId } = useParams<{ problemId: string }>();
   const { notebookStore } = useStores();
+  const navigate = useNavigate();
   useEffect(() => {
     notebookStore.ensureProblemsLoaded();
   }, [notebookStore]);
@@ -49,17 +52,28 @@ const ProblemDetailView = observer(() => {
         <Button variant="link" className="w-fit px-0" asChild>
           <Link to="/problems">← Back to list</Link>
         </Button>
-        <p className="text-sm text-muted-foreground">Problem detail</p>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          {problem.questionIndex} · {problem.title}
-        </h1>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="default">{problem.difficulty}</Badge>
-          {(problem.tags ?? []).map((tag) => (
-            <Badge key={tag} variant="secondary">
-              {tag}
-            </Badge>
-          ))}
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-muted-foreground">Problem detail</p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <h1 className="text-3xl font-semibold tracking-tight">
+              {problem.questionIndex} · {problem.title}
+            </h1>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => navigate(`/review/problems/${problem.id}`)}
+            >
+              <PlayCircle className="mr-2 h-4 w-4" />
+              Review Problem
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <DifficultyBadge difficulty={problem.difficulty} />
+            {(problem.tags ?? []).map((tag) => (
+              <Badge key={tag} variant="secondary">
+                {tag}
+              </Badge>
+            ))}
+          </div>
         </div>
       </div>
 
