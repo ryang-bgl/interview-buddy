@@ -20,6 +20,7 @@ import {
 } from "aws-cdk-lib/aws-dynamodb";
 import { Runtime, StartingPosition } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
 import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import {
   HttpApi,
@@ -202,7 +203,7 @@ export class InterviewBuddyApiStack extends Stack {
       JWT_ISSUER: supabaseJwtIssuer,
     } as const;
 
-    const defaultLambdaProps = {
+        const defaultLambdaProps = {
       runtime: Runtime.NODEJS_24_X,
       memorySize: 256,
       timeout: Duration.seconds(15),
@@ -218,6 +219,9 @@ export class InterviewBuddyApiStack extends Stack {
       "CreateUserQuestionFunction",
       {
         ...defaultLambdaProps,
+        logGroup: new LogGroup(this, "CreateUserQuestionFunctionLogGroup", {
+          retention: RetentionDays.ONE_MONTH,
+        }),
         entry: path.join(
           __dirname,
           "..",
@@ -239,6 +243,9 @@ export class InterviewBuddyApiStack extends Stack {
       "GetUserQuestionsFunction",
       {
         ...defaultLambdaProps,
+        logGroup: new LogGroup(this, "GetUserQuestionsFunctionLogGroup", {
+          retention: RetentionDays.ONE_MONTH,
+        }),
         entry: path.join(
           __dirname,
           "..",
@@ -260,6 +267,9 @@ export class InterviewBuddyApiStack extends Stack {
       "UpdateQuestionReviewFunction",
       {
         ...defaultLambdaProps,
+        logGroup: new LogGroup(this, "UpdateQuestionReviewFunctionLogGroup", {
+          retention: RetentionDays.ONE_MONTH,
+        }),
         entry: path.join(
           __dirname,
           "..",
@@ -281,6 +291,9 @@ export class InterviewBuddyApiStack extends Stack {
       "CreateFeedbackFunction",
       {
         ...defaultLambdaProps,
+        logGroup: new LogGroup(this, "CreateFeedbackFunctionLogGroup", {
+          retention: RetentionDays.ONE_MONTH,
+        }),
         entry: path.join(
           __dirname,
           "..",
@@ -303,6 +316,9 @@ export class InterviewBuddyApiStack extends Stack {
       {
         ...defaultLambdaProps,
         timeout: Duration.seconds(30),
+        logGroup: new LogGroup(this, "GenerateAiSolutionFunctionLogGroup", {
+          retention: RetentionDays.ONE_MONTH,
+        }),
         entry: path.join(
           __dirname,
           "..",
@@ -329,6 +345,9 @@ export class InterviewBuddyApiStack extends Stack {
       {
         ...defaultLambdaProps,
         timeout: Duration.minutes(15),
+        logGroup: new LogGroup(this, "ProcessGeneralNoteJobFunctionLogGroup", {
+          retention: RetentionDays.ONE_MONTH,
+        }),
         entry: path.join(
           __dirname,
           "..",
@@ -360,6 +379,9 @@ export class InterviewBuddyApiStack extends Stack {
       "RequestGeneralNoteJobFunction",
       {
         ...defaultLambdaProps,
+        logGroup: new LogGroup(this, "RequestGeneralNoteJobFunctionLogGroup", {
+          retention: RetentionDays.ONE_MONTH,
+        }),
         entry: path.join(
           __dirname,
           "..",
