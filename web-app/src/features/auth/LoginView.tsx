@@ -194,22 +194,33 @@ const LoginView = observer(() => {
               </div>
             )}
 
-            <div className="pt-4 border-t space-y-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Shield className="h-3 w-3" />
-                <span>Use the same email as your Chrome extension</span>
+            <div className="pt-4 border-t space-y-3">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-xs">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                  <span className="font-semibold text-amber-800 dark:text-amber-200">Academic Integrity Notice</span>
+                </div>
+                <p className="text-amber-700 dark:text-amber-300">
+                  <span className="font-semibold">LeetStack is not a cheating tool.</span> Solve problems yourself first, then save your solutions for review.
+                </p>
               </div>
-              <div className="flex items-center gap-2">
-                <span>Don't have the extension?</span>
-                <a
-                  href="https://chromewebstore.google.com/detail/leetstack/npflknpllcpnddnhpdkmdjnlomfgmjph"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline font-medium"
-                >
-                  Get LeetStack Extension
-                </a>
-                <img src="/assets/chrome.svg" alt="Chrome Web Store" className="h-4 w-4" />
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-3 w-3" />
+                  <span>Use the same email as your Chrome extension</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>Don't have the extension?</span>
+                  <a
+                    href="https://chromewebstore.google.com/detail/leetstack/npflknpllcpnddnhpdkmdjnlomfgmjph"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Get LeetStack Extension
+                  </a>
+                  <img src="/assets/chrome.svg" alt="Chrome Web Store" className="h-4 w-4" />
+                </div>
               </div>
             </div>
           </CardContent>

@@ -526,6 +526,9 @@ export class InterviewBuddyApiStack extends Stack {
 
     const authByApiKeyFn = new NodejsFunction(this, "AuthByApiKeyFunction", {
       ...defaultLambdaProps,
+      logGroup: new LogGroup(this, "AuthByApiKeyFunctionLogGroup", {
+        retention: RetentionDays.ONE_MONTH,
+      }),
       entry: path.join(
         __dirname,
         "..",
@@ -543,6 +546,9 @@ export class InterviewBuddyApiStack extends Stack {
       "CurrentPrincipalFunction",
       {
         ...defaultLambdaProps,
+        logGroup: new LogGroup(this, "CurrentPrincipalFunctionLogGroup", {
+          retention: RetentionDays.ONE_MONTH,
+        }),
         entry: path.join(
           __dirname,
           "..",
@@ -561,6 +567,9 @@ export class InterviewBuddyApiStack extends Stack {
       "GetCurrentUserFunction",
       {
         ...defaultLambdaProps,
+        logGroup: new LogGroup(this, "GetCurrentUserFunctionLogGroup", {
+          retention: RetentionDays.ONE_MONTH,
+        }),
         entry: path.join(
           __dirname,
           "..",

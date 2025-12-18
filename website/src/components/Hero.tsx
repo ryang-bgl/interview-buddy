@@ -84,24 +84,52 @@ export function Hero() {
             </div>
           </div>
 
-          <p className="max-w-3xl mx-auto text-xl text-gray-300 mb-12 leading-relaxed">
-            one-click to save your notes for{" "}
-            <span className="text-purple-300 font-semibold">DSA</span>, turn{" "}
-            <span className="text-pink-300 font-semibold">System Design</span>,
-            or{" "}
-            <span className="text-indigo-300 font-semibold">
-              Behavioral questions
-            </span>{" "}
-            into spaced-repetition cards{" "}
-            <span className="text-yellow-200 font-semibold">
-              by our AI flashcard generator
-            </span>
-            .<br className="hidden sm:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-slate-50 to-amber-200 font-semibold">
-              AI handles the summarizing and card writing so you focus on
-              practicing.
-            </span>
-          </p>
+          <div className="max-w-3xl mx-auto mb-12">
+            <p className="text-xl text-gray-300 leading-relaxed mb-6">
+              one-click to save your notes for{" "}
+              <span className="text-purple-300 font-semibold">DSA</span>, turn{" "}
+              <span className="text-pink-300 font-semibold">System Design</span>,
+              or{" "}
+              <span className="text-indigo-300 font-semibold">
+                Behavioral questions
+              </span>{" "}
+              into spaced-repetition cards{" "}
+              <span className="text-yellow-200 font-semibold">
+                by our AI flashcard generator
+              </span>
+            </p>
+
+            {/* Important notice about academic integrity */}
+            <div className="bg-gradient-to-r from-red-500/20 to-orange-500/20 backdrop-blur-lg border border-red-400/30 rounded-2xl p-6 mb-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-bold text-sm">!</span>
+                </div>
+                <h3 className="text-lg font-semibold text-red-200">Important: Academic Integrity First</h3>
+              </div>
+              <p className="text-red-100 leading-relaxed mb-3">
+                <span className="font-semibold text-white">LeetStack is NOT a cheating tool.</span> We believe in genuine learning and skill development.
+              </p>
+              <div className="space-y-2 text-red-100">
+                <p className="flex items-start gap-2">
+                  <span className="text-green-300 mt-1">✓</span>
+                  <span>Solve LeetCode problems <span className="font-semibold text-white">yourself first</span></span>
+                </p>
+                <p className="flex items-start gap-2">
+                  <span className="text-green-300 mt-1">✓</span>
+                  <span>Use LeetStack to <span className="font-semibold text-white">save and review</span> your own solutions</span>
+                </p>
+                <p className="flex items-start gap-2">
+                  <span className="text-green-300 mt-1">✓</span>
+                  <span>Build <span className="font-semibold text-white">genuine problem-solving skills</span> for interviews</span>
+                </p>
+              </div>
+            </div>
+
+            <p className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-slate-50 to-amber-200 font-semibold text-lg">
+              AI handles the summarizing and card writing so you focus on practicing what you've learned.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 max-w-5xl mx-auto mb-16">
             <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-lg p-8 rounded-2xl border border-green-500/20 hover:border-green-500/40 transition-all hover:shadow-xl hover:shadow-green-500/20 hover:-translate-y-1">

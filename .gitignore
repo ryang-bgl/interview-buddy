@@ -15,4 +15,7 @@ website/dist/
 configs/*
 !configs/loadProjectEnv.mjs
 !configs/loadProjectEnv.d.mts
+!configs/dev.env.gpg
+!configs/prod.env.gpg
+
 **/.claude-trace/*
