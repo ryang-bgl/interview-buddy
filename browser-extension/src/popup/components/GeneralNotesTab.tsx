@@ -723,6 +723,15 @@ export default function GeneralNotesTab() {
               </p>
             </div>
             <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+              {stackResult.noteId && (
+                <button
+                  type="button"
+                  onClick={() => window.open(`https://web.leetstack.app/review/notes/${stackResult.noteId}`, '_blank')}
+                  className="rounded-full bg-green-600 hover:bg-green-700 px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Review Flashcards
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleSelectElement}
