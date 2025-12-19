@@ -129,37 +129,39 @@ const NoteReviewView = observer(() => {
             <div className="flex-1">
               <CardTitle>{currentCard?.prompt}</CardTitle>
             </div>
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-muted-foreground whitespace-nowrap">
-                How is the review:
-              </p>
-              <div className="flex gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 h-7 px-3"
-                  onClick={() => handleGradeAndNext("hard")}
-                >
-                  Hard
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-yellow-700 border-yellow-400 hover:bg-yellow-100 hover:text-yellow-800 h-7 px-3"
-                  onClick={() => handleGradeAndNext("good")}
-                >
-                  Good
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 h-7 px-3"
-                  onClick={() => handleGradeAndNext("easy")}
-                >
-                  Easy
-                </Button>
+            {!hasNext && (
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground whitespace-nowrap">
+                  How is the review:
+                </p>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 h-7 px-3"
+                    onClick={() => handleGradeAndNext("hard")}
+                  >
+                    Hard
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-yellow-700 border-yellow-400 hover:bg-yellow-100 hover:text-yellow-800 h-7 px-3"
+                    onClick={() => handleGradeAndNext("good")}
+                  >
+                    Good
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 h-7 px-3"
+                    onClick={() => handleGradeAndNext("easy")}
+                  >
+                    Easy
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
