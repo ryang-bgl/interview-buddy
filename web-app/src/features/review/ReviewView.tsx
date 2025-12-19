@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
+import { useNavigate } from "react-router-dom";
 import { useStores } from "@/stores/StoreProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,14 +11,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { TrendingUp, Zap } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Play, ArrowRight } from "lucide-react";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 const ReviewView = observer(() => {
   const { notebookStore } = useStores();
-  const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
-  const [currentCardId, setCurrentCardId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     notebookStore.ensureProblemsLoaded();
@@ -33,13 +32,25 @@ const ReviewView = observer(() => {
     (notebookStore.isLoadingProblems && !notebookStore.hasLoadedProblems) ||
     (notebookStore.isLoadingNotes && !notebookStore.hasLoadedNotes);
 
-  // Reset answer revealed state when card changes
-  useEffect(() => {
-    if (card && card.id !== currentCardId) {
-      setIsAnswerRevealed(false);
-      setCurrentCardId(card.id);
+  // Function to handle starting a review for the current card
+  const handleStartReview = () => {
+    if (!card) return;
+
+    if (card.sourceType === "problem") {
+      navigate(`/review/problems/${card.sourceId}`);
+    } else if (card.sourceType === "note") {
+      navigate(`/review/notes/${card.sourceId}`);
     }
-  }, [card, currentCardId]);
+  };
+
+  // Function to handle starting review for a specific card in the queue
+  const handleQueueCardClick = (queueCard: any) => {
+    if (queueCard.sourceType === "problem") {
+      navigate(`/review/problems/${queueCard.sourceId}`);
+    } else if (queueCard.sourceType === "note") {
+      navigate(`/review/notes/${queueCard.sourceId}`);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -91,7 +102,7 @@ const ReviewView = observer(() => {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <CardTitle>Current card</CardTitle>
+              <CardTitle>Next card to review</CardTitle>
               <CardDescription>
                 {card
                   ? `From ${card.sourceTitle} · due ${new Date(
@@ -102,43 +113,16 @@ const ReviewView = observer(() => {
                   : "No cards match your filters."}
               </CardDescription>
             </div>
-            {card && isAnswerRevealed && (
+            {card && (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  How is the review:
-                </span>
-                <div className="flex gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 h-7 px-3"
-                    onClick={() =>
-                      notebookStore.gradeReviewCard(card.id, "hard")
-                    }
-                  >
-                    Hard
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-yellow-700 border-yellow-400 hover:bg-yellow-100 hover:text-yellow-800 h-7 px-3"
-                    onClick={() =>
-                      notebookStore.gradeReviewCard(card.id, "good")
-                    }
-                  >
-                    Good
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 h-7 px-3"
-                    onClick={() =>
-                      notebookStore.gradeReviewCard(card.id, "easy")
-                    }
-                  >
-                    Easy
-                  </Button>
-                </div>
+                <Badge variant="outline">
+                  {card.sourceType === "problem" ? "DSA Problem" : "General Note"}
+                </Badge>
+                {card.streak !== undefined && (
+                  <Badge variant="secondary">
+                    {card.streak} streak
+                  </Badge>
+                )}
               </div>
             )}
           </div>
@@ -148,57 +132,50 @@ const ReviewView = observer(() => {
             <LoadingIndicator label="Preparing cards…" />
           ) : card ? (
             <div className="space-y-4">
-              <div
-                className={`relative min-h-[200px] cursor-pointer transition-all duration-300 ${
-                  isAnswerRevealed ? "" : "hover:scale-[1.02]"
-                }`}
-                onClick={() => !isAnswerRevealed && setIsAnswerRevealed(true)}
-              >
-                {!isAnswerRevealed ? (
-                  <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center">
-                    <p className="text-lg font-semibold text-foreground mb-4">
+              {/* Card Preview */}
+              <div className="rounded-lg border border-border/50 bg-muted/30 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground mb-2 line-clamp-2">
                       {card.prompt}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      Click to reveal answer
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {card.sourceType === "problem" ? "Problem" : "Note"}
+                      </Badge>
+                      {card.tags.length > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {card.tags[0]}
+                          {card.tags.length > 1 && ` +${card.tags.length - 1}`}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
-                    <div className="space-y-2">
-                      <p className="text-sm uppercase tracking-wide text-muted-foreground">
-                        Prompt
-                      </p>
-                      <p className="text-lg font-semibold text-foreground">
-                        {card.prompt}
-                      </p>
-                    </div>
-                    <Separator />
-                    <div className="space-y-2">
-                      <p className="text-sm uppercase tracking-wide text-muted-foreground">
-                        Answer
-                      </p>
-                      <p className="text-base text-muted-foreground">
-                        {card.answer}
-                      </p>
-                      {card.extra ? (
-                        <p className="text-sm text-muted-foreground mt-2">
-                          {card.extra}
-                        </p>
-                      ) : null}
-                    </div>
+                  <Button
+                    onClick={handleStartReview}
+                    className="shrink-0"
+                    size="sm"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Review
+                  </Button>
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <span>Due:</span>
+                  <span className="font-medium">
+                    {new Date(card.due).toLocaleDateString()}
+                  </span>
+                </div>
+                {card.streak !== undefined && (
+                  <div className="flex items-center gap-1">
+                    <span>Streak:</span>
+                    <span className="font-medium">{card.streak} correct</span>
                   </div>
                 )}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {card.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary">
-                    {tag}
-                  </Badge>
-                ))}
-                <Badge variant="outline">
-                  {card.sourceType === "problem" ? "Problem" : "Note"}
-                </Badge>
               </div>
             </div>
           ) : (
@@ -219,20 +196,32 @@ const ReviewView = observer(() => {
           {queue.map((item) => (
             <div
               key={item.id}
-              className="rounded-2xl border border-muted-foreground/10 bg-muted/40 p-4"
+              className="rounded-2xl border border-muted-foreground/10 bg-muted/40 p-4 hover:bg-muted/60 transition-colors cursor-pointer group"
+              onClick={() => handleQueueCardClick(item)}
             >
-              <p className="font-medium text-foreground line-clamp-1">
-                {item.prompt}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {item.sourceTitle}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {item.tags.map((tag) => (
-                  <Badge key={tag} variant="outline">
-                    {tag}
-                  </Badge>
-                ))}
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="font-medium text-foreground line-clamp-1 mb-1">
+                    {item.prompt}
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {item.sourceTitle}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {item.sourceType === "problem" ? "DSA Problem" : "General Note"}
+                    </Badge>
+                    {item.streak !== undefined && (
+                      <Badge variant="secondary" className="text-xs">
+                        {item.streak} streak
+                      </Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      Due: {new Date(item.due).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </div>
             </div>
           ))}
