@@ -10,7 +10,6 @@ import NotesView from "@/features/notes/NotesView";
 import NoteDetailView from "@/features/notes/NoteDetailView";
 import NoteReviewView from "@/features/notes/NoteReviewView";
 import ReviewView from "@/features/review/ReviewView";
-import SettingsView from "@/features/settings/SettingsView";
 import { FeedbackWidget } from "@/features/feedback/FeedbackWidget";
 import { useStores } from "@/stores/StoreProvider";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,6 @@ import {
   Sun,
   LayoutDashboard,
   Menu,
-  Settings,
   StickyNote,
   Workflow,
 } from "lucide-react";
@@ -32,7 +30,6 @@ const navItems = [
   { path: "/problems", label: "DSA Problems", icon: Workflow },
   { path: "/notes", label: "Notes & Cards", icon: StickyNote },
   { path: "/review", label: "Review Session", icon: BookMarked },
-  { path: "/settings", label: "Settings", icon: Settings },
 ];
 
 const ProtectedShell = observer(() => {
@@ -239,9 +236,8 @@ function App() {
           element={<NoteReviewView />}
         />
         <Route path="/review" element={<ReviewView />} />
-        <Route path="/settings" element={<SettingsView />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }
