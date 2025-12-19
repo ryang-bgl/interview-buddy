@@ -1,12 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Separator } from "@/components/ui/separator";
 import { useStores } from "@/stores/StoreProvider";
@@ -91,9 +85,16 @@ const NoteReviewView = observer(() => {
           <Link to="/notes">← All notes</Link>
         </Button>
         <p className="text-sm text-muted-foreground">Focused review</p>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          {note.topic ?? note.summary ?? note.url}
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {note.topic ?? note.summary ?? note.url}
+          </h1>
+          {noteCards.length > 0 && (
+            <Badge variant="outline" className="text-sm">
+              {cardIndex + 1} / {noteCards.length} cards
+            </Badge>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           {note.tags.map((tag) => (
             <Badge key={tag} variant="secondary">
@@ -101,12 +102,31 @@ const NoteReviewView = observer(() => {
             </Badge>
           ))}
         </div>
+        {/* Overall progress for the note */}
+        {noteCards.length > 0 && (
+          <div className="mt-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-muted-foreground">
+                Session Progress
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {Math.round((cardIndex / noteCards.length) * 100)}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1">
+              <div
+                className="bg-gradient-to-r from-blue-400 to-blue-600 h-1 rounded-full transition-all duration-300"
+                style={{ width: `${(cardIndex / noteCards.length) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <Card className="border-border/80">
         <CardHeader>
           <div className="flex items-start justify-between">
-            <div>
+            <div className="flex-1">
               <CardTitle>{currentCard?.prompt}</CardTitle>
             </div>
             <div className="flex items-center gap-2">
