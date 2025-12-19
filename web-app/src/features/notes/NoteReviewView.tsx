@@ -107,10 +107,7 @@ const NoteReviewView = observer(() => {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div>
-              <CardTitle>Note Review</CardTitle>
-              <CardDescription>{`Card ${cardIndex + 1} of ${
-                noteCards.length
-              } · ${currentCard?.prompt ?? "Flashcard"}`}</CardDescription>
+              <CardTitle>{currentCard?.prompt}</CardTitle>
             </div>
             <div className="flex items-center gap-2">
               <p className="text-sm text-muted-foreground whitespace-nowrap">
@@ -148,9 +145,6 @@ const NoteReviewView = observer(() => {
         <CardContent className="space-y-4">
           <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
             <div className="space-y-4">
-              <p className="text-lg font-semibold text-foreground whitespace-pre-line">
-                {currentCard?.prompt}
-              </p>
               <Separator />
               <div className="space-y-2">
                 {isAnswerRevealed ? (
