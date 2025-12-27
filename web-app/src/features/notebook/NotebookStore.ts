@@ -100,6 +100,7 @@ export class NotebookStore {
 
   private reviewCards = new Map<string, ReviewCard>();
   private reviewStates = new Map<string, ReviewState>();
+  private loadingNoteDetails = new Set<string>();
 
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true });
@@ -169,28 +170,71 @@ export class NotebookStore {
   }
 
   async loadNoteDetail(noteId: string): Promise<void> {
+    // Ensure notes list is loaded first
+    if (!this.hasLoadedNotes) {
+      await this.loadNotes();
+    }
+
     const existing = this.getNoteById(noteId);
-    if (!existing) {
-      console.warn("[leetstack] Note not found in store:", noteId);
+
+    // If cards are already loaded, skip
+    if (existing && existing.cards.length > 0) {
       return;
     }
-    if (existing.cards.length > 0) {
+
+    // Don't load if already loading
+    if (this.loadingNoteDetails.has(noteId)) {
       return;
     }
+
+    runInAction(() => {
+      this.loadingNoteDetails.add(noteId);
+    });
+
     try {
       const detail = await getGeneralNoteById(noteId);
       runInAction(() => {
         const note = this.getNoteById(noteId);
         if (note) {
+          // Update existing note
           note.cards = detail.cards.map((card, index) =>
             createNotebookFlashcard(noteId, card, index)
           );
+        } else {
+          // Note not in list (maybe deleted or sync issue), add it
+          const newNote: NotebookNote = {
+            noteId: detail.noteId,
+            url: detail.url,
+            topic: detail.topic,
+            summary: detail.summary,
+            createdAt: detail.createdAt,
+            lastReviewedAt: detail.lastReviewedAt,
+            lastReviewStatus: detail.lastReviewStatus,
+            reviewIntervalSeconds: detail.reviewIntervalSeconds,
+            reviewEaseFactor: detail.reviewEaseFactor,
+            reviewRepetitions: detail.reviewRepetitions,
+            nextReviewDate: detail.nextReviewDate,
+            cards: detail.cards.map((card, index) =>
+              createNotebookFlashcard(noteId, card, index)
+            ),
+            tags: [],
+            cardCount: detail.cards.length,
+          };
+          this.notes.push(newNote);
         }
       });
       this.rebuildReviewCards();
     } catch (error) {
       console.warn("[leetstack] Failed to load note detail", noteId, error);
+    } finally {
+      runInAction(() => {
+        this.loadingNoteDetails.delete(noteId);
+      });
     }
+  }
+
+  isLoadingNoteDetail(noteId: string): boolean {
+    return this.loadingNoteDetails.has(noteId);
   }
 
   ensureProblemsLoaded() {

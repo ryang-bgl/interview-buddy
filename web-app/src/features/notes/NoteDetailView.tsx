@@ -25,6 +25,8 @@ const NoteDetailView = observer(() => {
 
   const note = noteId ? notebookStore.getNoteById(noteId) : null;
   const loading = notebookStore.isLoadingNotes && !notebookStore.hasLoadedNotes;
+  const loadingCards =
+    noteId && notebookStore.isLoadingNoteDetail(noteId);
 
   if (loading) {
     return (
@@ -41,6 +43,54 @@ const NoteDetailView = observer(() => {
         <Button variant="outline" asChild>
           <Link to="/notes">Back to notes</Link>
         </Button>
+      </div>
+    );
+  }
+
+  // Show loading spinner while cards are being fetched
+  if (loadingCards) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col gap-2">
+          <Button variant="link" className="w-fit px-0" asChild>
+            <Link to="/notes">← Back to list</Link>
+          </Button>
+          <div className="flex flex-col gap-2">
+            <div>
+              <p className="text-sm text-muted-foreground">Note detail</p>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-semibold tracking-tight">
+                  {note.topic ?? note.summary ?? note.url}
+                </h1>
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0"
+                  onClick={() => navigate(`/review/notes/${note.noteId}`)}
+                >
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  Review Note
+                </Button>
+              </div>
+            </div>
+            <a
+              href={note.url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-primary underline"
+            >
+              {note.url}
+            </a>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {note.tags.map((tag) => (
+                <Badge key={tag} variant="secondary">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border/70 bg-muted/30 p-6">
+          <LoadingIndicator label="Loading flashcards…" />
+        </div>
       </div>
     );
   }
