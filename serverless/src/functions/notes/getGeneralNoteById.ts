@@ -72,6 +72,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       reviewEaseFactor: note.reviewEaseFactor ?? null,
       reviewRepetitions: note.reviewRepetitions ?? null,
       nextReviewDate: note.nextReviewDate ?? null,
+      tags: note.tags ?? [],
+      cardCount: note.cardCount ?? null,
     });
   } catch (error) {
     console.error("Failed to load general note by ID", error);

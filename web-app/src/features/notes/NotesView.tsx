@@ -18,7 +18,8 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator";
 const NotesView = observer(() => {
   const { notebookStore } = useStores();
   const navigate = useNavigate();
-  const { filteredNotes, noteTagFilters, noteTags, dueNoteCount } = notebookStore;
+  const { filteredNotes, noteTagFilters, noteTags, dueNoteCount } =
+    notebookStore;
 
   useEffect(() => {
     notebookStore.ensureNotesLoaded();
@@ -45,10 +46,7 @@ const NotesView = observer(() => {
             </p>
           </div>
           {dueNoteCount > 0 && (
-            <Button
-              onClick={handleStartNotesReview}
-              className="gap-2"
-            >
+            <Button onClick={handleStartNotesReview} className="gap-2">
               <Play className="h-4 w-4" />
               Review {dueNoteCount} Note{dueNoteCount > 1 ? "s" : ""}
             </Button>
@@ -93,7 +91,11 @@ const NotesView = observer(() => {
           </div>
         ) : null}
         {filteredNotes.map((note) => (
-          <Link key={note.noteId} to={`/notes/${note.noteId}`} className="block group">
+          <Link
+            key={note.noteId}
+            to={`/notes/${note.noteId}`}
+            className="block group"
+          >
             <Card className="border-border/70 hover:border-border/90 hover:shadow-md transition-all duration-200 cursor-pointer">
               <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -113,7 +115,7 @@ const NotesView = observer(() => {
                   {note.summary}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {note.tags.map((tag) => (
+                  {note.tags?.map((tag) => (
                     <Badge key={tag} variant="secondary">
                       {tag}
                     </Badge>

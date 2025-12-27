@@ -170,11 +170,6 @@ export class NotebookStore {
   }
 
   async loadNoteDetail(noteId: string): Promise<void> {
-    // Ensure notes list is loaded first
-    if (!this.hasLoadedNotes) {
-      await this.loadNotes();
-    }
-
     const existing = this.getNoteById(noteId);
 
     // If cards are already loaded, skip
@@ -217,8 +212,8 @@ export class NotebookStore {
             cards: detail.cards.map((card, index) =>
               createNotebookFlashcard(noteId, card, index)
             ),
-            tags: [],
-            cardCount: detail.cards.length,
+            tags: detail.tags,
+            cardCount: detail.cardCount,
           };
           this.notes.push(newNote);
         }

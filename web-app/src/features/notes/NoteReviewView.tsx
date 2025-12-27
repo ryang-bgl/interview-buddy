@@ -10,23 +10,21 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 const NoteReviewView = observer(() => {
   const { noteId } = useParams<{ noteId: string }>();
-  const { notebookStore } = useStores();
+  const { notebookStore, noteDetailStore } = useStores();
   const navigate = useNavigate();
   const [cardIndex, setCardIndex] = useState(0);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
 
   useEffect(() => {
-    notebookStore.ensureNotesLoaded();
-  }, [notebookStore]);
-
-  useEffect(() => {
     if (noteId) {
-      notebookStore.loadNoteDetail(noteId);
+      noteDetailStore.loadNoteDetail(noteId);
     }
-  }, [noteId, notebookStore]);
+    return () => {
+      noteDetailStore.reset();
+    };
+  }, [noteId, noteDetailStore]);
 
-  const loading = notebookStore.isLoadingNotes && !notebookStore.hasLoadedNotes;
-  const note = noteId ? notebookStore.getNoteById(noteId) : null;
+  const { note, isLoading } = noteDetailStore;
 
   useEffect(() => {
     setCardIndex(0);
@@ -38,19 +36,17 @@ const NoteReviewView = observer(() => {
     setIsAnswerRevealed(false);
   }, [cardIndex]);
 
-  // Filter to get only cards from this specific note
-  const noteCards = note
-    ? notebookStore.filteredReviewCards.filter(
-        (card) => card.sourceId === note.noteId
-      )
-    : [];
-  const currentCard = noteCards[cardIndex];
-  const hasNext = cardIndex < noteCards.length - 1;
+  // Use cards directly from NoteDetailStore
+  const cards = note?.cards ?? [];
+  const currentCard = cards[cardIndex];
+  const hasNext = cardIndex < cards.length - 1;
   const hasPrevious = cardIndex > 0;
 
   const handleGradeAndNext = (grade: "hard" | "good" | "easy") => {
-    if (!currentCard) return;
-    notebookStore.gradeReviewCard(currentCard.id, grade);
+    if (!currentCard || !note) return;
+    // Grade the review card using NotebookStore's review system
+    const reviewCardId = `note-${note.noteId}-${currentCard.id}`;
+    notebookStore.gradeReviewCard(reviewCardId, grade);
 
     // Move to next card after a short delay
     setTimeout(() => {
@@ -63,7 +59,7 @@ const NoteReviewView = observer(() => {
     }, 300);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="rounded-2xl border border-border/70 bg-muted/30 p-6">
         <LoadingIndicator label="Loading note review…" />
@@ -71,7 +67,7 @@ const NoteReviewView = observer(() => {
     );
   }
 
-  if (!note || noteCards.length === 0) {
+  if (!note || cards.length === 0) {
     return (
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
@@ -95,34 +91,34 @@ const NoteReviewView = observer(() => {
           <h1 className="text-3xl font-semibold tracking-tight">
             {note.topic ?? note.summary ?? note.url}
           </h1>
-          {noteCards.length > 0 && (
+          {cards.length > 0 && (
             <Badge variant="outline" className="text-sm">
-              {cardIndex + 1} / {noteCards.length} cards
+              {cardIndex + 1} / {cards.length} cards
             </Badge>
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          {note.tags.map((tag) => (
+          {note.tags?.map((tag) => (
             <Badge key={tag} variant="secondary">
               {tag}
             </Badge>
           ))}
         </div>
         {/* Overall progress for the note */}
-        {noteCards.length > 0 && (
+        {cards.length > 0 && (
           <div className="mt-2">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-muted-foreground">
                 Session Progress
               </span>
               <span className="text-xs text-muted-foreground">
-                {Math.round((cardIndex / noteCards.length) * 100)}%
+                {Math.round((cardIndex / cards.length) * 100)}%
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-1">
               <div
                 className="bg-gradient-to-r from-blue-400 to-blue-600 h-1 rounded-full transition-all duration-300"
-                style={{ width: `${(cardIndex / noteCards.length) * 100}%` }}
+                style={{ width: `${(cardIndex / cards.length) * 100}%` }}
               />
             </div>
           </div>
@@ -133,7 +129,7 @@ const NoteReviewView = observer(() => {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <CardTitle>{currentCard?.prompt}</CardTitle>
+              <CardTitle>{currentCard?.front}</CardTitle>
             </div>
             {!hasNext && (
               <div className="flex items-center gap-2">
@@ -177,7 +173,7 @@ const NoteReviewView = observer(() => {
               <div className="space-y-2">
                 {isAnswerRevealed ? (
                   <p className="text-base text-muted-foreground whitespace-pre-line">
-                    {currentCard?.answer}
+                    {currentCard?.back}
                   </p>
                 ) : (
                   <div
@@ -218,7 +214,7 @@ const NoteReviewView = observer(() => {
                   className={`${hasPrevious ? "flex-1" : "w-full"}`}
                   onClick={() =>
                     setCardIndex((index) =>
-                      Math.min(noteCards.length - 1, index + 1)
+                      Math.min(cards.length - 1, index + 1)
                     )
                   }
                 >

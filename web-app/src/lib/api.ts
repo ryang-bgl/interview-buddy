@@ -131,6 +131,8 @@ export interface FlashcardNoteRecord {
   reviewEaseFactor?: number | null;
   reviewRepetitions?: number | null;
   nextReviewDate?: string | null;
+  tags: string[];
+  cardCount: number | null;
 }
 
 export interface UpdateGeneralNoteCardPayload {
