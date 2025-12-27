@@ -102,9 +102,11 @@ const NotesView = observer(() => {
                   </CardTitle>
                   <CardDescription>{note.url}</CardDescription>
                 </div>
-                <Badge variant="outline" className="border-dashed">
-                  {note.cards.length} cards
-                </Badge>
+                {note.cardCount !== null && (
+                  <Badge variant="outline" className="border-dashed">
+                    {note.cardCount} cards
+                  </Badge>
+                )}
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground line-clamp-2">

@@ -1,12 +1,11 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import {
-  getGeneralNoteByUrl,
+  getGeneralNoteById,
   listDsaQuestions,
   listGeneralNotes,
   type DsaQuestion,
   type FlashcardCardRecord,
   type FlashcardNoteRecord,
-  type FlashcardNoteSummary,
   updateGeneralNoteCard,
   updateNoteReview,
   updateQuestionReview,
@@ -43,9 +42,9 @@ type NotebookFlashcard = FlashcardCardRecord & {
   saveError: string | null;
 };
 
-type NotebookNote = Omit<FlashcardNoteRecord, "cards"> & {
+type NotebookNote = Omit<FlashcardNoteRecord, "cards" | "tags" | "cardCount"> & {
   tags: string[];
-  cardCount: number;
+  cardCount: number | null;
   cards: NotebookFlashcard[];
 };
 
@@ -147,37 +146,10 @@ export class NotebookStore {
     this.notesError = null;
     try {
       const { notes: summaries } = await listGeneralNotes();
-      const summaryMap = new Map<string, FlashcardNoteSummary>(
-        summaries.map((summary) => [summary.noteId, summary])
-      );
-      const detailed = await Promise.all(
-        summaries.map(async (summary) => {
-          try {
-            return await getGeneralNoteByUrl(summary.url);
-          } catch (error) {
-            console.warn(
-              "[leetstack] Failed to load note detail",
-              summary.url,
-              error
-            );
-            return null;
-          }
-        })
-      );
-      const normalized: NotebookNote[] = detailed
-        .filter((note): note is FlashcardNoteRecord => Boolean(note))
-        .map((note) => {
-          const summary = summaryMap.get(note.noteId);
-          return {
-            ...note,
-            summary: note.summary ?? summary?.summary ?? null,
-            tags: summary?.tags ?? [],
-            cardCount: summary?.cardCount ?? note.cards.length,
-            cards: note.cards.map((card, index) =>
-              createNotebookFlashcard(note.noteId, card, index)
-            ),
-          };
-        });
+      const normalized: NotebookNote[] = summaries.map((summary) => ({
+        ...summary,
+        cards: [],
+      }));
       runInAction(() => {
         this.notes = normalized;
         this.hasLoadedNotes = true;
@@ -193,6 +165,31 @@ export class NotebookStore {
       runInAction(() => {
         this.isLoadingNotes = false;
       });
+    }
+  }
+
+  async loadNoteDetail(noteId: string): Promise<void> {
+    const existing = this.getNoteById(noteId);
+    if (!existing) {
+      console.warn("[leetstack] Note not found in store:", noteId);
+      return;
+    }
+    if (existing.cards.length > 0) {
+      return;
+    }
+    try {
+      const detail = await getGeneralNoteById(noteId);
+      runInAction(() => {
+        const note = this.getNoteById(noteId);
+        if (note) {
+          note.cards = detail.cards.map((card, index) =>
+            createNotebookFlashcard(noteId, card, index)
+          );
+        }
+      });
+      this.rebuildReviewCards();
+    } catch (error) {
+      console.warn("[leetstack] Failed to load note detail", noteId, error);
     }
   }
 

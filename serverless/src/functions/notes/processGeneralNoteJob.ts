@@ -332,6 +332,19 @@ async function processJob({ jobId }: ProcessorInput) {
   }
 }
 
+function computeCardTags(cards: UserNoteCardRecord[]): string[] {
+  const tags = new Set<string>();
+  for (const card of cards) {
+    for (const tag of card.tags ?? []) {
+      const trimmed = tag.trim();
+      if (trimmed) {
+        tags.add(trimmed);
+      }
+    }
+  }
+  return Array.from(tags);
+}
+
 async function persistNewNoteWithFlashCards({
   jobRecord,
   noteToProcess,
@@ -357,6 +370,8 @@ async function persistNewNoteWithFlashCards({
     topic: jobRecord.topic ?? noteToProcess.topic,
     summary: noteToProcess.summary ?? undefined,
     cards: newCards,
+    cardCount: newCards.length,
+    tags: computeCardTags(newCards),
     createdAt: now,
     updatedAt: now,
     lastReviewedAt: null,
@@ -563,9 +578,12 @@ async function updateNoteCards(
     new UpdateCommand({
       TableName: userNotesTableName,
       Key: { userId, noteId },
-      UpdateExpression: "SET cards = :cards, updatedAt = :updatedAt",
+      UpdateExpression:
+        "SET cards = :cards, cardCount = :cardCount, tags = :tags, updatedAt = :updatedAt",
       ExpressionAttributeValues: {
         ":cards": cards,
+        ":cardCount": cards.length,
+        ":tags": computeCardTags(cards),
         ":updatedAt": now,
       },
     })

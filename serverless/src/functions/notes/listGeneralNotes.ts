@@ -5,11 +5,7 @@ import {
   authenticateRequest,
   UnauthorizedError,
 } from "../../shared/supabaseAuth";
-import {
-  internalError,
-  jsonResponse,
-  unauthorized,
-} from "../../shared/http";
+import { internalError, jsonResponse, unauthorized } from "../../shared/http";
 import type { UserNoteRecord } from "../../shared/types";
 
 const userNotesTableName = process.env.USER_NOTES_TABLE_NAME;
@@ -26,7 +22,7 @@ interface NoteSummary {
   createdAt: string;
   lastReviewedAt: string | null;
   lastReviewStatus: string | null;
-  cardCount: number;
+  cardCount: number | null;
   tags: string[];
   reviewIntervalSeconds?: number | null;
   reviewEaseFactor?: number | null;
@@ -60,7 +56,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         ":userId": userId,
       },
       ProjectionExpression:
-        "noteId, sourceUrl, topic, summary, cards, createdAt, lastReviewedAt, lastReviewStatus, reviewIntervalSeconds, reviewEaseFactor, reviewRepetitions, nextReviewDate",
+        "noteId, sourceUrl, topic, summary, cardCount, tags, createdAt, lastReviewedAt, lastReviewStatus, reviewIntervalSeconds, reviewEaseFactor, reviewRepetitions, nextReviewDate",
     });
     const result = await docClient.send(query);
     const items = (result.Items as UserNoteRecord[] | undefined) ?? [];
@@ -68,7 +64,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     const summaries: NoteSummary[] = items
       .map((note) => mapToSummary(note))
       .sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
     return jsonResponse(200, { notes: summaries });
@@ -79,15 +76,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
 };
 
 function mapToSummary(note: UserNoteRecord): NoteSummary {
-  const tags = new Set<string>();
-  (note.cards ?? []).forEach((card) => {
-    card?.tags?.forEach((tag) => {
-      const trimmed = tag.trim();
-      if (trimmed) {
-        tags.add(trimmed);
-      }
-    });
-  });
+  // Use stored cardCount and tags, return null if not available
+  const cardCount = note.cardCount ?? null;
+  const tags = note.tags ?? [];
 
   return {
     noteId: note.noteId ?? "",
@@ -97,8 +88,8 @@ function mapToSummary(note: UserNoteRecord): NoteSummary {
     createdAt: note.createdAt ?? "",
     lastReviewedAt: note.lastReviewedAt ?? null,
     lastReviewStatus: note.lastReviewStatus ?? null,
-    cardCount: note.cards?.length ?? 0,
-    tags: Array.from(tags),
+    cardCount,
+    tags,
     reviewIntervalSeconds: note.reviewIntervalSeconds ?? null,
     reviewEaseFactor: note.reviewEaseFactor ?? null,
     reviewRepetitions: note.reviewRepetitions ?? null,

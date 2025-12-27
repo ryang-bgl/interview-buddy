@@ -102,7 +102,7 @@ export interface FlashcardNoteSummary {
   createdAt: string;
   lastReviewedAt: string | null;
   lastReviewStatus: "easy" | "good" | "hard" | null;
-  cardCount: number;
+  cardCount: number | null;
   tags: string[];
   reviewIntervalSeconds?: number | null;
   reviewEaseFactor?: number | null;
@@ -206,6 +206,11 @@ export async function listGeneralNotes() {
 export async function getGeneralNoteByUrl(url: string) {
   const encoded = encodeURIComponent(url);
   return request<FlashcardNoteRecord>(`/api/general-note/note?url=${encoded}`);
+}
+
+export async function getGeneralNoteById(noteId: string) {
+  const encoded = encodeURIComponent(noteId);
+  return request<FlashcardNoteRecord>(`/api/general-note/notes/${encoded}`);
 }
 
 export async function updateGeneralNoteCard(

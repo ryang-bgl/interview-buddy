@@ -26,3 +26,7 @@ export function unauthorized(message = 'Unauthorized'): APIGatewayProxyStructure
 export function internalError(): APIGatewayProxyStructuredResultV2 {
   return jsonResponse(500, { message: 'Internal server error' });
 }
+
+export function notFound(message = 'Not found'): APIGatewayProxyStructuredResultV2 {
+  return jsonResponse(404, { message });
+}

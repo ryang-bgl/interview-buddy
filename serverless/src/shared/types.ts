@@ -56,6 +56,8 @@ export interface UserNoteRecord {
   topic?: string;
   summary?: string;
   cards: UserNoteCardRecord[];
+  cardCount?: number;
+  tags?: string[];
   createdAt?: string;
   updatedAt?: string;
   lastReviewedAt?: string | null;

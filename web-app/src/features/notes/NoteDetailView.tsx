@@ -16,6 +16,13 @@ const NoteDetailView = observer(() => {
   useEffect(() => {
     notebookStore.ensureNotesLoaded();
   }, [notebookStore]);
+
+  useEffect(() => {
+    if (noteId) {
+      notebookStore.loadNoteDetail(noteId);
+    }
+  }, [noteId, notebookStore]);
+
   const note = noteId ? notebookStore.getNoteById(noteId) : null;
   const loading = notebookStore.isLoadingNotes && !notebookStore.hasLoadedNotes;
 
