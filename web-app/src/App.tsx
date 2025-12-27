@@ -15,7 +15,6 @@ import { useStores } from "@/stores/StoreProvider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  BookMarked,
   Moon,
   Sun,
   LayoutDashboard,
@@ -29,7 +28,6 @@ const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { path: "/problems", label: "DSA Problems", icon: Workflow },
   { path: "/notes", label: "Notes & Cards", icon: StickyNote },
-  { path: "/review", label: "Review Session", icon: BookMarked },
 ];
 
 const ProtectedShell = observer(() => {
