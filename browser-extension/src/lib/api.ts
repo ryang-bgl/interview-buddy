@@ -171,6 +171,35 @@ export async function saveUserDsaQuestion(
   throw new Error(message);
 }
 
+export async function getDsaQuestion(
+  questionIndex: string
+): Promise<UserDsaQuestionResponse> {
+  const encodedIndex = encodeURIComponent(questionIndex);
+  const response = await request(`/api/dsa/questions/${encodedIndex}`, {
+    method: "GET",
+  });
+
+  if (response.ok) {
+    return (await response.json()) as UserDsaQuestionResponse;
+  }
+
+  if (response.status === 404) {
+    throw new Error("Problem not found");
+  }
+
+  let message = "Failed to load problem";
+  try {
+    const body = await response.json();
+    if (body && typeof body.message === "string") {
+      message = body.message;
+    }
+  } catch (error) {
+    console.warn("[leetstack] Unable to parse load error response", error);
+  }
+
+  throw new Error(message);
+}
+
 // Re-export shared types for convenience
 export type {
   GeneralNoteJobStatus,

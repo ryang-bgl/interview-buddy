@@ -4,6 +4,7 @@ export interface PageProblemDetails {
   href: string;
   descriptionHtml?: string;
   descriptionText?: string;
+  descriptionMarkdown?: string;
   language?: string;
   solutionCode?: string;
   difficulty?: string;

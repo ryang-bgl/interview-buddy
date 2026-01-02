@@ -14,6 +14,7 @@ import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { Markdown } from "@/components/ui/markdown";
 import { PlayCircle } from "lucide-react";
 
 const ProblemDetailView = observer(() => {
@@ -82,9 +83,7 @@ const ProblemDetailView = observer(() => {
           <CardTitle>Description</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground whitespace-pre-line">
-            {problem.description}
-          </p>
+          <Markdown content={problem.description} />
         </CardContent>
       </Card>
 
@@ -105,13 +104,17 @@ const ProblemDetailView = observer(() => {
               )
             }
             rows={8}
+            placeholder="Your solution code and explanation..."
           />
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>Solution to reference</CardHeader>
-        <CardContent>
+        <CardHeader>
+          <CardTitle>Solution to reference</CardTitle>
+          <CardDescription>AI-assisted approach</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <Textarea
             value={problem.idealSolutionCode ?? ""}
             onChange={(event) =>
@@ -123,11 +126,20 @@ const ProblemDetailView = observer(() => {
             rows={6}
             placeholder="AI-assisted approach"
           />
+          {problem.idealSolutionCode && (
+            <div className="border-t pt-4">
+              <Markdown content={problem.idealSolutionCode} />
+            </div>
+          )}
         </CardContent>
       </Card>
+
       <Card>
-        <CardHeader>Note</CardHeader>
-        <CardContent>
+        <CardHeader>
+          <CardTitle>Personal notes</CardTitle>
+          <CardDescription>Reminders or edge cases</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <Textarea
             value={problem.note ?? ""}
             onChange={(event) =>

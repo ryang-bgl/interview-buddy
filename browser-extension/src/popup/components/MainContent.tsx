@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   saveUserDsaQuestion,
+  getDsaQuestion,
   generateAiSolution,
   type UserPrincipal,
 } from "@/lib/api";
@@ -76,7 +77,6 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     setDifficultyLabel(state.difficulty ?? "Unknown");
   }, []);
 
-  
   useEffect(() => {
     let cancelled = false;
 
@@ -125,7 +125,9 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
           setProblemLink(key);
         }
 
-        const description = pageDetails.descriptionHtml
+        const description = pageDetails.descriptionMarkdown
+          ? pageDetails.descriptionMarkdown
+          : pageDetails.descriptionHtml
           ? toPlainText(pageDetails.descriptionHtml)
           : pageDetails.descriptionText ?? "";
         const initialState: PopupFormState = {
@@ -143,10 +145,40 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
         applyFormState(initialState);
         initialStateRef.current = { ...initialState };
 
+        // Try to load existing problem data (AI solution and personal notes)
+        try {
+          const questionIndex = pageDetails.problemNumber;
+          if (questionIndex) {
+            const existingProblem = await getDsaQuestion(questionIndex);
+            if (existingProblem && !cancelled) {
+              // Update with saved AI solution and personal notes
+              if (existingProblem.idealSolutionCode) {
+                setIdealSolutionInput(existingProblem.idealSolutionCode);
+                initialStateRef.current = {
+                  ...initialStateRef.current,
+                  idealSolution: existingProblem.idealSolutionCode,
+                };
+              }
+              if (existingProblem.note) {
+                setNotesInput(existingProblem.note);
+                initialStateRef.current = {
+                  ...initialStateRef.current,
+                  notes: existingProblem.note,
+                };
+              }
+            }
+          }
+        } catch (error) {
+          // Problem doesn't exist yet or other error - ignore
+          console.debug("[leetstack] No existing problem data found", error);
+        }
+
         if (key) {
+          // Update initial state with any loaded data before saving to cache
+          const finalState = { ...initialStateRef.current };
           const updatedMap = {
             ...storageCacheRef.current,
-            [key]: initialState,
+            [key]: finalState,
           };
           storageCacheRef.current = updatedMap;
           await writeStoredMap(updatedMap);
@@ -209,14 +241,12 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     isInitialized,
   ]);
 
-  
   const handleClose = useCallback(() => {
     if (typeof window !== "undefined") {
       window.close();
     }
   }, []);
 
-  
   const handleGenerateIdealSolution = useCallback(async () => {
     if (isGeneratingIdealSolution) {
       return;
@@ -416,19 +446,21 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
             </p>
             <p className="font-semibold text-slate-900">{userDisplayName}</p>
           </div>
-          <button
-            type="button"
-            onClick={onSignOut}
-            className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
         <header className="flex items-start justify-between gap-6">
           <div className="flex flex-1 items-start gap-4">
             <div className="flex flex-1 flex-col gap-1">
               <h1 className="text-xl font-semibold text-slate-900">
-                Save to LeetStack
+                Save to LeetStack2
               </h1>
               <p className="text-sm text-slate-500">
                 Capture your code and notes for later review
@@ -543,7 +575,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                 </FieldLabel>
-                <FieldLabel label={`Your Solution Code (})`}>
+                <FieldLabel label={`Solution`}>
                   <textarea
                     rows={9}
                     value={codeInput}
@@ -555,7 +587,7 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
                     }}
                   />
                 </FieldLabel>
-                <FieldLabel label="Ideal Solution (Optional)">
+                <FieldLabel label="Solution for reference (Optional)">
                   <div className="space-y-3">
                     <textarea
                       rows={7}

@@ -2,10 +2,21 @@ interface EducationalMessageProps {
   onSwitchToLeetcodeTab: () => void;
 }
 
-export default function EducationalMessage({ onSwitchToLeetcodeTab }: EducationalMessageProps) {
+export default function EducationalMessage({
+  onSwitchToLeetcodeTab,
+}: EducationalMessageProps) {
   // Simple icon components using SVG or emoji instead of lucide-react
   const InfoIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="12" cy="12" r="10"></circle>
       <line x1="12" y1="16" x2="12" y2="12"></line>
       <line x1="12" y1="8" x2="12.01" y2="8"></line>
@@ -13,21 +24,48 @@ export default function EducationalMessage({ onSwitchToLeetcodeTab }: Educationa
   );
 
   const ArrowRightIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <line x1="5" y1="12" x2="19" y2="12"></line>
       <polyline points="12,5 19,12 12,19"></polyline>
     </svg>
   );
 
   const BookOpenIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2"></path>
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 0 3-3h6"></path>
     </svg>
   );
 
   const LightbulbIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M12 2v8"></path>
       <path d="M12 18h.01"></path>
       <circle cx="12" cy="12" r="9"></circle>
@@ -35,7 +73,16 @@ export default function EducationalMessage({ onSwitchToLeetcodeTab }: Educationa
   );
 
   const TargetIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="12" cy="12" r="10"></circle>
       <circle cx="12" cy="12" r="6"></circle>
       <circle cx="12" cy="12" r="2"></circle>
@@ -74,8 +121,10 @@ export default function EducationalMessage({ onSwitchToLeetcodeTab }: Educationa
                 </h4>
               </div>
               <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
-                Use this to save your LeetCode solutions and review them later in LeetStack.
-                Perfect for tracking your coding progress and revisiting problems.
+                Use this to save your LeetCode solutions and review them later
+                in https://web.leetstack.app.
+                <br /> Perfect for tracking your coding progress and revisiting
+                problems.
               </p>
               <button
                 onClick={onSwitchToLeetcodeTab}
@@ -89,7 +138,9 @@ export default function EducationalMessage({ onSwitchToLeetcodeTab }: Educationa
             {/* Divider */}
             <div className="flex items-center gap-4">
               <div className="flex-1 h-px bg-muted"></div>
-              <span className="text-xs text-muted-foreground uppercase tracking-wide">OR</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                OR
+              </span>
               <div className="flex-1 h-px bg-muted"></div>
             </div>
 
@@ -126,7 +177,8 @@ export default function EducationalMessage({ onSwitchToLeetcodeTab }: Educationa
               </ul>
               <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
                 <p className="text-xs text-green-600 dark:text-green-400 font-medium">
-                  💡 Navigate to any webpage with study content to start creating flashcards!
+                  💡 Navigate to any webpage with study content to start
+                  creating flashcards!
                 </p>
               </div>
             </div>
@@ -136,7 +188,10 @@ export default function EducationalMessage({ onSwitchToLeetcodeTab }: Educationa
           <div className="bg-muted/30 rounded-lg p-3 border border-muted">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <TargetIcon />
-              <span>Visit a System Design blog or behavioral interview article to use Note→Flashcards effectively.</span>
+              <span>
+                Visit a System Design blog or behavioral interview article to
+                use Note→Flashcards effectively.
+              </span>
             </div>
           </div>
         </div>

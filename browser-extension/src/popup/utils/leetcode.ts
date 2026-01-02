@@ -1,4 +1,20 @@
 import type { PageProblemDetails } from "../types";
+import TurndownService from "turndown";
+
+const turndownService = new TurndownService({
+  codeBlockStyle: "fenced",
+  headingStyle: "atx",
+});
+
+export function htmlToMarkdown(html: string): string {
+  try {
+    return turndownService.turndown(html);
+  } catch (error) {
+    console.warn("[leetstack] Failed to convert HTML to markdown", error);
+    // Fallback to plain text
+    return toPlainText(html);
+  }
+}
 
 export function toPlainText(html: string): string {
   const parser = new DOMParser();
@@ -86,13 +102,22 @@ export async function findLeetCodeProblemDetailsInActivePage(
             if (!normalized) {
               return undefined;
             }
-            if (normalized.includes("easy") || normalized.includes("difficulty-easy")) {
+            if (
+              normalized.includes("easy") ||
+              normalized.includes("difficulty-easy")
+            ) {
               return "Easy";
             }
-            if (normalized.includes("medium") || normalized.includes("difficulty-medium")) {
+            if (
+              normalized.includes("medium") ||
+              normalized.includes("difficulty-medium")
+            ) {
               return "Medium";
             }
-            if (normalized.includes("hard") || normalized.includes("difficulty-hard")) {
+            if (
+              normalized.includes("hard") ||
+              normalized.includes("difficulty-hard")
+            ) {
               return "Hard";
             }
             return undefined;
@@ -293,7 +318,26 @@ export async function findLeetCodeProblemDetailsInActivePage(
         return null;
       },
     });
-    return (result?.result ?? null) as PageProblemDetails | null;
+
+    const rawResult = (result?.result ?? null) as PageProblemDetails | null;
+    if (!rawResult) {
+      return null;
+    }
+
+    // Convert HTML to markdown in extension context (not page context)
+    let descriptionMarkdown: string | undefined;
+    if (rawResult.descriptionHtml) {
+      console.log("[leetstack] ========== Raw descriptionHtml capture ==========");
+      console.log(rawResult.descriptionHtml);
+      descriptionMarkdown = htmlToMarkdown(rawResult.descriptionHtml);
+      console.log("[leetstack] ========== Converted markdown ==========");
+      console.log(descriptionMarkdown);
+    }
+
+    return {
+      ...rawResult,
+      descriptionMarkdown,
+    };
   } catch (error) {
     console.warn(
       "[leetstack] Failed to read LeetCode title from active page",
@@ -370,7 +414,9 @@ export function isLeetCodeDomain(url: string): boolean {
     const hostname = parsed.hostname.toLowerCase();
 
     // Check for leetcode.com, leetcode.cn, and their subdomains
-    return hostname.includes('leetcode.com') || hostname.includes('leetcode.cn');
+    return (
+      hostname.includes("leetcode.com") || hostname.includes("leetcode.cn")
+    );
   } catch (error) {
     console.warn("[leetstack] Failed to parse URL for domain check", error);
     return false;
@@ -387,9 +433,14 @@ export function isLeetStackDomain(url: string): boolean {
     const hostname = parsed.hostname.toLowerCase();
 
     // Check for leetstack.com, leetstack.cn, and their subdomains
-    return hostname.includes('leetstack.com') || hostname.includes('leetstack.cn');
+    return (
+      hostname.includes("leetstack.com") || hostname.includes("leetstack.cn")
+    );
   } catch (error) {
-    console.warn("[leetstack] Failed to parse URL for LeetStack domain check", error);
+    console.warn(
+      "[leetstack] Failed to parse URL for LeetStack domain check",
+      error
+    );
     return false;
   }
 }
