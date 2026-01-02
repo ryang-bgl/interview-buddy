@@ -14,6 +14,7 @@ import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { Markdown } from "@/components/ui/markdown";
 
 const ProblemReviewView = observer(() => {
   const { problemId } = useParams<{ problemId: string }>();
@@ -182,9 +183,7 @@ const ProblemReviewView = observer(() => {
                 </p>
               )}
               <Separator className={stepIndex === 0 ? "my-4" : "my-4"} />
-              <p className="text-lg text-slate-900 whitespace-pre-line">
-                {steps[stepIndex].content}
-              </p>
+              <Markdown content={steps[stepIndex].content} className="text-lg" />
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               {stepIndex > 0 && (

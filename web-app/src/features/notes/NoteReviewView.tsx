@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Separator } from "@/components/ui/separator";
+import { Markdown } from "@/components/ui/markdown";
 import { useStores } from "@/stores/StoreProvider";
 import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
@@ -172,9 +173,7 @@ const NoteReviewView = observer(() => {
               <Separator />
               <div className="space-y-2">
                 {isAnswerRevealed ? (
-                  <p className="text-base text-muted-foreground whitespace-pre-line">
-                    {currentCard?.back}
-                  </p>
+                  <Markdown content={currentCard?.back ?? ""} />
                 ) : (
                   <div
                     className="rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-4 text-center cursor-pointer hover:bg-muted/30 transition-colors"
@@ -188,11 +187,7 @@ const NoteReviewView = observer(() => {
                 {isAnswerRevealed && currentCard?.extra ? (
                   <>
                     <Separator />
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">
-                        {currentCard.extra}
-                      </p>
-                    </div>
+                    <Markdown content={currentCard.extra} className="text-sm" />
                   </>
                 ) : null}
               </div>
