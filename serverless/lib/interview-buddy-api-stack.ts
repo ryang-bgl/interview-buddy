@@ -559,6 +559,31 @@ export class InterviewBuddyApiStack extends Stack {
       }
     );
 
+    const generateSummaryFn = new NodejsFunction(this, "GenerateSummaryFunction", {
+      ...defaultLambdaProps,
+      timeout: Duration.seconds(30),
+      memorySize: 512,
+      entry: path.join(__dirname, "..", "src", "functions", "notes", "generateSummary.ts"),
+      handler: "handler",
+      environment: {
+        ...commonLambdaEnv,
+        USER_NOTES_TABLE_NAME: userNotesTable.tableName,
+        OPENAI_API_KEY: openaiApiKey.valueAsString,
+        OPENAI_API_URL: openaiApiUrl.valueAsString,
+        OPENAI_MODEL: openaiModel.valueAsString,
+      },
+    });
+
+    const updateGeneralNoteSummayFn = new NodejsFunction(this, "UpdateGeneralNoteFunction", {
+      ...defaultLambdaProps,
+      entry: path.join(__dirname, "..", "src", "functions", "notes", "updateGeneralNoteSummary.ts"),
+      handler: "handler",
+      environment: {
+        ...commonLambdaEnv,
+        USER_NOTES_TABLE_NAME: userNotesTable.tableName,
+      },
+    });
+
     const authByApiKeyFn = new NodejsFunction(this, "AuthByApiKeyFunction", {
       ...defaultLambdaProps,
             entry: path.join(
@@ -628,6 +653,8 @@ export class InterviewBuddyApiStack extends Stack {
     usersTable.grantReadData(addGeneralNoteCardFn);
     usersTable.grantReadData(deleteGeneralNoteCardFn);
     usersTable.grantReadData(generateAiSolutionFn);
+    usersTable.grantReadData(generateSummaryFn);
+    usersTable.grantReadData(updateGeneralNoteSummayFn);
     userNotesTable.grantReadWriteData(generalNoteJobProcessorFn);
     userNotesTable.grantReadData(getGeneralNoteByUrlFn);
     userNotesTable.grantReadData(listGeneralNotesFn);
@@ -635,6 +662,8 @@ export class InterviewBuddyApiStack extends Stack {
     userNotesTable.grantReadWriteData(addGeneralNoteCardFn);
     userNotesTable.grantReadWriteData(deleteGeneralNoteCardFn);
     userNotesTable.grantReadWriteData(updateNoteReviewFn);
+    userNotesTable.grantReadWriteData(generateSummaryFn);
+    userNotesTable.grantReadWriteData(updateGeneralNoteSummayFn);
     userFeedbackTable.grantReadWriteData(createFeedbackFn);
     generalNoteJobsTable.grantReadWriteData(generalNoteJobRequestFn);
     generalNoteJobsTable.grantReadWriteData(generalNoteJobProcessorFn);
@@ -839,6 +868,24 @@ export class InterviewBuddyApiStack extends Stack {
       integration: new HttpLambdaIntegration(
         "UpdateNoteReviewIntegration",
         updateNoteReviewFn
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: "/api/ai/general-note/summary",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration(
+        "GenerateSummaryIntegration",
+        generateSummaryFn
+      ),
+    });
+
+    httpApi.addRoutes({
+      path: "/api/ai/general-note/notes/{noteId}",
+      methods: [HttpMethod.PATCH],
+      integration: new HttpLambdaIntegration(
+        "UpdateGeneralNoteIntegration",
+        updateGeneralNoteSummayFn
       ),
     });
 

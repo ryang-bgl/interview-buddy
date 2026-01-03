@@ -319,6 +319,68 @@ export async function getExistingGeneralNote(
   throw new Error(message);
 }
 
+export async function generateSummary(
+  payload: {
+    url: string;
+    content: string;
+    topic?: string;
+  }
+): Promise<{ summary: string; noteId: string }> {
+  const response = await request("/api/ai/general-note/summary", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  if (response.ok) {
+    return (await response.json()) as { summary: string; noteId: string };
+  }
+
+  let message = "Failed to generate summary";
+  try {
+    const body = await response.json();
+    if (body && typeof body.message === "string") {
+      message = body.message;
+    }
+  } catch (error) {
+    console.warn("[leetstack] Unable to parse summary error", error);
+  }
+
+  throw new Error(message);
+}
+
+export async function updateNote(
+  noteId: string,
+  payload: {
+    summary?: string;
+    topic?: string;
+  }
+): Promise<{ noteId: string; summary: string | null; topic: string | null }> {
+  const response = await request(`/api/ai/general-note/notes/${noteId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+
+  if (response.ok) {
+    return (await response.json()) as {
+      noteId: string;
+      summary: string | null;
+      topic: string | null;
+    };
+  }
+
+  let message = "Failed to update note";
+  try {
+    const body = await response.json();
+    if (body && typeof body.message === "string") {
+      message = body.message;
+    }
+  } catch (error) {
+    console.warn("[leetstack] Unable to parse update note error", error);
+  }
+
+  throw new Error(message);
+}
+
 export async function addGeneralNoteCard(
   noteId: string,
   payload: AddGeneralNoteCardRequest

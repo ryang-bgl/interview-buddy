@@ -3,7 +3,6 @@ import { DynamoDBStreamHandler } from "aws-lambda";
 import {
   GetCommand,
   PutCommand,
-  QueryCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { docClient } from "../../shared/dynamodb";
@@ -21,6 +20,7 @@ import {
   groupChunksBySize,
   type MarkdownChunk,
 } from "../../shared/markdownChunker";
+import { findNoteByUrl, findNoteById } from "../../shared/notes";
 
 const jobsTableName = process.env.GENERAL_NOTE_JOBS_TABLE_NAME;
 const userNotesTableName = process.env.USER_NOTES_TABLE_NAME;
@@ -107,10 +107,11 @@ async function processJob({ jobId }: ProcessorInput) {
   }
 
   try {
-    let noteToProcess: UserNoteRecord | null = await findExistingNote(
-      jobRecord.userId,
-      jobRecord.url
-    );
+    let noteToProcess: UserNoteRecord | null = await findNoteByUrl({
+      tableName: userNotesTableName,
+      userId: jobRecord.userId,
+      url: jobRecord.url,
+    });
 
     if (noteToProcess === null || noteToProcess === undefined) {
       noteToProcess = {
@@ -213,6 +214,7 @@ async function processJob({ jobId }: ProcessorInput) {
                   throw new Error("Created note has no noteId");
                 }
                 verifiedNote = await findNoteById(
+                  userNotesTableName,
                   jobRecord.userId,
                   createdNote.noteId
                 );
@@ -492,80 +494,6 @@ async function updateJobWithResults(
       },
     })
   );
-}
-
-async function findExistingNote(
-  userId: string,
-  url: string
-): Promise<UserNoteRecord | null> {
-  console.info("[general-note-job] Finding existing note", { userId, url });
-
-  const query = new QueryCommand({
-    TableName: userNotesTableName,
-    KeyConditionExpression: "userId = :userId",
-    FilterExpression: "sourceUrl = :sourceUrl",
-    ExpressionAttributeValues: {
-      ":userId": userId,
-      ":sourceUrl": url,
-    },
-    Limit: 1,
-  });
-
-  try {
-    const result = await docClient.send(query);
-    const items = (result.Items as UserNoteRecord[] | undefined) ?? [];
-    console.info("[general-note-job] Query result", {
-      userId,
-      url,
-      itemCount: items.length,
-      firstNoteId: items[0]?.noteId,
-    });
-    return items[0] ?? null;
-  } catch (error) {
-    console.error("[general-note-job] Failed to load existing note", {
-      userId,
-      url,
-      error,
-    });
-    throw error;
-  }
-}
-
-async function findNoteById(
-  userId: string,
-  noteId: string
-): Promise<UserNoteRecord | null> {
-  console.info("[general-note-job] Finding note by ID", { userId, noteId });
-
-  const command = new GetCommand({
-    TableName: userNotesTableName,
-    Key: {
-      userId,
-      noteId,
-    },
-  });
-
-  try {
-    const result = await docClient.send(command);
-    const note = result.Item as UserNoteRecord | undefined;
-
-    console.info("[general-note-job] Get result", {
-      userId,
-      noteId,
-      found: !!note,
-      sourceUrl: note?.sourceUrl,
-      cardCount: note?.cards.length,
-    });
-
-    return note ?? null;
-  } catch (error) {
-    console.error("[general-note-job] Failed to load note by ID", {
-      userId,
-      noteId,
-      error,
-    });
-    throw error;
-  }
 }
 
 async function updateNoteCards(

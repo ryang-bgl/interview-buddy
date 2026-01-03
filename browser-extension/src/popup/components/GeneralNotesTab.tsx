@@ -5,11 +5,14 @@ import {
   getExistingGeneralNote,
   addGeneralNoteCard,
   deleteGeneralNoteCard,
+  generateSummary,
+  updateNote,
 } from "@/lib/api";
 import { getActiveTab } from "../utils/browser";
 import { selectPageElementContent } from "../utils/page";
 import TurndownService from "turndown";
 import { TaskStatus } from "../../../../shared-types/TaskStatus";
+import { MarkdownViewer } from "./MarkdownViewer";
 
 type StackResult = {
   noteId: string | null;
@@ -54,6 +57,13 @@ export default function GeneralNotesTab() {
   } | null>(null);
   const [isSelectingContent, setIsSelectingContent] = useState(false);
 
+  // Notes mode: "notes" for simple notes, "flashcards" for card editing
+  const [notesMode, setNotesMode] = useState<"notes" | "flashcards">("notes");
+  const [isEditingSummary, setIsEditingSummary] = useState(false);
+  const [summaryInput, setSummaryInput] = useState("");
+  const [isSavingSummary, setIsSavingSummary] = useState(false);
+  const [pageTopic, setPageTopic] = useState("");
+
   const START_SLOT_ID = "__start__";
 
   const isGenerating = generationState === "processing";
@@ -86,6 +96,8 @@ export default function GeneralNotesTab() {
           url: existing.url,
           source: "existing",
         });
+        setSummaryInput(existing.summary ?? "");
+        setPageTopic(existing.topic ?? "");
         setGenerationState("completed");
       } catch (error) {
         if (!cancelled) {
@@ -297,6 +309,7 @@ export default function GeneralNotesTab() {
         source: "generated",
       };
     });
+    setPageTopic(topic ?? "");
     setGenerationState(status);
   };
 
@@ -531,6 +544,151 @@ export default function GeneralNotesTab() {
     );
   };
 
+  const handleSaveSummary = async () => {
+    setIsSavingSummary(true);
+    setErrorMessage(null);
+    try {
+      const tab = await getActiveTab();
+      const tabUrl = tab?.url?.trim();
+      if (!tabUrl) {
+        throw new Error("No active tab found");
+      }
+
+      // Use existing noteId
+      const noteId = stackResult?.noteId;
+      if (!noteId) {
+        throw new Error("Please generate AI summary first or create a note");
+      }
+
+      // Determine if topic changed
+      const currentTopic = stackResult?.topic ?? null;
+      const newTopic = pageTopic || currentTopic;
+      const topicChanged = newTopic !== currentTopic;
+
+      // Call the API to update the note
+      const result = await updateNote(noteId, {
+        summary: summaryInput || undefined,
+        ...(topicChanged ? { topic: newTopic || undefined } : {}),
+      });
+
+      // Update local state with the response
+      setStackResult((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          summary: result.summary,
+          topic: result.topic,
+        };
+      });
+
+      // Switch to preview mode after saving
+      setIsEditingSummary(false);
+      setGenerationState("completed");
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to save notes";
+      setErrorMessage(message);
+      setGenerationState("error");
+    } finally {
+      setIsSavingSummary(false);
+    }
+  };
+
+  const handleGenerateSummary = async () => {
+    setErrorMessage(null);
+    setGenerationState("processing");
+    try {
+      const tab = await getActiveTab();
+      const tabId = tab?.id;
+      const tabUrl = tab?.url?.trim();
+      if (!tabId || !tabUrl) {
+        throw new Error("Open the page you want to summarize");
+      }
+
+      // Must have selected content to generate summary
+      if (!selectedSource || selectedSource.url !== tabUrl) {
+        setSelectedSource(null);
+        throw new Error(
+          "Please select an element on the page first before generating summary."
+        );
+      }
+
+      // Use markdown from selected element
+      let content: string;
+      if (selectedSource.markdown) {
+        content = selectedSource.markdown.trim();
+      } else if (selectedSource.html) {
+        // Convert selected element HTML to markdown if not already converted
+        try {
+          const turndown = new TurndownService({
+            headingStyle: "atx", // Use # for headings instead of underlines
+          });
+          content = turndown.turndown(selectedSource.html).trim();
+        } catch (error) {
+          console.warn(
+            "[leetstack] Failed to convert selected HTML to markdown, using text",
+            error
+          );
+          content = selectedSource.text.trim();
+        }
+      } else {
+        content = selectedSource.text.trim();
+      }
+
+      if (!content) {
+        throw new Error(
+          "Selected content is empty. Please select a different element."
+        );
+      }
+
+      // Use topic from selected source, or page topic if set, or page title
+      const topic = pageTopic || (selectedSource.topic ?? selectedSource.title ?? tab.title ?? undefined);
+
+      // Call the new summary API (now saves to DynamoDB)
+      const { summary, noteId } = await generateSummary({ url: tabUrl, content, topic });
+
+      // Update the summary input with the generated summary
+      setSummaryInput(summary);
+
+      // Update the stackResult with the noteId from API response
+      setStackResult((prev) => {
+        if (!prev) {
+          return {
+            noteId,
+            topic: topic ?? null,
+            summary,
+            cards: [],
+            url: tabUrl,
+            source: "generated",
+          };
+        }
+        return {
+          ...prev,
+          noteId,
+          summary,
+        };
+      });
+
+      // Update page topic if it was extracted
+      if (!pageTopic && selectedSource.topic) {
+        setPageTopic(selectedSource.topic);
+      }
+
+      // Switch to preview mode
+      setIsEditingSummary(false);
+      setGenerationState("completed");
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to generate summary";
+      setErrorMessage(message);
+      setGenerationState("error");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {isLoadingExisting && (
@@ -539,7 +697,214 @@ export default function GeneralNotesTab() {
           <span>Checking if you've already saved cards for this page…</span>
         </div>
       )}
-      {!stackResult &&
+
+      {/* Mode Toggle */}
+      <div className="rounded-full bg-slate-100 p-1 text-sm font-semibold text-slate-600">
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            type="button"
+            onClick={() => setNotesMode("notes")}
+            className={`rounded-full px-4 py-2 transition ${
+              notesMode === "notes"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Notes
+          </button>
+          <button
+            type="button"
+            onClick={() => setNotesMode("flashcards")}
+            className={`rounded-full px-4 py-2 transition ${
+              notesMode === "flashcards"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Flashcards
+          </button>
+        </div>
+      </div>
+
+      {/* Notes Mode */}
+      {notesMode === "notes" && (
+        <section className="space-y-4">
+          {/* Topic Input */}
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Topic
+            </label>
+            <input
+              type="text"
+              value={pageTopic}
+              onChange={(e) => setPageTopic(e.target.value)}
+              placeholder="e.g., React Hooks Tutorial"
+              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+
+          {/* Summary/Notes Editor */}
+          <div>
+            {isEditingSummary || !summaryInput ? (
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Notes
+                </label>
+                <textarea
+                  rows={12}
+                  value={summaryInput}
+                  onChange={(e) => setSummaryInput(e.target.value)}
+                  placeholder="Write your notes in markdown format. Use # for headings, ``` for code blocks, etc."
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  style={{
+                    fontFamily:
+                      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                  }}
+                />
+                <div className="flex items-center justify-between">
+                  {summaryInput && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingSummary(false)}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Preview
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleSaveSummary}
+                    disabled={isSavingSummary || !summaryInput.trim()}
+                    className="ml-auto rounded-full bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isSavingSummary ? "Saving..." : "Save Notes"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <MarkdownViewer
+                content={summaryInput}
+                onEdit={() => setIsEditingSummary(true)}
+              />
+            )}
+          </div>
+
+          {/* AI Actions */}
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSelectElement}
+                disabled={isSelectingContent || isGenerating}
+                className="ml-auto inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+                  <path d="M13 13l6 6" />
+                </svg>
+                {isSelectingContent ? "Click on the page..." : "Select element"}
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateSummary}
+                disabled={isGenerating || !selectedSource}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:shadow-xl hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70 disabled:from-slate-400 disabled:via-slate-500 disabled:to-slate-600 disabled:shadow-none"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M13 2L3 14h9l-1 8 10-10z" />
+                </svg>
+                {isGenerating ? "Generating..." : "Generate AI Summary"}
+              </button>
+            </div>
+
+            {/* Show selected element content */}
+            {selectedSource ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs uppercase tracking-wide text-amber-700 font-medium">
+                      Selected content
+                    </p>
+                    {selectedSource.topic && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-xs font-medium text-amber-600">
+                          Topic:
+                        </span>
+                        <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
+                          {selectedSource.topic}
+                        </span>
+                      </div>
+                    )}
+                    <p className="mt-2 text-xs leading-relaxed text-amber-800 line-clamp-3">
+                      {selectedSource.text.length > 200
+                        ? `${selectedSource.text.slice(0, 200)}...`
+                        : selectedSource.text}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearSelection}
+                    className="flex-shrink-0 text-xs font-semibold uppercase tracking-wide text-amber-800 underline-offset-4 hover:underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Show generation progress */}
+            {isGenerating && (
+              <div className="flex flex-col items-center space-y-2">
+                <div className="relative">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-200">
+                    <svg
+                      className="h-6 w-6 animate-spin text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="absolute -inset-1 rounded-full bg-blue-400 opacity-20 animate-ping"></div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-blue-600">
+                    Generating summary...
+                  </div>
+                  <p className="text-xs text-blue-500 mt-1 animate-pulse">
+                    AI is analyzing the selected content
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+      {notesMode === "flashcards" && !stackResult &&
         !isLoadingExisting &&
         generationState !== "completed" && (
           <section className="space-y-4">
@@ -696,7 +1061,7 @@ export default function GeneralNotesTab() {
             </div>
           </section>
         )}
-      {stackResult ? (
+      {notesMode === "flashcards" && stackResult && (
         <section className="space-y-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-1">
@@ -814,7 +1179,7 @@ export default function GeneralNotesTab() {
             </div>
           )}
         </section>
-      ) : null}
+      )}
     </div>
   );
 }
