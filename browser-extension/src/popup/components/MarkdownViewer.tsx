@@ -21,7 +21,7 @@ export function MarkdownViewer({ content, onEdit }: MarkdownViewerProps) {
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <ReactMarkdown
           components={{
-            code({ className, children, ...props }) {
+            code({ className, children }) {
               const match = /language-(\w+)/.exec(className || "");
               const language = match ? match[1] : "";
 

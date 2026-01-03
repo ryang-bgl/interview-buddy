@@ -146,7 +146,7 @@ export default function AuthPrompt({ onAuthenticated }: AuthPromptProps) {
             Connect LeetStack
           </h1>
           <p className="text-sm text-slate-500">
-            We'll email you a secure sign-in link—no passwords required.
+            Use a secure one time code to login.
           </p>
         </header>
         <div className="mt-6 space-y-4">
@@ -159,21 +159,22 @@ export default function AuthPrompt({ onAuthenticated }: AuthPromptProps) {
           {!isAwaitingOtp ? (
             <div className="space-y-3">
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-slate-700">
-                  Work Email
-                </span>
                 <input
                   type="email"
                   value={emailInput}
                   onChange={(event) => setEmailInput(event.target.value)}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter" && emailInput.trim() && !isSubmitting) {
+                    if (
+                      event.key === "Enter" &&
+                      emailInput.trim() &&
+                      !isSubmitting
+                    ) {
                       event.preventDefault();
                       handleSendOtp();
                     }
                   }}
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  placeholder="you@example.com"
+                  placeholder="login with email"
                   autoFocus
                 />
               </label>
