@@ -39,6 +39,10 @@ export async function authenticateRequest(
 
   const verified = await verifySupabaseToken(idToken);
   const user = await upsertUser(verified);
+
+  // Log authenticated user for all Lambda functions
+  console.info(`User ${user.email}`);
+
   return { token: verified, user };
 }
 
