@@ -6,12 +6,7 @@ import { useStores } from "@/stores/StoreProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const LoginView = observer(() => {
   const { loginStore } = useStores();
@@ -112,7 +107,7 @@ const LoginView = observer(() => {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
+                      if (event.key === "Enter") {
                         event.preventDefault();
                         handleEmailSubmit(event as any);
                       }
@@ -157,7 +152,7 @@ const LoginView = observer(() => {
                     value={otp}
                     onChange={(event) => setOtp(event.target.value)}
                     onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
+                      if (event.key === "Enter") {
                         event.preventDefault();
                         handleOtpSubmit(event as any);
                       }
@@ -198,10 +193,16 @@ const LoginView = observer(() => {
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-xs">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-                  <span className="font-semibold text-amber-800 dark:text-amber-200">Academic Integrity Notice</span>
+                  <span className="font-semibold text-amber-800 dark:text-amber-200">
+                    Academic Integrity Notice
+                  </span>
                 </div>
                 <p className="text-amber-700 dark:text-amber-300">
-                  <span className="font-semibold">LeetStack is not a cheating tool.</span> Solve problems yourself first, then save your solutions for review.
+                  <span className="font-semibold">
+                    LeetStack is not a cheating tool.
+                  </span>{" "}
+                  Solve problems, and then save the solutions and notes with
+                  LeetStack for reviewing later.
                 </p>
               </div>
               <div className="space-y-2 text-xs text-muted-foreground">
@@ -219,7 +220,11 @@ const LoginView = observer(() => {
                   >
                     Get LeetStack Extension
                   </a>
-                  <img src="/assets/chrome.svg" alt="Chrome Web Store" className="h-4 w-4" />
+                  <img
+                    src="/assets/chrome.svg"
+                    alt="Chrome Web Store"
+                    className="h-4 w-4"
+                  />
                 </div>
               </div>
             </div>
