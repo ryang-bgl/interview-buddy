@@ -8,6 +8,7 @@ import {
 import FieldLabel from "./FieldLabel";
 import GeneralNotesTab from "./GeneralNotesTab";
 import EducationalMessage from "./EducationalMessage";
+import { MarkdownViewer } from "./MarkdownViewer";
 import {
   extractSlugFromUrl,
   findLeetCodeProblemDetailsInActivePage,
@@ -48,6 +49,11 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
     "idle" | "saving" | "success" | "error"
   >("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Edit/view mode for solutions
+  const [isEditingUserSolution, setIsEditingUserSolution] = useState(false);
+  const [isEditingAiSolution, setIsEditingAiSolution] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [activeTab, setActiveTab] = useState<MainTabId>("leetcode");
   const isSaving = saveState === "saving";
   const userDisplayName = user.firstName || user.email || "LeetStack member";
@@ -130,12 +136,19 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
           : pageDetails.descriptionHtml
           ? toPlainText(pageDetails.descriptionHtml)
           : pageDetails.descriptionText ?? "";
+
+        // Wrap solution code with markdown code block syntax
+        const solutionCodeRaw = pageDetails.solutionCode?.trim() ?? "";
+        const solutionCode = solutionCodeRaw
+          ? `\`\`\`${pageDetails.language || "text"}\n${solutionCodeRaw}\n\`\`\``
+          : "";
+
         const initialState: PopupFormState = {
           url: key || pageDetails.href || "",
           problemNumber: pageDetails.problemNumber ?? "",
           title: pageDetails.problemTitle ?? "",
           description: description || "",
-          code: pageDetails.solutionCode?.trim() ?? "",
+          code: solutionCode,
           idealSolution: "",
           notes: "",
           language: pageDetails.language,
@@ -602,60 +615,113 @@ export default function MainContent({ user, onSignOut }: MainContentProps) {
                   />
                 </FieldLabel>
                 <FieldLabel label="Problem Description">
-                  <textarea
-                    rows={9}
-                    value={descriptionInput}
-                    onChange={(event) =>
-                      setDescriptionInput(event.target.value)
-                    }
-                    placeholder="Problem description"
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  />
+                  {isEditingDescription || !descriptionInput ? (
+                    <div className="space-y-2">
+                      <textarea
+                        rows={9}
+                        value={descriptionInput}
+                        onChange={(event) =>
+                          setDescriptionInput(event.target.value)
+                        }
+                        placeholder="Problem description (supports markdown)"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      />
+                      {descriptionInput && (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingDescription(false)}
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Preview
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <MarkdownViewer
+                      content={descriptionInput}
+                      onEdit={() => setIsEditingDescription(true)}
+                    />
+                  )}
                 </FieldLabel>
                 <FieldLabel label={`Solution`}>
-                  <textarea
-                    rows={9}
-                    value={codeInput}
-                    onChange={(event) => setCodeInput(event.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                    style={{
-                      fontFamily:
-                        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                    }}
-                  />
+                  {isEditingUserSolution || !codeInput ? (
+                    <div className="space-y-2">
+                      <textarea
+                        rows={9}
+                        value={codeInput}
+                        onChange={(event) => setCodeInput(event.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                        style={{
+                          fontFamily:
+                            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                        }}
+                        placeholder="Add your solution code and explanation here (supports markdown)"
+                      />
+                      {codeInput && (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingUserSolution(false)}
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Preview
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <MarkdownViewer
+                      content={codeInput}
+                      onEdit={() => setIsEditingUserSolution(true)}
+                    />
+                  )}
                 </FieldLabel>
                 <FieldLabel label="Solution for reference (Optional)">
-                  <div className="space-y-3">
-                    <textarea
-                      rows={7}
-                      value={idealSolutionInput}
-                      onChange={(event) =>
-                        setIdealSolutionInput(event.target.value)
-                      }
-                      placeholder="Add an ideal or editorial-grade solution for quick reference"
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                      style={{
-                        fontFamily:
-                          'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                      }}
-                    />
-                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-                      <span>
-                        Store the polished solution you want to memorize.
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleGenerateIdealSolution}
-                        disabled={isGeneratingIdealSolution}
-                        className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-orange-400 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition hover:shadow-xl hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        {isGeneratingIdealSolution
-                          ? "Generating..."
-                          : "Generate with AI"}
-                      </button>
+                  {isEditingAiSolution || !idealSolutionInput ? (
+                    <div className="space-y-3">
+                      <textarea
+                        rows={7}
+                        value={idealSolutionInput}
+                        onChange={(event) =>
+                          setIdealSolutionInput(event.target.value)
+                        }
+                        placeholder="Add an ideal or editorial-grade solution for quick reference (supports markdown)"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                        style={{
+                          fontFamily:
+                            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                        }}
+                      />
+                      {idealSolutionInput && (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingAiSolution(false)}
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Preview
+                        </button>
+                      )}
                     </div>
-                  </div>
+                  ) : (
+                    <MarkdownViewer
+                      content={idealSolutionInput}
+                      onEdit={() => setIsEditingAiSolution(true)}
+                    />
+                  )}
                 </FieldLabel>
+                <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+                  <span>
+                    Store the polished solution you want to memorize.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleGenerateIdealSolution}
+                    disabled={isGeneratingIdealSolution}
+                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-orange-400 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition hover:shadow-xl hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {isGeneratingIdealSolution
+                      ? "Generating..."
+                      : "Generate with AI"}
+                  </button>
+                </div>
 
                 <FieldLabel label="Personal Notes (Optional)">
                   <textarea

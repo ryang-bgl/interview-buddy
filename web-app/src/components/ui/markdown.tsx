@@ -16,12 +16,15 @@ export function Markdown({ content, className }: MarkdownProps) {
         className
       )}
       components={{
-        code({ node, inline, className, children, ...props }) {
+        code(props: any) {
+          const { inline, className, children, ...rest } = props;
           const match = /language-(\w+)/.exec(className || "");
+          const language = match ? match[1] : "";
+
           return !inline && match ? (
             <SyntaxHighlighter
-              style={oneDark}
-              language={match[1]}
+              style={oneDark as any}
+              language={language}
               PreTag="div"
               customStyle={{
                 borderRadius: "0.5rem",
@@ -34,7 +37,7 @@ export function Markdown({ content, className }: MarkdownProps) {
                   background: "transparent",
                 },
               }}
-              {...props}
+              {...rest}
             >
               {String(children).replace(/\n$/, "")}
             </SyntaxHighlighter>
@@ -44,7 +47,7 @@ export function Markdown({ content, className }: MarkdownProps) {
                 "rounded-md bg-muted px-1.5 py-0.5 text-sm font-mono text-foreground",
                 className
               )}
-              {...props}
+              {...rest}
             >
               {children}
             </code>
