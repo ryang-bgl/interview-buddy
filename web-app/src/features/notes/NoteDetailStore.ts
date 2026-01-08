@@ -45,9 +45,14 @@ export class NoteDetailStore {
   note: NoteDetail | null = null;
   isLoading = false;
   error: string | null = null;
+  activeTab: 'summary' | 'flashcards' = 'flashcards';
 
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true });
+  }
+
+  setActiveTab(tab: 'summary' | 'flashcards') {
+    this.activeTab = tab;
   }
 
   async loadNoteDetail(noteId: string): Promise<void> {
@@ -73,6 +78,10 @@ export class NoteDetailStore {
             createNotebookFlashcard(noteId, card, index)
           ),
         };
+        // Auto-switch to summary tab if note has a summary
+        if (this.note.summary && this.activeTab === 'flashcards') {
+          this.activeTab = 'summary';
+        }
       });
     } catch (error) {
       const message =
@@ -164,5 +173,6 @@ export class NoteDetailStore {
     this.note = null;
     this.isLoading = false;
     this.error = null;
+    this.activeTab = 'flashcards';
   }
 }

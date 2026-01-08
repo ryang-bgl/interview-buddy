@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useStores } from "@/stores/StoreProvider";
@@ -15,10 +15,8 @@ const NoteDetailView = observer(() => {
   const { noteDetailStore } = useStores();
   const navigate = useNavigate();
 
-  // Tab state: 'summary' or 'flashcards'
-  const [activeTab, setActiveTab] = useState<'summary' | 'flashcards'>('flashcards');
-
-  const { note, isLoading, error } = noteDetailStore;
+  // Tab state: 'summary' or 'flashcards' (managed by store)
+  const { note, isLoading, error, activeTab } = noteDetailStore;
 
   useEffect(() => {
     if (noteId) {
@@ -28,13 +26,6 @@ const NoteDetailView = observer(() => {
       noteDetailStore.reset();
     };
   }, [noteId, noteDetailStore]);
-
-  // Auto-switch to summary tab if note has a summary
-  useEffect(() => {
-    if (note && note.summary && activeTab === 'flashcards') {
-      setActiveTab('summary');
-    }
-  }, [note, activeTab]);
 
   if (isLoading) {
     return (
@@ -109,7 +100,7 @@ const NoteDetailView = observer(() => {
       {/* Tab Navigation */}
       <div className="rounded-lg bg-muted p-1 inline-flex">
         <button
-          onClick={() => setActiveTab('summary')}
+          onClick={() => noteDetailStore.setActiveTab('summary')}
           className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
             activeTab === 'summary'
               ? 'bg-background text-foreground shadow-sm'
@@ -119,7 +110,7 @@ const NoteDetailView = observer(() => {
           Summary
         </button>
         <button
-          onClick={() => setActiveTab('flashcards')}
+          onClick={() => noteDetailStore.setActiveTab('flashcards')}
           className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
             activeTab === 'flashcards'
               ? 'bg-background text-foreground shadow-sm'
