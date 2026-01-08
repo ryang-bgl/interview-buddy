@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   createGeneralNoteJob,
   getGeneralNoteJob,
@@ -718,53 +718,56 @@ export default function GeneralNotesTab() {
   };
 
   // Debug: manually reload existing note
-  const handleDebugReloadNote = useCallback(async () => {
-    setIsLoadingExisting(true);
-    setErrorMessage(null);
-    try {
-      const tab = await getActiveTab();
-      const tabUrl = tab?.url?.trim();
-      if (!tabUrl) {
-        setErrorMessage("No active tab URL found");
-        setIsLoadingExisting(false);
-        return;
-      }
-      console.log("[leetstack] Debug: Loading existing note for URL:", tabUrl);
-      const existing = await getExistingGeneralNote(tabUrl);
-      console.log("[leetstack] Debug: Full API response:", JSON.stringify(existing, null, 2));
-      console.log("[leetstack] Debug: Existing note response:", existing);
-      if (!existing) {
-        setErrorMessage("No existing note found for this URL");
-        setIsLoadingExisting(false);
-        return;
-      }
-      setStackResult({
-        noteId: existing.noteId,
-        topic: existing.topic,
-        summary: existing.summary,
-        cards: existing.cards,
-        url: existing.url,
-        source: "existing",
-      });
-      setSummaryInput(existing.summary ?? "");
-      setPageTopic(existing.topic ?? "");
-      setGenerationState("completed");
-      setErrorMessage(null);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to load note";
-      console.error("[leetstack] Debug: Error loading note:", error);
-      setErrorMessage(`Debug: ${message}`);
-      setGenerationState("error");
-    } finally {
-      setIsLoadingExisting(false);
-    }
-  }, []);
+  // const handleDebugReloadNote = useCallback(async () => {
+  //   setIsLoadingExisting(true);
+  //   setErrorMessage(null);
+  //   try {
+  //     const tab = await getActiveTab();
+  //     const tabUrl = tab?.url?.trim();
+  //     if (!tabUrl) {
+  //       setErrorMessage("No active tab URL found");
+  //       setIsLoadingExisting(false);
+  //       return;
+  //     }
+  //     console.log("[leetstack] Debug: Loading existing note for URL:", tabUrl);
+  //     const existing = await getExistingGeneralNote(tabUrl);
+  //     console.log(
+  //       "[leetstack] Debug: Full API response:",
+  //       JSON.stringify(existing, null, 2)
+  //     );
+  //     console.log("[leetstack] Debug: Existing note response:", existing);
+  //     if (!existing) {
+  //       setErrorMessage("No existing note found for this URL");
+  //       setIsLoadingExisting(false);
+  //       return;
+  //     }
+  //     setStackResult({
+  //       noteId: existing.noteId,
+  //       topic: existing.topic,
+  //       summary: existing.summary,
+  //       cards: existing.cards,
+  //       url: existing.url,
+  //       source: "existing",
+  //     });
+  //     setSummaryInput(existing.summary ?? "");
+  //     setPageTopic(existing.topic ?? "");
+  //     setGenerationState("completed");
+  //     setErrorMessage(null);
+  //   } catch (error) {
+  //     const message =
+  //       error instanceof Error ? error.message : "Failed to load note";
+  //     console.error("[leetstack] Debug: Error loading note:", error);
+  //     setErrorMessage(`Debug: ${message}`);
+  //     setGenerationState("error");
+  //   } finally {
+  //     setIsLoadingExisting(false);
+  //   }
+  // }, []);
 
   return (
     <div className="space-y-6">
       {/* Debug button */}
-      <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-2">
+      {/* <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-2">
         <span className="text-xs font-semibold text-amber-800">
           Debug Controls
         </span>
@@ -775,7 +778,7 @@ export default function GeneralNotesTab() {
         >
           Reload Note
         </button>
-      </div>
+      </div> */}
 
       {isLoadingExisting && (
         <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/60 px-4 py-3 text-sm text-slate-500">
