@@ -253,14 +253,20 @@ export async function createGeneralNoteJob(
     return (await response.json()) as CreateGeneralNoteJobResponse;
   }
 
-  let message = "Failed to queue review job";
-  try {
-    const body = await response.json();
-    if (body && typeof body.message === "string") {
-      message = body.message;
+  let message = "Failed to queue flashcard generation";
+
+  // Check for service unavailable (503) or other server errors
+  if (response.status === 503) {
+    message = "Service temporarily unavailable. Please try again later.";
+  } else {
+    try {
+      const body = await response.json();
+      if (body && typeof body.message === "string") {
+        message = body.message;
+      }
+    } catch (error) {
+      console.warn("[leetstack] Unable to parse job creation error", error);
     }
-  } catch (error) {
-    console.warn("[leetstack] Unable to parse job creation error", error);
   }
 
   throw new Error(message);
@@ -336,13 +342,19 @@ export async function generateSummary(
   }
 
   let message = "Failed to generate summary";
-  try {
-    const body = await response.json();
-    if (body && typeof body.message === "string") {
-      message = body.message;
+
+  // Check for service unavailable (503) or other server errors
+  if (response.status === 503) {
+    message = "Service temporarily unavailable. Please try again later.";
+  } else {
+    try {
+      const body = await response.json();
+      if (body && typeof body.message === "string") {
+        message = body.message;
+      }
+    } catch (error) {
+      console.warn("[leetstack] Unable to parse summary error", error);
     }
-  } catch (error) {
-    console.warn("[leetstack] Unable to parse summary error", error);
   }
 
   throw new Error(message);

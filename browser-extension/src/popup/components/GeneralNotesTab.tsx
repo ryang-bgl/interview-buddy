@@ -83,11 +83,20 @@ export default function GeneralNotesTab() {
           setIsLoadingExisting(false);
           return;
         }
+        console.log("[leetstack] Loading existing note for URL:", tabUrl);
         const existing = await getExistingGeneralNote(tabUrl);
+        console.log("[leetstack] Existing note response:", existing);
         if (cancelled || !existing) {
+          console.log("[leetstack] No existing note found or cancelled");
           setIsLoadingExisting(false);
           return;
         }
+        console.log("[leetstack] Setting stack result with:", {
+          noteId: existing.noteId,
+          topic: existing.topic,
+          summary: existing.summary,
+          cardsCount: existing.cards?.length || 0,
+        });
         setStackResult({
           noteId: existing.noteId,
           topic: existing.topic,
@@ -96,8 +105,12 @@ export default function GeneralNotesTab() {
           url: existing.url,
           source: "existing",
         });
-        setSummaryInput(existing.summary ?? "");
-        setPageTopic(existing.topic ?? "");
+        const summaryValue = existing.summary ?? "";
+        const topicValue = existing.topic ?? "";
+        console.log("[leetstack] Setting summaryInput:", summaryValue ? "has content" : "empty");
+        console.log("[leetstack] Setting pageTopic:", topicValue || "empty");
+        setSummaryInput(summaryValue);
+        setPageTopic(topicValue);
         setGenerationState("completed");
       } catch (error) {
         if (!cancelled) {
@@ -902,6 +915,14 @@ export default function GeneralNotesTab() {
               </div>
             )}
           </div>
+
+          {/* Show error message if generation failed */}
+          {(generationState === "error" || generationState === "failed") && errorMessage && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-900">
+              <p className="font-semibold">Unable to generate summary</p>
+              <p className="mt-1">{errorMessage}</p>
+            </div>
+          )}
         </section>
       )}
       {notesMode === "flashcards" && !stackResult &&
@@ -1111,9 +1132,9 @@ export default function GeneralNotesTab() {
           </div>
 
           {/* Show error message if generation failed */}
-          {generationState === "failed" && errorMessage && (
+          {(generationState === "error" || generationState === "failed") && errorMessage && (
             <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-900">
-              <p className="font-semibold">Error generating cards</p>
+              <p className="font-semibold">Unable to generate flashcards</p>
               <p className="mt-1">{errorMessage}</p>
             </div>
           )}
