@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   createGeneralNoteJob,
   getGeneralNoteJob,
@@ -95,7 +95,10 @@ export default function GeneralNotesTab() {
           noteId: existing.noteId,
           topic: existing.topic,
           summary: existing.summary,
+          summaryLength: existing.summary?.length || 0,
           cardsCount: existing.cards?.length || 0,
+          cards: existing.cards,
+          url: existing.url,
         });
         setStackResult({
           noteId: existing.noteId,
@@ -107,7 +110,10 @@ export default function GeneralNotesTab() {
         });
         const summaryValue = existing.summary ?? "";
         const topicValue = existing.topic ?? "";
-        console.log("[leetstack] Setting summaryInput:", summaryValue ? "has content" : "empty");
+        console.log(
+          "[leetstack] Setting summaryInput:",
+          summaryValue ? "has content" : "empty"
+        );
         console.log("[leetstack] Setting pageTopic:", topicValue || "empty");
         setSummaryInput(summaryValue);
         setPageTopic(topicValue);
@@ -657,10 +663,19 @@ export default function GeneralNotesTab() {
       }
 
       // Use topic from selected source, or page topic if set, or page title
-      const topic = pageTopic || (selectedSource.topic ?? selectedSource.title ?? tab.title ?? undefined);
+      const topic =
+        pageTopic ||
+        (selectedSource.topic ??
+          selectedSource.title ??
+          tab.title ??
+          undefined);
 
       // Call the new summary API (now saves to DynamoDB)
-      const { summary, noteId } = await generateSummary({ url: tabUrl, content, topic });
+      const { summary, noteId } = await generateSummary({
+        url: tabUrl,
+        content,
+        topic,
+      });
 
       // Update the summary input with the generated summary
       setSummaryInput(summary);
@@ -702,8 +717,66 @@ export default function GeneralNotesTab() {
     }
   };
 
+  // Debug: manually reload existing note
+  const handleDebugReloadNote = useCallback(async () => {
+    setIsLoadingExisting(true);
+    setErrorMessage(null);
+    try {
+      const tab = await getActiveTab();
+      const tabUrl = tab?.url?.trim();
+      if (!tabUrl) {
+        setErrorMessage("No active tab URL found");
+        setIsLoadingExisting(false);
+        return;
+      }
+      console.log("[leetstack] Debug: Loading existing note for URL:", tabUrl);
+      const existing = await getExistingGeneralNote(tabUrl);
+      console.log("[leetstack] Debug: Full API response:", JSON.stringify(existing, null, 2));
+      console.log("[leetstack] Debug: Existing note response:", existing);
+      if (!existing) {
+        setErrorMessage("No existing note found for this URL");
+        setIsLoadingExisting(false);
+        return;
+      }
+      setStackResult({
+        noteId: existing.noteId,
+        topic: existing.topic,
+        summary: existing.summary,
+        cards: existing.cards,
+        url: existing.url,
+        source: "existing",
+      });
+      setSummaryInput(existing.summary ?? "");
+      setPageTopic(existing.topic ?? "");
+      setGenerationState("completed");
+      setErrorMessage(null);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to load note";
+      console.error("[leetstack] Debug: Error loading note:", error);
+      setErrorMessage(`Debug: ${message}`);
+      setGenerationState("error");
+    } finally {
+      setIsLoadingExisting(false);
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
+      {/* Debug button */}
+      <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-2">
+        <span className="text-xs font-semibold text-amber-800">
+          Debug Controls
+        </span>
+        <button
+          type="button"
+          onClick={handleDebugReloadNote}
+          className="rounded-full bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-700"
+        >
+          Reload Note
+        </button>
+      </div>
+
       {isLoadingExisting && (
         <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/60 px-4 py-3 text-sm text-slate-500">
           <span className="inline-flex h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-purple-500" />
@@ -917,15 +990,17 @@ export default function GeneralNotesTab() {
           </div>
 
           {/* Show error message if generation failed */}
-          {(generationState === "error" || generationState === "failed") && errorMessage && (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-900">
-              <p className="font-semibold">Unable to generate summary</p>
-              <p className="mt-1">{errorMessage}</p>
-            </div>
-          )}
+          {(generationState === "error" || generationState === "failed") &&
+            errorMessage && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-900">
+                <p className="font-semibold">Unable to generate summary</p>
+                <p className="mt-1">{errorMessage}</p>
+              </div>
+            )}
         </section>
       )}
-      {notesMode === "flashcards" && !stackResult &&
+      {notesMode === "flashcards" &&
+        !stackResult &&
         !isLoadingExisting &&
         generationState !== "completed" && (
           <section className="space-y-4">
@@ -1110,16 +1185,7 @@ export default function GeneralNotesTab() {
                   : "No cards returned"}
               </p>
             </div>
-            <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
-              {/* {stackResult.noteId && (
-                <button
-                  type="button"
-                  onClick={() => window.open(`https://web.leetstack.app/review/notes/${stackResult.noteId}`, '_blank')}
-                  className="rounded-full bg-green-600 hover:bg-green-700 px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Review Flashcards
-                </button>
-              )} */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={handleSelectElement}
@@ -1128,16 +1194,122 @@ export default function GeneralNotesTab() {
               >
                 {isSelectingContent ? "Click on the page..." : "Select element"}
               </button>
+              {selectedSource && (
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={isGenerating || !selectedSource}
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-orange-400 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition hover:shadow-xl hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 disabled:cursor-not-allowed disabled:opacity-70 disabled:from-slate-400 disabled:via-slate-500 disabled:to-slate-600 disabled:shadow-none"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
+                  </svg>
+                  {isGenerating ? "Generating..." : "Generate cards"}
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Show error message if generation failed */}
-          {(generationState === "error" || generationState === "failed") && errorMessage && (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-900">
-              <p className="font-semibold">Unable to generate flashcards</p>
-              <p className="mt-1">{errorMessage}</p>
+          {/* Show selected element content when existing cards are loaded */}
+          {selectedSource && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs uppercase tracking-wide text-amber-700 font-medium">
+                    Selected content to generate new cards
+                  </p>
+                  {selectedSource.topic && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-xs font-medium text-amber-600">
+                        Topic:
+                      </span>
+                      <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
+                        {selectedSource.topic}
+                      </span>
+                    </div>
+                  )}
+                  <p className="mt-2 text-xs leading-relaxed text-amber-800 line-clamp-3">
+                    {selectedSource.text.length > 200
+                      ? `${selectedSource.text.slice(0, 200)}...`
+                      : selectedSource.text}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearSelection}
+                  className="flex-shrink-0 text-xs font-semibold uppercase tracking-wide text-amber-800 underline-offset-4 hover:underline"
+                >
+                  Clear
+                </button>
+              </div>
             </div>
           )}
+
+          {/* Show generation progress after selected content */}
+          {isGenerating && selectedSource && (
+            <div className="flex flex-col items-center space-y-2">
+              <div className="relative">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-200">
+                  <svg
+                    className="h-6 w-6 animate-spin text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                </div>
+                <div className="absolute -inset-1 rounded-full bg-blue-400 opacity-20 animate-ping"></div>
+              </div>
+              <div className="text-center">
+                <div className="inline-flex items-center gap-1 text-lg font-bold text-blue-600">
+                  <span className="relative">
+                    <span className="text-2xl transition-all duration-300 ease-out">
+                      {generatedCardsCount}
+                    </span>
+                    <span className="absolute -top-1 -right-2 text-xs font-medium text-blue-500 bg-blue-50 rounded-full px-1.5 py-0.5 animate-pulse">
+                      +1
+                    </span>
+                  </span>
+                  <span className="text-blue-500">card</span>
+                  {generatedCardsCount !== 1 && (
+                    <span className="text-blue-500">s</span>
+                  )}
+                </div>
+                <p className="text-xs text-blue-500 mt-1 animate-pulse">
+                  Generating flashcards...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Show error message if generation failed */}
+          {(generationState === "error" || generationState === "failed") &&
+            errorMessage && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-900">
+                <p className="font-semibold">Unable to generate flashcards</p>
+                <p className="mt-1">{errorMessage}</p>
+              </div>
+            )}
 
           {hasCards ? (
             <ul className="space-y-3">
