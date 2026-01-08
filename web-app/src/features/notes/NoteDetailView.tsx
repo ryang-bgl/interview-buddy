@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useStores } from "@/stores/StoreProvider";
@@ -7,12 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { Markdown } from "@/components/ui/markdown";
 import { PlayCircle } from "lucide-react";
 
 const NoteDetailView = observer(() => {
   const { noteId } = useParams<{ noteId: string }>();
   const { noteDetailStore } = useStores();
   const navigate = useNavigate();
+
+  // Tab state: 'summary' or 'flashcards'
+  const [activeTab, setActiveTab] = useState<'summary' | 'flashcards'>('flashcards');
+
+  const { note, isLoading, error } = noteDetailStore;
 
   useEffect(() => {
     if (noteId) {
@@ -23,7 +29,12 @@ const NoteDetailView = observer(() => {
     };
   }, [noteId, noteDetailStore]);
 
-  const { note, isLoading, error } = noteDetailStore;
+  // Auto-switch to summary tab if note has a summary
+  useEffect(() => {
+    if (note && note.summary && activeTab === 'flashcards') {
+      setActiveTab('summary');
+    }
+  }, [note, activeTab]);
 
   if (isLoading) {
     return (
@@ -94,8 +105,55 @@ const NoteDetailView = observer(() => {
           </div>
         </div>
       </div>
-      <div className="space-y-4">
-        {note.cards.map((card, index) => (
+
+      {/* Tab Navigation */}
+      <div className="rounded-lg bg-muted p-1 inline-flex">
+        <button
+          onClick={() => setActiveTab('summary')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeTab === 'summary'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Summary
+        </button>
+        <button
+          onClick={() => setActiveTab('flashcards')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeTab === 'flashcards'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Flashcards ({note.cards.length})
+        </button>
+      </div>
+
+      {/* Summary Tab Content */}
+      {activeTab === 'summary' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {note.summary ? (
+              <div className="prose prose-slate max-w-none">
+                <Markdown content={note.summary} />
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No summary available for this note.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Flashcards Tab Content */}
+      {activeTab === 'flashcards' && (
+        <div className="space-y-4">
+          {note.cards.map((card, index) => (
           <Card key={card.id}>
             <CardHeader>
               <CardTitle className="text-base">Card #{index + 1}</CardTitle>
@@ -168,7 +226,8 @@ const NoteDetailView = observer(() => {
             </CardContent>
           </Card>
         ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 });
