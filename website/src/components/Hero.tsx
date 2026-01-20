@@ -1,23 +1,22 @@
 import {
   Smartphone,
-  Zap,
-  Sparkles,
-  TrendingUp,
+  Code2,
   Cloud,
   BookOpen,
-  Code2,
+  TrendingUp,
   Users,
+  CheckCircle2,
 } from "lucide-react";
 import { JoinWaitlist } from "./JoinWaitlist";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Animated background elements */}
+    <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Animated background elements - professional blue tones */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-sky-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-emerald-500 rounded-full mix-blend-multiply filter blur-xl opacity-15 animate-blob animation-delay-4000"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 relative z-10">
@@ -28,20 +27,21 @@ export function Hero() {
               alt="LeetStack logo"
               className="h-14 w-14 rounded-2xl shadow-xl"
               loading="lazy"
+              width="56"
+              height="56"
             />
             <div className="inline-flex items-center gap-3 px-5 py-2 bg-white/10 backdrop-blur-lg border border-white/20 rounded-full">
-              <Sparkles className="w-4 h-4 text-yellow-300" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
               <span className="text-white font-semibold">
-                LeetStack – AI powered note taking. One Click. Cloud Sync.
-                Mobile Review.
+                Spaced Repetition for All Your Interview Prep
               </span>
             </div>
           </div>
 
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl max-w-5xl mx-auto text-white mb-6 leading-tight">
-            AI-Powered Tech Interview Note Taking
-            <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
-              Capture Once. Review Everywhere.
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl max-w-5xl mx-auto text-white mb-6 leading-tight" id="main-heading">
+            One Place for All Your
+            <span className="block bg-gradient-to-r from-sky-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+              Interview Preparation
             </span>
           </h1>
 
@@ -51,15 +51,17 @@ export function Hero() {
                 href="https://chromewebstore.google.com/detail/leetstack/npflknpllcpnddnhpdkmdjnlomfgmjph"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group w-full min-w-[200px] px-6 py-5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105"
+                className="group w-full min-w-[200px] px-6 py-5 bg-gradient-to-r from-sky-600 to-cyan-600 text-white rounded-xl hover:shadow-2xl hover:shadow-sky-500/50 transition-all duration-300 flex items-center justify-center gap-3"
               >
                 <img
                   src="/assets/chrome.svg"
-                  alt="Chrome Web Store"
+                  alt="Chrome Web Store logo"
                   className="w-5 h-5"
+                  width="20"
+                  height="20"
                 />
-                <span className="font-medium">Install Chrome Extension</span>
-                <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                <span className="font-medium">Install Extension</span>
+                <Code2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
               </a>
             </div>
             <div className="flex flex-col items-center gap-2">
@@ -67,16 +69,16 @@ export function Hero() {
                 href="https://web.leetstack.app"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full min-w-[200px] px-6 py-5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:shadow-2xl hover:shadow-green-500/50 transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105"
+                className="w-full min-w-[200px] px-6 py-5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:shadow-2xl hover:shadow-emerald-500/50 transition-all duration-300 flex items-center justify-center gap-3"
               >
                 <BookOpen className="w-5 h-5" />
-                <span className="font-medium">Review In Web</span>
+                <span className="font-medium">Review & Practice</span>
               </a>
             </div>
             <div className="flex flex-col items-center gap-2">
-              <button className="w-full min-w-[200px] px-6 py-5 bg-white/10 backdrop-blur-lg text-white border border-white/20 rounded-xl hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105">
+              <button disabled className="w-full min-w-[200px] px-6 py-5 bg-white/10 backdrop-blur-lg text-white/60 border border-white/20 rounded-xl cursor-not-allowed flex items-center justify-center gap-3">
                 <Smartphone className="w-5 h-5" />
-                <span className="font-medium">Download Mobile App</span>
+                <span className="font-medium">Mobile App</span>
               </button>
               <span className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
                 Coming soon
@@ -85,114 +87,112 @@ export function Hero() {
           </div>
 
           <div className="max-w-3xl mx-auto mb-12">
-            <p className="text-xl text-gray-300 leading-relaxed mb-6">
-              one-click to save your notes for{" "}
-              <span className="text-purple-300 font-semibold">DSA</span>, turn{" "}
-              <span className="text-pink-300 font-semibold">System Design</span>,
-              or{" "}
-              <span className="text-indigo-300 font-semibold">
-                Behavioral questions
-              </span>{" "}
-              into spaced-repetition cards{" "}
-              <span className="text-yellow-200 font-semibold">
-                by our AI flashcard generator
-              </span>
+            <p className="text-xl text-slate-200 leading-relaxed mb-6">
+              Save{" "}
+              <span className="text-sky-300 font-semibold">LeetCode solutions</span> in one click.
+              Keep <span className="text-violet-300 font-semibold">System Design</span> and{" "}
+              <span className="text-amber-300 font-semibold">Behavioral Questions</span> notes organized.
+              Review everything with spaced repetition flashcards.
             </p>
 
-            {/* Important notice about academic integrity */}
-            <div className="bg-gradient-to-r from-red-500/20 to-orange-500/20 backdrop-blur-lg border border-red-400/30 rounded-2xl p-6 mb-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white font-bold text-sm">!</span>
-                </div>
-                <h3 className="text-lg font-semibold text-red-200">Important: Academic Integrity First</h3>
+            {/* Three product pillars */}
+            <div className="bg-gradient-to-r from-slate-800/80 to-slate-700/80 backdrop-blur-lg border border-slate-600/50 rounded-2xl p-6 mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                <TrendingUp className="w-6 h-6 text-emerald-400" />
+                <h3 className="text-lg font-semibold text-white">Complete Interview Prep System</h3>
               </div>
-              <p className="text-red-100 leading-relaxed mb-3">
-                <span className="font-semibold text-white">LeetStack is NOT a cheating tool.</span> We believe in genuine learning and skill development.
-              </p>
-              <div className="space-y-2 text-red-100">
-                <p className="flex items-start gap-2">
-                  <span className="text-green-300 mt-1">✓</span>
-                  <span>Solve LeetCode problems <span className="font-semibold text-white">yourself first</span></span>
-                </p>
-                <p className="flex items-start gap-2">
-                  <span className="text-green-300 mt-1">✓</span>
-                  <span>Use LeetStack to <span className="font-semibold text-white">save and review</span> your own solutions</span>
-                </p>
-                <p className="flex items-start gap-2">
-                  <span className="text-green-300 mt-1">✓</span>
-                  <span>Build <span className="font-semibold text-white">genuine problem-solving skills</span> for interviews</span>
-                </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-slate-200">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Code2 className="w-5 h-5 text-sky-400" />
+                    <span className="font-semibold text-white">DSA</span>
+                  </div>
+                  <span className="text-sm text-center">Review LeetCode with spaced repetition</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Cloud className="w-5 h-5 text-violet-400" />
+                    <span className="font-semibold text-white">System Design</span>
+                  </div>
+                  <span className="text-sm text-center">Organize notes, auto-generate flashcards</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-amber-400" />
+                    <span className="font-semibold text-white">Behavioral</span>
+                  </div>
+                  <span className="text-sm text-center">Keep stories, review with flashcards</span>
+                </div>
               </div>
             </div>
 
-            <p className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-slate-50 to-amber-200 font-semibold text-lg">
-              AI handles the summarizing and card writing so you focus on practicing what you've learned.
+            <p className="text-transparent bg-clip-text bg-gradient-to-r from-sky-200 via-slate-50 to-emerald-200 font-semibold text-lg">
+              Stop forgetting what you studied. Enter interviews with confidence.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 max-w-5xl mx-auto mb-16">
-            <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-lg p-8 rounded-2xl border border-green-500/20 hover:border-green-500/40 transition-all hover:shadow-xl hover:shadow-green-500/20 hover:-translate-y-1">
-              <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                <Zap className="w-7 h-7 text-white" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto mb-16">
+            <div className="group bg-gradient-to-br from-sky-500/10 to-cyan-500/10 backdrop-blur-lg p-8 rounded-2xl border border-sky-500/20 hover:border-sky-500/40 transition-colors hover:shadow-xl hover:shadow-sky-500/20 cursor-pointer text-center">
+              <div className="w-14 h-14 bg-gradient-to-br from-sky-400 to-cyan-500 rounded-xl flex items-center justify-center mb-5 mx-auto">
+                <Code2 className="w-7 h-7 text-white" />
               </div>
               <div className="text-xl text-white mb-2">One-Click Save</div>
-              <p className="text-gray-400">
-                Capture DSA, System Design & Behavioral notes instantly
+              <p className="text-slate-400">
+                Capture LeetCode solutions with code, notes, and problem details
               </p>
             </div>
 
-            <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-lg p-8 rounded-2xl border border-purple-500/20 hover:border-purple-500/40 transition-all hover:shadow-xl hover:shadow-purple-500/20 hover:-translate-y-1">
-              <div className="w-14 h-14 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+            <div className="group bg-gradient-to-br from-violet-500/10 to-purple-500/10 backdrop-blur-lg p-8 rounded-2xl border border-violet-500/20 hover:border-violet-500/40 transition-colors hover:shadow-xl hover:shadow-violet-500/20 cursor-pointer text-center">
+              <div className="w-14 h-14 bg-gradient-to-br from-violet-400 to-purple-500 rounded-xl flex items-center justify-center mb-5 mx-auto">
                 <Cloud className="w-7 h-7 text-white" />
               </div>
-              <div className="text-xl text-white mb-2">Cloud Sync</div>
-              <p className="text-gray-400">
-                Access your notes anywhere, on any device
+              <div className="text-xl text-white mb-2">Notes Hub</div>
+              <p className="text-slate-400">
+                Keep System Design & Behavioral notes organized in one place
               </p>
             </div>
 
-            <div className="group bg-gradient-to-br from-indigo-500/10 to-blue-500/10 backdrop-blur-lg p-8 rounded-2xl border border-indigo-500/20 hover:border-indigo-500/40 transition-all hover:shadow-xl hover:shadow-indigo-500/20 hover:-translate-y-1">
-              <div className="w-14 h-14 bg-gradient-to-br from-indigo-400 to-blue-500 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                <Smartphone className="w-7 h-7 text-white" />
-              </div>
-              <div className="text-xl text-white mb-2">Review On The Go</div>
-              <p className="text-gray-400">
-                Practice anywhere with spaced repetition
-              </p>
-            </div>
-
-            <div className="group bg-gradient-to-br from-yellow-500/10 to-amber-500/10 backdrop-blur-lg p-8 rounded-2xl border border-yellow-500/20 hover:border-yellow-500/40 transition-all hover:shadow-xl hover:shadow-yellow-500/20 hover:-translate-y-1">
-              <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+            <div className="group bg-gradient-to-br from-emerald-500/10 to-green-500/10 backdrop-blur-lg p-8 rounded-2xl border border-emerald-500/20 hover:border-emerald-500/40 transition-colors hover:shadow-xl hover:shadow-emerald-500/20 cursor-pointer text-center">
+              <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center mb-5 mx-auto">
                 <BookOpen className="w-7 h-7 text-white" />
               </div>
-              <div className="text-xl text-white mb-2">AI Flashcards</div>
-              <p className="text-gray-400">
-                Auto-convert highlighted notes into ready-to-review flashcards.
+              <div className="text-xl text-white mb-2">Smart Flashcards</div>
+              <p className="text-slate-400">
+                AI converts your notes into review cards at optimal intervals
+              </p>
+            </div>
+
+            <div className="group bg-gradient-to-br from-amber-500/10 to-orange-500/10 backdrop-blur-lg p-8 rounded-2xl border border-amber-500/20 hover:border-amber-500/40 transition-colors hover:shadow-xl hover:shadow-amber-500/20 cursor-pointer text-center">
+              <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center mb-5 mx-auto">
+                <Smartphone className="w-7 h-7 text-white" />
+              </div>
+              <div className="text-xl text-white mb-2">Mobile Review</div>
+              <p className="text-slate-400">
+                Practice anywhere with spaced repetition on your phone
               </p>
             </div>
           </div>
 
           {/* Question types badges */}
           <div className="flex flex-wrap gap-4 justify-center max-w-3xl mx-auto">
-            <div className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 backdrop-blur-lg border border-blue-400/30 rounded-full">
-              <Code2 className="w-5 h-5 text-blue-300" />
+            <div className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-sky-500/20 to-cyan-500/20 backdrop-blur-lg border border-sky-400/30 rounded-full">
+              <Code2 className="w-5 h-5 text-sky-300" />
               <span className="text-white font-medium">
                 Data Structures & Algorithms
               </span>
             </div>
-            <div className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-orange-500/20 to-red-500/20 backdrop-blur-lg border border-orange-400/30 rounded-full">
-              <TrendingUp className="w-5 h-5 text-orange-300" />
-              <span className="text-white font-medium">System Design</span>
+            <div className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-violet-500/20 to-purple-500/20 backdrop-blur-lg border border-violet-400/30 rounded-full">
+              <TrendingUp className="w-5 h-5 text-violet-300" />
+              <span className="text-white font-medium">System Design Notes</span>
             </div>
-            <div className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 backdrop-blur-lg border border-yellow-400/30 rounded-full">
-              <BookOpen className="w-5 h-5 text-yellow-300" />
+            <div className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500/20 to-green-500/20 backdrop-blur-lg border border-emerald-400/30 rounded-full">
+              <BookOpen className="w-5 h-5 text-emerald-300" />
               <span className="text-white font-medium">
-                AI Notes ➜ Flashcards
+                AI Flashcards
               </span>
             </div>
-            <div className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-pink-500/20 to-rose-500/20 backdrop-blur-lg border border-pink-400/30 rounded-full">
-              <Users className="w-5 h-5 text-pink-300" />
+            <div className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-lg border border-amber-400/30 rounded-full">
+              <Users className="w-5 h-5 text-amber-300" />
               <span className="text-white font-medium">
                 Behavioral Questions
               </span>

@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import { Nav } from "../components/Nav";
 import { Hero } from "../components/Hero";
 import { BrowserExtension } from "../components/BrowserExtension";
 import { MobileApp } from "../components/MobileApp";
@@ -8,13 +9,13 @@ import { CTA } from "../components/CTA";
 import { Footer } from "../components/Footer";
 
 const seo = {
-  title: "LeetStack · Save YOUR LeetCode Solutions & Master Them with Spaced Repetition",
+  title: "LeetStack · Review LeetCode, System Design & Behavioral Notes with Spaced Repetition",
   description:
-    "Solve LeetCode problems yourself, then save your solutions with LeetStack Chrome extension. Master YOUR solutions with spaced repetition - not a cheating tool.",
+    "Save LeetCode solutions in one click. Keep System Design notes and Behavioral Question stories organized. Review everything with AI-powered spaced repetition flashcards. Remember what you studied for your interviews.",
   siteUrl: "https://www.leetstack.app",
   imagePath: "/assets-shared/leetstack.jpg",
   keywords:
-    "leetstack, leetcode chrome extension, dsa notes, ai flashcards, system design study, behaviour question study, interview prep app, ethical learning, solve yourself, spaced repetition",
+    "leetstack, leetcode chrome extension, spaced repetition, dsa flashcards, system design notes, behavioral interview prep, leetcode saver, interview study tool, star method stories, technical interview preparation",
 };
 
 const ogImageUrl = `${seo.siteUrl}${seo.imagePath}`;
@@ -50,6 +51,22 @@ const structuredData = {
 
 <html lang="en">
   <head>
+<!-- Skip link for accessibility -->
+<style>
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #000;
+    color: #fff;
+    padding: 8px;
+    text-decoration: none;
+    z-index: 100;
+  }
+  .skip-link:focus {
+    top: 0;
+  }
+</style>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-MNTLETS7T4"></script>
 <script>
@@ -89,13 +106,15 @@ const structuredData = {
     
   </head>
   <body>
-    <main id="main-content">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <Nav client:load />
+    <main id="main-content" class="pt-16">
       <Hero client:load />
       <BrowserExtension />
       <MobileApp />
       <HowItWorks />
       <CTA />
     </main>
-    <Footer />
+    <Footer role="contentinfo" />
   </body>
 </html>

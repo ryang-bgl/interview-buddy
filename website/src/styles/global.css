@@ -12,6 +12,17 @@ body {
   @apply bg-white text-slate-900 antialiased;
 }
 
+/* Professional color palette for tech interview prep */
+:root {
+  --primary-dark: #0f172a;
+  --primary: #1e293b;
+  --primary-light: #334155;
+  --accent-blue: #0ea5e9;
+  --accent-cyan: #06b6d4;
+  --success-green: #10b981;
+  --success-emerald: #059669;
+}
+
 .animate-blob {
   animation: blob 8s ease-in-out infinite;
 }
@@ -37,4 +48,21 @@ body {
   100% {
     transform: translate(0px, 0px) scale(1);
   }
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible styles for keyboard navigation - professional blue */
+*:focus-visible {
+  outline: 2px solid rgb(14 165 233);
+  outline-offset: 2px;
 }

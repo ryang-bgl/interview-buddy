@@ -12,32 +12,37 @@ export function Footer() {
                 alt="LeetStack logo"
                 className="h-12 w-12 rounded-2xl shadow-xl"
                 loading="lazy"
+                width="48"
+                height="48"
               />
               <span className="text-2xl text-white font-semibold">
                 LeetStack
               </span>
             </div>
             <p className="text-gray-400 mb-6 max-w-md leading-relaxed">
-              Save LeetCode solutions with our Chrome extension and master them
-              through spaced repetition on mobile. Transform problem-solving
-              into lasting knowledge.
+              Save LeetCode solutions, keep System Design notes, and organize Behavioral
+              stories. Review everything with spaced repetition flashcards.
+              Transform interview prep into lasting knowledge.
             </p>
             <div className="flex gap-3">
               <a
                 href="#"
-                className="w-11 h-11 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-slate-700 hover:text-white transition-all hover:-translate-y-1"
+                className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-slate-700 hover:text-white transition-colors hover:-translate-y-1 cursor-pointer"
+                aria-label="GitHub"
               >
                 <Github className="w-5 h-5" />
               </a>
               <a
                 href="#"
-                className="w-11 h-11 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-slate-700 hover:text-white transition-all hover:-translate-y-1"
+                className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-slate-700 hover:text-white transition-colors hover:-translate-y-1 cursor-pointer"
+                aria-label="Twitter"
               >
                 <Twitter className="w-5 h-5" />
               </a>
               <a
                 href="#"
-                className="w-11 h-11 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-slate-700 hover:text-white transition-all hover:-translate-y-1"
+                className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-slate-700 hover:text-white transition-colors hover:-translate-y-1 cursor-pointer"
+                aria-label="Email"
               >
                 <Mail className="w-5 h-5" />
               </a>
@@ -50,7 +55,7 @@ export function Footer() {
               <li>
                 <a
                   href="#extension"
-                  className="hover:text-white transition-colors hover:translate-x-1 inline-block"
+                  className="hover:text-white transition-colors hover:translate-x-1 inline-block cursor-pointer"
                 >
                   Chrome Extension
                 </a>
@@ -58,12 +63,12 @@ export function Footer() {
               <li>
                 <a
                   href="#mobile"
-                  className="hover:text-white transition-colors hover:translate-x-1 inline-block"
+                  className="hover:text-white transition-colors hover:translate-x-1 inline-block cursor-pointer"
                 >
                   Mobile App
                 </a>
               </li>
-              <li>
+              {/* <li>
                 <a
                   href="#"
                   className="hover:text-white transition-colors hover:translate-x-1 inline-block"
@@ -78,14 +83,14 @@ export function Footer() {
                 >
                   FAQ
                 </a>
-              </li>
+              </li> */}
             </ul>
           </div>
 
           <div>
             <h4 className="text-white mb-5 text-lg">Company</h4>
             <ul className="space-y-3">
-              <li>
+              {/* <li>
                 <a
                   href="#"
                   className="hover:text-white transition-colors hover:translate-x-1 inline-block"
@@ -100,23 +105,23 @@ export function Footer() {
                 >
                   Blog
                 </a>
-              </li>
+              </li> */}
               <li>
                 <a
                   href="/browser-extension-privacy"
-                  className="hover:text-white transition-colors hover:translate-x-1 inline-block"
+                  className="hover:text-white transition-colors hover:translate-x-1 inline-block cursor-pointer"
                 >
                   Browser Extension Privacy
                 </a>
               </li>
-              <li>
+              {/* <li>
                 <a
                   href="#"
                   className="hover:text-white transition-colors hover:translate-x-1 inline-block"
                 >
                   Terms of Service
                 </a>
-              </li>
+              </li> */}
             </ul>
           </div>
         </div>
