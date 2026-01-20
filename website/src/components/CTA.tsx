@@ -1,4 +1,4 @@
-import { Chrome, Smartphone, ArrowRight, Target } from 'lucide-react';
+import { Chrome, ArrowRight, Target } from 'lucide-react';
 
 export function CTA() {
   return (
@@ -42,14 +42,6 @@ export function CTA() {
               </div>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </a>
-
-            <button disabled className="group px-10 py-6 bg-gradient-to-r from-slate-700 to-slate-600 text-white/60 rounded-2xl cursor-not-allowed flex items-center gap-3 shadow-2xl shadow-slate-900/30">
-              <Smartphone className="w-6 h-6" />
-              <div className="text-left">
-                <div className="text-sm text-slate-400">Coming soon to</div>
-                <div className="text-lg font-semibold">iOS & Android</div>
-              </div>
-            </button>
           </div>
         </div>
       </div>

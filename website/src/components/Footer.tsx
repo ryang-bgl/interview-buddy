@@ -21,7 +21,7 @@ export function Footer() {
             </div>
             <p className="text-gray-400 mb-6 max-w-md leading-relaxed">
               Save LeetCode solutions, keep System Design notes, and organize Behavioral
-              stories. Review everything with spaced repetition flashcards.
+              stories. Review everything with AI-powered spaced repetition flashcards.
               Transform interview prep into lasting knowledge.
             </p>
             <div className="flex gap-3">
@@ -60,30 +60,6 @@ export function Footer() {
                   Chrome Extension
                 </a>
               </li>
-              <li>
-                <a
-                  href="#mobile"
-                  className="hover:text-white transition-colors hover:translate-x-1 inline-block cursor-pointer"
-                >
-                  Mobile App
-                </a>
-              </li>
-              {/* <li>
-                <a
-                  href="#"
-                  className="hover:text-white transition-colors hover:translate-x-1 inline-block"
-                >
-                  Pricing
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="hover:text-white transition-colors hover:translate-x-1 inline-block"
-                >
-                  FAQ
-                </a>
-              </li> */}
             </ul>
           </div>
 

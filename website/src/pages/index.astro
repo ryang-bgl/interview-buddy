@@ -3,7 +3,6 @@ import "../styles/global.css";
 import { Nav } from "../components/Nav";
 import { Hero } from "../components/Hero";
 import { BrowserExtension } from "../components/BrowserExtension";
-import { MobileApp } from "../components/MobileApp";
 import { HowItWorks } from "../components/HowItWorks";
 import { CTA } from "../components/CTA";
 import { Footer } from "../components/Footer";
@@ -15,7 +14,7 @@ const seo = {
   siteUrl: "https://www.leetstack.app",
   imagePath: "/assets-shared/leetstack.jpg",
   keywords:
-    "leetstack, leetcode chrome extension, spaced repetition, dsa flashcards, system design notes, behavioral interview prep, leetcode saver, interview study tool, star method stories, technical interview preparation",
+    "leetstack, leetcode chrome extension, spaced repetition, dsa flashcards, system design notes, behavioral interview prep, leetcode saver, interview study tool, star method stories, technical interview preparation, web app",
 };
 
 const ogImageUrl = `${seo.siteUrl}${seo.imagePath}`;
@@ -25,7 +24,7 @@ const structuredData = {
   "@type": "SoftwareApplication",
   applicationCategory: "EducationalApplication",
   name: "LeetStack",
-  operatingSystem: "Chrome, iOS, Android",
+  operatingSystem: "Chrome, Web Browser",
   url: seo.siteUrl,
   image: ogImageUrl,
   description: seo.description,
@@ -39,12 +38,12 @@ const structuredData = {
     "@type": "Offer",
     price: "0",
     priceCurrency: "USD",
-    availability: "https://schema.org/PreOrder",
+    availability: "https://schema.org/InStock",
   },
   potentialAction: {
-    "@type": "JoinAction",
-    target: `${seo.siteUrl}#waitlist`,
-    name: "Join the LeetStack waitlist",
+    "@type": "UseAction",
+    target: `${seo.siteUrl}`,
+    name: "Use LeetStack Web App",
   },
 };
 ---
@@ -111,7 +110,6 @@ const structuredData = {
     <main id="main-content" class="pt-16">
       <Hero client:load />
       <BrowserExtension />
-      <MobileApp />
       <HowItWorks />
       <CTA />
     </main>

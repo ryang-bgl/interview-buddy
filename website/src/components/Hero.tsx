@@ -1,5 +1,4 @@
 import {
-  Smartphone,
   Code2,
   Cloud,
   BookOpen,
@@ -75,15 +74,6 @@ export function Hero() {
                 <span className="font-medium">Review & Practice</span>
               </a>
             </div>
-            <div className="flex flex-col items-center gap-2">
-              <button disabled className="w-full min-w-[200px] px-6 py-5 bg-white/10 backdrop-blur-lg text-white/60 border border-white/20 rounded-xl cursor-not-allowed flex items-center justify-center gap-3">
-                <Smartphone className="w-5 h-5" />
-                <span className="font-medium">Mobile App</span>
-              </button>
-              <span className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
-                Coming soon
-              </span>
-            </div>
           </div>
 
           <div className="max-w-3xl mx-auto mb-12">
@@ -131,7 +121,7 @@ export function Hero() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-16">
             <div className="group bg-gradient-to-br from-sky-500/10 to-cyan-500/10 backdrop-blur-lg p-8 rounded-2xl border border-sky-500/20 hover:border-sky-500/40 transition-colors hover:shadow-xl hover:shadow-sky-500/20 cursor-pointer text-center">
               <div className="w-14 h-14 bg-gradient-to-br from-sky-400 to-cyan-500 rounded-xl flex items-center justify-center mb-5 mx-auto">
                 <Code2 className="w-7 h-7 text-white" />
@@ -159,16 +149,6 @@ export function Hero() {
               <div className="text-xl text-white mb-2">Smart Flashcards</div>
               <p className="text-slate-400">
                 AI converts your notes into review cards at optimal intervals
-              </p>
-            </div>
-
-            <div className="group bg-gradient-to-br from-amber-500/10 to-orange-500/10 backdrop-blur-lg p-8 rounded-2xl border border-amber-500/20 hover:border-amber-500/40 transition-colors hover:shadow-xl hover:shadow-amber-500/20 cursor-pointer text-center">
-              <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center mb-5 mx-auto">
-                <Smartphone className="w-7 h-7 text-white" />
-              </div>
-              <div className="text-xl text-white mb-2">Mobile Review</div>
-              <p className="text-slate-400">
-                Practice anywhere with spaced repetition on your phone
               </p>
             </div>
           </div>
